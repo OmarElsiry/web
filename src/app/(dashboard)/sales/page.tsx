@@ -63,8 +63,11 @@ export default function SalesPage() {
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const handleCustomerNameChange = (val: string) => {
-        setBuyerInfo({ ...buyerInfo, customerName: val });
+    const handleBuyerInfoChange = (field: string, val: string) => {
+        setBuyerInfo(prev => ({ ...prev, [field]: val }));
+
+        // Only search on Name or Phone
+        if (field !== 'customerName' && field !== 'customerPhone') return;
 
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
@@ -356,52 +359,60 @@ export default function SalesPage() {
                     </button>
                     {showBuyerInfo && (
                         <div className="p-3 space-y-3 bg-secondary/20">
-                            <div className="flex items-center gap-2 relative">
-                                <User size={14} className="text-muted-foreground shrink-0" />
-                                <input
-                                    type="text"
-                                    placeholder="Customer Name"
-                                    value={buyerInfo.customerName}
-                                    onChange={e => handleCustomerNameChange(e.target.value)}
-                                    className="flex-1 p-2 text-sm rounded-lg border border-border bg-background transition-shadow focus:ring-2 focus:ring-primary/20 outline-none"
-                                />
-                                {isSearching && <Loader2 size={14} className="animate-spin text-muted-foreground absolute right-3" />}
+                            <div className="space-y-3 relative">
+                                <div className="flex items-center gap-2">
+                                    <User size={14} className="text-muted-foreground shrink-0" />
+                                    <input
+                                        type="text"
+                                        placeholder="Customer Name"
+                                        value={buyerInfo.customerName}
+                                        onChange={e => handleBuyerInfoChange('customerName', e.target.value)}
+                                        className="flex-1 p-2 text-sm rounded-lg border border-border bg-background transition-shadow focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                    {isSearching && <Loader2 size={14} className="animate-spin text-muted-foreground absolute right-3" />}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Phone size={14} className="text-muted-foreground shrink-0" />
+                                    <input
+                                        type="tel"
+                                        placeholder="Phone Number"
+                                        value={buyerInfo.customerPhone}
+                                        onChange={e => handleBuyerInfoChange('customerPhone', e.target.value)}
+                                        className="flex-1 p-2 text-sm rounded-lg border border-border bg-background transition-shadow focus:ring-2 focus:ring-primary/20 outline-none"
+                                    />
+                                </div>
 
                                 {showSuggestions && searchResults.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                                    <div className="absolute top-[80%] left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
                                         {searchResults.map((cust, idx) => (
                                             <button
                                                 key={idx}
                                                 onClick={() => selectCustomer(cust)}
                                                 className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex flex-col border-b border-border/50 last:border-0"
                                             >
-                                                <span className="font-medium">{cust.name}</span>
-                                                <span className="text-xs text-muted-foreground flex gap-2">
-                                                    {cust.phone && <span>{cust.phone}</span>}
-                                                    {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1 rounded text-[10px]">Member</span>}
-                                                </span>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="font-medium">{cust.name}</span>
+                                                    {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1 rounded text-[10px] font-bold">Member</span>}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    {cust.phone && <span className="flex items-center gap-1"><Phone size={10} /> {cust.phone}</span>}
+                                                    {cust.phone && cust.address && <span className="mx-1">•</span>}
+                                                    {cust.address && <span className="flex items-center gap-1 truncate"><MapPin size={10} /> {cust.address}</span>}
+                                                </div>
                                             </button>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <Phone size={14} className="text-muted-foreground shrink-0" />
-                                <input
-                                    type="tel"
-                                    placeholder="Phone Number"
-                                    value={buyerInfo.customerPhone}
-                                    onChange={e => setBuyerInfo({ ...buyerInfo, customerPhone: e.target.value })}
-                                    className="flex-1 p-2 text-sm rounded-lg border border-border bg-background"
-                                />
-                            </div>
+
                             <div className="flex items-center gap-2">
                                 <MapPin size={14} className="text-muted-foreground shrink-0" />
                                 <input
                                     type="text"
                                     placeholder="Address"
                                     value={buyerInfo.customerAddress}
-                                    onChange={e => setBuyerInfo({ ...buyerInfo, customerAddress: e.target.value })}
+                                    onChange={e => handleBuyerInfoChange('customerAddress', e.target.value)}
                                     className="flex-1 p-2 text-sm rounded-lg border border-border bg-background"
                                 />
                             </div>

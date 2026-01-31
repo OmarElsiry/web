@@ -44,7 +44,7 @@ export async function searchCustomers(query: string) {
     });
 
     // Merge and Dedupe
-    const results = [
+    const combined = [
         ...users.map(u => ({
             name: u.name || u.username,
             phone: u.phone,
@@ -59,6 +59,15 @@ export async function searchCustomers(query: string) {
         }))
     ];
 
-    // Filter out null names and weird duplicates? For now return all valid
-    return results.filter(r => r.name);
+    // Deduplicate by Name and Phone combo
+    const seen = new Set();
+    const results = combined.filter(c => {
+        if (!c.name) return false;
+        const key = `${c.name.toLowerCase().trim()}-${(c.phone || '').trim()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    return results;
 }
