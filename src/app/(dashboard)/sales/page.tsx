@@ -36,7 +36,7 @@ export default function SalesPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
-    const [paymentMethod] = useState<'CASH' | 'CREDIT' | 'INSTAPAY'>('CASH');
+    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'INSTAPAY'>('CASH');
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -487,10 +487,23 @@ export default function SalesPage() {
                         <span>EGP {total.toLocaleString()}</span>
                     </div>
 
-                    <div className="pt-2">
-                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-xl border border-primary/20">
-                            <span className="text-xs font-bold uppercase text-primary">Payment</span>
-                            <span className="text-sm font-black text-primary">CASH ONLY</span>
+                    <div className="space-y-2 pt-2">
+                        <label className="text-xs font-bold uppercase text-muted-foreground">Payment Method</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {['CASH', 'CREDIT', 'INSTAPAY'].map((method) => (
+                                <button
+                                    key={method}
+                                    onClick={() => setPaymentMethod(method as any)}
+                                    className={clsx(
+                                        "py-2 text-xs font-bold rounded-lg border transition-all",
+                                        paymentMethod === method
+                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                            : "bg-background border-border hover:bg-secondary text-muted-foreground"
+                                    )}
+                                >
+                                    {method}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
