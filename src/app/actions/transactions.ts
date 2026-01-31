@@ -45,6 +45,7 @@ export async function getStockMovements(
                             product: { select: { name: true, sku: true } }
                         }
                     },
+                    // @ts-ignore: Prisma client type generation lag
                     supplier: true
                 }
             }),
