@@ -16,7 +16,7 @@ import {
     ClipboardCheck,
     TrendingUp,
     UserCheck,
-
+    BarChart3,
     ScrollText,
     DollarSign
 } from 'lucide-react';
@@ -31,6 +31,7 @@ const iconMap: Record<string, any> = {
     '/movements': ArrowLeftRight,
     '/products': Package,
     '/invoices': FileText,
+    '/analytics': BarChart3,
     '/profits': TrendingUp,
     '/staff-sales': UserCheck,
     '/logs': ScrollText,
