@@ -50,6 +50,7 @@ export async function getMenuItemsForUser() {
         { to: '/movements', permission: 'movements', label: 'Stock In/Out', labelAr: 'الطالع والداخل' },
         { to: '/products', permission: 'products', label: 'Products & Pricing', labelAr: 'الأصناف والتسعير' },
         { to: '/invoices', permission: 'invoices', label: 'Invoices', labelAr: 'الفواتير' },
+        { to: '/customers', permission: 'dashboard', label: 'Customers', labelAr: 'العملاء' },
         { to: '/analytics', permission: 'dashboard', label: 'Analytics', labelAr: 'التحليلات' },
         { to: '/profits', permission: 'profits', label: 'Profits', labelAr: 'الأرباح' },
         { to: '/staff-sales', permission: 'staff_sales', label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },

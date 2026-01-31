@@ -31,6 +31,7 @@ const iconMap: Record<string, any> = {
     '/movements': ArrowLeftRight,
     '/products': Package,
     '/invoices': FileText,
+    '/customers': Users,
     '/analytics': BarChart3,
     '/profits': TrendingUp,
     '/staff-sales': UserCheck,

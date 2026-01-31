@@ -71,3 +71,123 @@ export async function searchCustomers(query: string) {
 
     return results;
 }
+
+export async function getCustomersList() {
+    const prisma = getPrisma();
+
+    // Fetch registered users
+    const users = await prisma.user.findMany({
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            phone: true,
+            address: true,
+            createdAt: true,
+        }
+    });
+
+    // Fetch walk-in customers from invoices
+    const invoices = await prisma.invoice.findMany({
+        distinct: ['customerName', 'customerPhone'],
+        select: {
+            customerName: true,
+            customerPhone: true,
+            customerAddress: true,
+        },
+        orderBy: { date: 'desc' }
+    });
+
+    // Combine and calculate basic stats
+    const combinedMap = new Map();
+
+    users.forEach(u => {
+        const key = `${(u.name || u.username).toLowerCase().trim()}-${(u.phone || '').trim()}`;
+        combinedMap.set(key, {
+            id: u.id,
+            name: u.name || u.username,
+            phone: u.phone || 'N/A',
+            address: u.address || 'N/A',
+            type: 'USER',
+            joined: u.createdAt,
+            totalPurchases: 0,
+            totalSpent: 0
+        });
+    });
+
+    invoices.forEach(i => {
+        if (!i.customerName) return;
+        const key = `${i.customerName.toLowerCase().trim()}-${(i.customerPhone || '').trim()}`;
+        if (!combinedMap.has(key)) {
+            combinedMap.set(key, {
+                id: null,
+                name: i.customerName,
+                phone: i.customerPhone || 'N/A',
+                address: i.customerAddress || 'N/A',
+                type: 'GUEST',
+                joined: null,
+                totalPurchases: 0,
+                totalSpent: 0
+            });
+        }
+    });
+
+    return Array.from(combinedMap.values());
+}
+
+export async function getCustomerProfile(name: string, phone: string | null) {
+    const prisma = getPrisma();
+
+    // Fetch all invoices for this specific customer combo
+    const invoices = await prisma.invoice.findMany({
+        where: {
+            customerName: name,
+            customerPhone: phone === 'N/A' ? null : phone
+        },
+        include: {
+            items: {
+                include: {
+                    product: true
+                }
+            },
+            user: {
+                select: { name: true }
+            }
+        },
+        orderBy: { date: 'desc' }
+    });
+
+    // Also check if they are a registered user
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { name: name, phone: phone === 'N/A' ? null : phone },
+                { username: name }
+            ]
+        }
+    });
+
+    return {
+        profile: {
+            name,
+            phone: phone || 'N/A',
+            address: user?.address || invoices[0]?.customerAddress || 'N/A',
+            type: user ? 'USER' : 'GUEST',
+            userId: user?.id || null,
+            joinedAt: user?.createdAt || invoices[invoices.length - 1]?.date
+        },
+        invoices: invoices.map(inv => ({
+            id: inv.id,
+            date: inv.date,
+            total: inv.totalAmount,
+            method: inv.paymentMethod,
+            seller: inv.user?.name || 'Unknown',
+            items: inv.items.map(it => ({
+                product: it.product.name,
+                quantity: it.quantity,
+                price: it.unitPrice,
+                total: it.subtotal
+            }))
+        }))
+    };
+}
