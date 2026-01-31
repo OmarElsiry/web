@@ -100,8 +100,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
                         <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
                     </div>
-                    <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
-                        EPIC
+                    <h1 className="text-xl font-black ">
+                        EPIC COMPANY
                     </h1>
                     <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="md:hidden ml-auto">
                         <X />
