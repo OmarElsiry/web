@@ -61,6 +61,11 @@ export default function InvoicesPage() {
         }, 100);
     }
 
+    const handlePrintReport = () => {
+        const dateRangeStr = startDate || endDate ? `<p>Period: ${startDate || 'Start'} to ${endDate || 'Now'}</p>` : '';
+        printElement('Invoices Report', 'print-invoice-list', dateRangeStr);
+    };
+
     const filteredInvoices = invoices.filter(inv => {
         const query = searchQuery.toLowerCase();
         const matchesSearch = (
@@ -91,8 +96,11 @@ export default function InvoicesPage() {
                         <Calendar size={16} />
                         Date Range
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg">
-                        <Download size={16} />
+                    <button
+                        onClick={handlePrintReport}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+                    >
+                        <Printer size={16} />
                         Export Report
                     </button>
                 </div>
@@ -330,6 +338,55 @@ export default function InvoicesPage() {
                     </div>
                 </div>
             )}
+
+
+            {/* Hidden Print Content */}
+            <div id="print-invoice-list" className="hidden">
+                <style>{`
+                    @media print {
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                        th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; font-weight: bold; }
+                        .text-right { text-align: right; }
+                        .font-bold { font-weight: bold; }
+                    }
+                `}</style>
+                <div className="mb-4">
+                    <h1 className="text-xl font-bold">Invoices Report</h1>
+                    <p className="text-sm text-gray-500">Generated on {new Date().toLocaleString()}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th className="text-right">Amount</th>
+                            <th>Payment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredInvoices.map(inv => (
+                            <tr key={inv.id}>
+                                <td>{new Date(inv.date).toLocaleDateString()}</td>
+                                <td>{inv.id.slice(0, 8).toUpperCase()}</td>
+                                <td>{inv.customerName || (inv.user ? inv.user.username : 'Walk-in')}</td>
+                                <td className="text-right">EGP {Number(inv.totalAmount).toLocaleString()}</td>
+                                <td>{inv.paymentMethod}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colSpan={3} className="text-right font-bold pt-4">TOTAL</td>
+                            <td className="text-right font-bold pt-4">
+                                EGP {filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0).toLocaleString()}
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
         </div>
     );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, Phone, MapPin, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Filter } from 'lucide-react';
 import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
+import { getCurrentUser } from '@/app/actions/auth';
 import clsx from 'clsx';
 
 interface Product {
@@ -92,11 +93,14 @@ export default function SalesPage() {
     };
 
     useEffect(() => {
-        Promise.all([getProducts(), getCategories(), getStaffList()]).then(([prods, cats, staff]) => {
+        Promise.all([getProducts(), getCategories(), getStaffList(), getCurrentUser()]).then(([prods, cats, staff, user]) => {
             setProducts(prods);
             setCategories(cats);
             setStaffList(staff);
             setLoading(false);
+            if (user && staff.some(s => s.id === user.id)) {
+                setSelectedStaffId(user.id);
+            }
         });
     }, []);
 
