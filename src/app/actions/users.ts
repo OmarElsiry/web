@@ -46,8 +46,8 @@ export async function createUser(formData: FormData) {
         email_confirm: true
     });
 
-    if (authError) {
-        return { error: authError.message };
+    if (authError || !user) {
+        return { error: authError?.message || 'Failed to create user' };
     }
 
     // 2. Create in public table
