@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, Phone, MapPin, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Filter } from 'lucide-react';
 import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
+import { searchCustomers } from '@/app/actions/customers';
 import clsx from 'clsx';
 
 interface Product {
@@ -54,6 +55,41 @@ export default function SalesPage() {
         customerPhone: '',
         customerAddress: ''
     });
+
+    // Customer Search State
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleCustomerNameChange = (val: string) => {
+        setBuyerInfo({ ...buyerInfo, customerName: val });
+
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+
+        if (val.length < 2) {
+            setSearchResults([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        setIsSearching(true);
+        searchTimeoutRef.current = setTimeout(async () => {
+            const results = await searchCustomers(val);
+            setSearchResults(results);
+            setShowSuggestions(results.length > 0);
+            setIsSearching(false);
+        }, 300);
+    };
+
+    const selectCustomer = (cust: any) => {
+        setBuyerInfo({
+            customerName: cust.name,
+            customerPhone: cust.phone || '',
+            customerAddress: cust.address || ''
+        });
+        setShowSuggestions(false);
+    };
 
     useEffect(() => {
         Promise.all([getProducts(), getCategories(), getStaffList()]).then(([prods, cats, staff]) => {
@@ -316,15 +352,34 @@ export default function SalesPage() {
                     </button>
                     {showBuyerInfo && (
                         <div className="p-3 space-y-3 bg-secondary/20">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 relative">
                                 <User size={14} className="text-muted-foreground shrink-0" />
                                 <input
                                     type="text"
                                     placeholder="Customer Name"
                                     value={buyerInfo.customerName}
-                                    onChange={e => setBuyerInfo({ ...buyerInfo, customerName: e.target.value })}
-                                    className="flex-1 p-2 text-sm rounded-lg border border-border bg-background"
+                                    onChange={e => handleCustomerNameChange(e.target.value)}
+                                    className="flex-1 p-2 text-sm rounded-lg border border-border bg-background transition-shadow focus:ring-2 focus:ring-primary/20 outline-none"
                                 />
+                                {isSearching && <Loader2 size={14} className="animate-spin text-muted-foreground absolute right-3" />}
+
+                                {showSuggestions && searchResults.length > 0 && (
+                                    <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto animate-in fade-in zoom-in-95 duration-100">
+                                        {searchResults.map((cust, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => selectCustomer(cust)}
+                                                className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/50 flex flex-col border-b border-border/50 last:border-0"
+                                            >
+                                                <span className="font-medium">{cust.name}</span>
+                                                <span className="text-xs text-muted-foreground flex gap-2">
+                                                    {cust.phone && <span>{cust.phone}</span>}
+                                                    {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1 rounded text-[10px]">Member</span>}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="flex items-center gap-2">
                                 <Phone size={14} className="text-muted-foreground shrink-0" />

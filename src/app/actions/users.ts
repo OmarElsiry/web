@@ -1,7 +1,7 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function getUsers() {
@@ -23,7 +23,7 @@ export async function getUsers() {
 
 export async function deleteUser(id: string) {
     const prisma = getPrisma();
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 1. Delete from Supabase Auth
     const { error: authError } = await supabase.auth.admin.deleteUser(id);
@@ -57,7 +57,7 @@ export async function createUser(formData: FormData) {
         permissions = [];
     }
 
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // 1. Create in Supabase Auth
     const { data: { user }, error: authError } = await supabase.auth.admin.createUser({

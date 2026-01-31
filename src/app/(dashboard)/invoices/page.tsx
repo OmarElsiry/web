@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileText, Download, Filter, Search, Calendar, Loader2, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { FileText, Download, Filter, Search, Calendar, Loader2, X, Printer } from 'lucide-react';
 import { getInvoices } from '@/app/actions/invoices';
+import { printElement } from '@/components/ui/PrintExport';
 
 interface Invoice {
     id: string;
@@ -34,6 +35,11 @@ export default function InvoicesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
+    // Date Filter State
+    const [showDateFilter, setShowDateFilter] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     useEffect(() => {
         getInvoices().then(data => {
             // Map Prisma result to UI interface if needed, currently straightforward
@@ -43,29 +49,45 @@ export default function InvoicesPage() {
         });
     }, []);
 
-    const handleDownload = async (id: string) => {
-        try {
-            window.open(`/api/invoices/${id}/pdf`, '_blank');
-        } catch (e) {
-            console.error('Download failed', e);
-        }
+    const handleDownload = (invoice: Invoice) => {
+        // We defer the print call slightly to ensure the modal content is rendered if we are opening it just for print
+        // But here we assume modal is open or we print the currently selected one
+        setTimeout(() => {
+            printElement(
+                `Invoice #${invoice.id.slice(0, 8).toUpperCase()}`,
+                'print-invoice-content',
+                `<p>Customer: ${invoice.customerName || 'Walk-in'}</p>`
+            );
+        }, 100);
     }
 
     const filteredInvoices = invoices.filter(inv => {
         const query = searchQuery.toLowerCase();
-        return (
+        const matchesSearch = (
             inv.id.toLowerCase().includes(query) ||
             (inv.customerName && inv.customerName.toLowerCase().includes(query)) ||
             (inv.user?.username && inv.user.username.toLowerCase().includes(query))
         );
+
+        const invDate = new Date(inv.date);
+        const matchesDate =
+            (!startDate || invDate >= new Date(startDate)) &&
+            (!endDate || invDate <= new Date(new Date(endDate).setHours(23, 59, 59)));
+
+        return matchesSearch && matchesDate;
     });
+
+
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <h2 className="text-3xl font-bold tracking-tight">Invoices</h2>
                 <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-secondary">
+                    <button
+                        onClick={() => setShowDateFilter(!showDateFilter)}
+                        className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showDateFilter ? 'bg-secondary border-primary' : 'border-border hover:bg-secondary'}`}
+                    >
                         <Calendar size={16} />
                         Date Range
                     </button>
@@ -89,6 +111,36 @@ export default function InvoicesPage() {
                     <Filter size={18} />
                 </button>
             </div>
+
+            {/* Date Range Inputs */}
+            {showDateFilter && (
+                <div className="flex flex-wrap items-center gap-4 p-4 bg-secondary/20 rounded-xl border border-border animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">From:</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">To:</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
+                    >
+                        Clear Filter
+                    </button>
+                </div>
+            )}
 
             {/* List */}
             <div className="space-y-4">
@@ -132,10 +184,11 @@ export default function InvoicesPage() {
                                 </div>
 
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); handleDownload(inv.id); }}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedInvoice(inv); handleDownload(inv); }}
                                     className="p-2 hover:bg-secondary rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                                    title="Print / Download PDF"
                                 >
-                                    <Download size={20} />
+                                    <Printer size={20} />
                                 </button>
                             </div>
                         </div>
@@ -159,7 +212,7 @@ export default function InvoicesPage() {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div id="print-invoice-content" className="flex-1 overflow-y-auto p-6 space-y-6">
                             {/* Summary Header */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/20 rounded-xl border border-border">
                                 <div>
@@ -261,11 +314,11 @@ export default function InvoicesPage() {
 
                         <div className="p-4 border-t border-border bg-secondary/5 flex gap-3">
                             <button
-                                onClick={() => handleDownload(selectedInvoice.id)}
+                                onClick={() => handleDownload(selectedInvoice)}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all"
                             >
-                                <Download size={18} />
-                                Download PDF
+                                <Printer size={18} />
+                                Print / Save PDF
                             </button>
                             <button
                                 onClick={() => setSelectedInvoice(null)}

@@ -1,7 +1,7 @@
 // Default permissions by role - shared between client and server
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'staff_sales', 'logs', 'users'],
-    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'staff_sales', 'logs'],
+    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'staff_sales', 'logs', 'users'],
     ACCOUNTANT: ['dashboard', 'invoices', 'profits', 'staff_sales', 'logs'],
     SALESPERSON: ['dashboard', 'sales', 'invoices'],
     READ_ONLY: ['dashboard', 'invoices'],

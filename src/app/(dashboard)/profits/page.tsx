@@ -10,6 +10,11 @@ export default function ProfitsPage() {
     const [inventory, setInventory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Date Filter
+    const [showDateFilter, setShowDateFilter] = useState(false);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
     useEffect(() => {
         Promise.all([getInvoices(), getInventory()]).then(([inv, stock]) => {
             setInvoices(inv);
@@ -18,8 +23,14 @@ export default function ProfitsPage() {
         });
     }, []);
 
-    const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
-    const estimatedCost = invoices.reduce((sum, inv) => {
+    const filteredInvoices = invoices.filter(inv => {
+        const invDate = new Date(inv.date);
+        return (!startDate || invDate >= new Date(startDate)) &&
+            (!endDate || invDate <= new Date(new Date(endDate).setHours(23, 59, 59)));
+    });
+
+    const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+    const estimatedCost = filteredInvoices.reduce((sum, inv) => {
         const invItems = inv.items || [];
         return sum + invItems.reduce((itemSum: number, item: any) => {
             const prod = inventory.find(i => i.product?.id === item.productId);
@@ -40,7 +51,44 @@ export default function ProfitsPage() {
                     </h2>
                     <p className="text-muted-foreground">Profit & Loss Overview</p>
                 </div>
+                <button
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                    className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showDateFilter ? 'bg-secondary border-primary' : 'border-border hover:bg-secondary'}`}
+                >
+                    <Calendar size={16} />
+                    Date Range
+                </button>
             </div>
+
+            {/* Date Range Inputs */}
+            {showDateFilter && (
+                <div className="flex flex-wrap items-center gap-4 p-4 bg-secondary/20 rounded-xl border border-border animate-in slide-in-from-top-2">
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">From:</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">To:</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
+                    >
+                        Clear Filter
+                    </button>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-card border border-border rounded-xl p-6">
@@ -82,7 +130,7 @@ export default function ProfitsPage() {
                 <div className="space-y-3">
                     {loading ? (
                         <p className="text-muted-foreground">Loading...</p>
-                    ) : invoices.slice(0, 5).map(inv => (
+                    ) : filteredInvoices.slice(0, 5).map(inv => (
                         <div key={inv.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                             <div>
                                 <div className="font-medium">{inv.customerName || 'Customer'}</div>
