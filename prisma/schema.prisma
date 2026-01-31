@@ -3,9 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 // Enums
@@ -41,6 +39,8 @@ model User {
   password  String
   role      Role     @default(READ_ONLY)
   name      String?
+  phone     String?
+  address   String?
   branchId  String?  // Optional link to a specific location
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -106,8 +106,22 @@ model Transaction {
   
   items        TransactionItem[]
   
+  supplierId   String?
+  supplier     Supplier? @relation(fields: [supplierId], references: [id])
+  
   notes        String?
   createdById  String?
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  transactions Transaction[]
 }
 
 model TransactionItem {
@@ -120,17 +134,20 @@ model TransactionItem {
 }
 
 model Invoice {
-  id            String        @id @default(uuid())
-  date          DateTime      @default(now())
-  totalAmount   Decimal
-  paymentMethod PaymentMethod
-  customerName  String?
+  id              String        @id @default(uuid())
+  date            DateTime      @default(now())
+  totalAmount     Decimal
+  paymentMethod   PaymentMethod
+  customerName    String?
+  customerPhone   String?
+  customerAddress String?
   
-  userId        String?
-  user          User?         @relation(fields: [userId], references: [id])
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
   
-  items         InvoiceItem[]
+  items           InvoiceItem[]
 }
+
 
 model InvoiceItem {
   id        String  @id @default(uuid())
