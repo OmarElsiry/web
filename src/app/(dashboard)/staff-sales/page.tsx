@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import { UserCheck, Trophy, TrendingUp, Phone, Eye, X, FileDown, Calendar, DollarSign } from 'lucide-react';
 import { getStaffList, getStaffSalesDetail } from '@/app/actions/staff';
 import clsx from 'clsx';
@@ -285,13 +285,33 @@ export default function StaffSalesPage() {
                                         <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">No sales in this period.</td></tr>
                                     ) : (
                                         modalData.invoices.map((inv: any) => (
-                                            <tr key={inv.id} className="hover:bg-muted/30">
-                                                <td className="py-2">{new Date(inv.date).toLocaleDateString()}</td>
-                                                <td className="py-2">{inv.customerName || '—'}</td>
-                                                <td className="py-2 text-right font-bold text-green-600">
-                                                    +{Number(inv.totalAmount).toLocaleString()}
-                                                </td>
-                                            </tr>
+                                            <Fragment key={inv.id}>
+                                                <tr className="hover:bg-muted/30">
+                                                    <td className="py-2 font-medium">{new Date(inv.date).toLocaleDateString()}</td>
+                                                    <td className="py-2">{inv.customerName || '—'}</td>
+                                                    <td className="py-2 text-right font-bold text-green-600">
+                                                        +{Number(inv.totalAmount).toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                                {/* Detailed Items Row */}
+                                                <tr className="bg-secondary/10">
+                                                    <td colSpan={3} className="pl-4 pr-2 pb-4 pt-1">
+                                                        <div className="text-xs text-muted-foreground ml-2 border-l-2 border-primary/20 pl-3">
+                                                            {inv.items?.map((item: any) => (
+                                                                <div key={item.id} className="flex justify-between py-1 border-b border-border/50 last:border-0">
+                                                                    <span>
+                                                                        <span className="font-semibold text-foreground">{item.product?.name || 'Unknown'}</span>
+                                                                        <span className="text-muted-foreground mx-1">x</span>
+                                                                        {item.quantity}
+                                                                        {item.product?.unit && <span className="text-[10px] ml-1 opacity-70">({item.product.unit})</span>}
+                                                                    </span>
+                                                                    <span>{Number(item.subtotal).toLocaleString()}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </Fragment>
                                         ))
                                     )}
                                 </tbody>

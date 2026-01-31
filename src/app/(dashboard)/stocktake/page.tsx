@@ -1,10 +1,103 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ClipboardCheck, Search, RefreshCcw, AlertTriangle, CheckCircle, Edit2 } from 'lucide-react';
+import { ClipboardCheck, Search, RefreshCcw, Save, Filter } from 'lucide-react';
+import { getStocktakeItems, reconcileStock, StockAdjustment } from '@/app/actions/stocktake';
+import clsx from 'clsx';
+
+interface Product {
+    id: string;
+    name: string;
+    stock: number;
+    category: string;
+    price: number;
+    locations: { id: string; name: string; quantity: number }[];
+}
 
 export default function StocktakePage() {
-    const [loading, setLoading] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState<string>('all');
+
+    // Map of productId -> actualStock
+    const [counts, setCounts] = useState<Record<string, number>>({});
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            const data = await getStocktakeItems();
+            setProducts(data);
+            // Initialize counts with current stock
+            const initialCounts: Record<string, number> = {};
+            data.forEach(p => initialCounts[p.id] = p.stock);
+            setCounts(initialCounts);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCountChange = (id: string, value: string) => {
+        const num = parseInt(value);
+        if (!isNaN(num)) {
+            setCounts(prev => ({ ...prev, [id]: num }));
+        }
+    };
+
+    const getAdjustments = (): StockAdjustment[] => {
+        const adjustments: StockAdjustment[] = [];
+        products.forEach(p => {
+            const actual = counts[p.id];
+            if (actual !== undefined && actual !== p.stock) {
+                adjustments.push({
+                    productId: p.id,
+                    currentStock: p.stock,
+                    actualStock: actual
+                    // simplistic: we let backend distribute diff to default location if multiple exist
+                    // In a complex app, we'd iterate over p.locations
+                });
+            }
+        });
+        return adjustments;
+    };
+
+    const adjustments = getAdjustments();
+    const hasAdjustments = adjustments.length > 0;
+
+    const handleSave = async () => {
+        if (!hasAdjustments) return;
+
+        const confirmed = window.confirm(
+            `You are about to reconcile ${adjustments.length} items. This will update inventory levels. Continue?`
+        );
+
+        if (!confirmed) return;
+
+        setSaving(true);
+        try {
+            await reconcileStock(adjustments);
+            alert('Stock reconciled successfully!');
+            await loadData();
+        } catch (error) {
+            alert('Failed to reconcile stock');
+            console.error(error);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+        return matchesSearch && matchesCategory;
+    });
 
     return (
         <div className="space-y-6">
@@ -12,23 +105,152 @@ export default function StocktakePage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                         <ClipboardCheck className="text-primary" />
-                        الجرد
+                        Stock Count
                     </h2>
-                    <p className="text-muted-foreground">Stock Count & Reconciliation</p>
+                    <p className="text-muted-foreground">Reconcile physical inventory</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all">
-                    <RefreshCcw size={16} />
-                    Start New Count
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={loadData}
+                        className="p-2 text-muted-foreground hover:bg-secondary rounded-lg"
+                        title="Refresh"
+                    >
+                        <RefreshCcw size={20} className={clsx(loading && "animate-spin")} />
+                    </button>
+                    {hasAdjustments && (
+                        <button
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all font-bold shadow-lg shadow-primary/20 animate-in fade-in zoom-in"
+                        >
+                            {saving ? (
+                                <>
+                                    <RefreshCcw size={18} className="animate-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    Submit {adjustments.length} Adjustment{adjustments.length !== 1 ? 's' : ''}
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
             </div>
 
-            <div className="bg-card border border-border rounded-xl p-8 text-center">
-                <ClipboardCheck size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-bold mb-2">Physical Stock Count</h3>
-                <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                    Start a new stock count session to reconcile your physical inventory with the system records.
-                    Any discrepancies will be highlighted for review.
-                </p>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search products..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                    />
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                    <Filter size={18} className="text-muted-foreground" />
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="px-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    >
+                        <option value="all">All Categories</option>
+                        {categories.map(c => (
+                            <option key={c} value={c}>{c}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
+                            <tr>
+                                <th className="px-6 py-4">Product</th>
+                                <th className="px-6 py-4">Category</th>
+                                <th className="px-6 py-4 text-center">System Stock</th>
+                                <th className="px-6 py-4 text-center w-32">Actual Count</th>
+                                <th className="px-6 py-4 text-center">Diff</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {loading ? (
+                                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">Loading inventory...</td></tr>
+                            ) : filteredProducts.length === 0 ? (
+                                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No products found.</td></tr>
+                            ) : (
+                                filteredProducts.map(product => {
+                                    const actual = counts[product.id] ?? product.stock;
+                                    const diff = actual - product.stock;
+                                    const hasDiff = diff !== 0;
+
+                                    return (
+                                        <tr key={product.id} className={clsx(
+                                            "transition-colors",
+                                            hasDiff ? "bg-yellow-500/5 hover:bg-yellow-500/10" : "hover:bg-muted/50"
+                                        )}>
+                                            <td className="px-6 py-4 font-semibold text-foreground">
+                                                {product.name}
+                                                {hasDiff && (
+                                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500">
+                                                        Modified
+                                                    </span>
+                                                )}
+                                                {product.locations.length > 1 && (
+                                                    <div className="text-xs text-muted-foreground mt-1">
+                                                        {product.locations.map(l => `${l.name}: ${l.quantity}`).join(', ')}
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-muted-foreground">
+                                                <span className="px-2 py-1 bg-secondary rounded-md text-xs">
+                                                    {product.category || 'Uncategorized'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center font-medium">
+                                                {product.stock}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center justify-center">
+                                                    <input
+                                                        type="number"
+                                                        value={actual}
+                                                        onChange={(e) => handleCountChange(product.id, e.target.value)}
+                                                        className={clsx(
+                                                            "w-20 px-2 py-1 text-center font-bold rounded border outline-none focus:ring-2 transition-all",
+                                                            hasDiff
+                                                                ? "border-yellow-500 text-yellow-600 bg-background focus:ring-yellow-500/20"
+                                                                : "border-input bg-muted/30 focus:bg-background focus:ring-primary/20 focus:border-primary"
+                                                        )}
+                                                        onFocus={(e) => e.target.select()}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {diff === 0 ? (
+                                                    <span className="text-muted-foreground/30">—</span>
+                                                ) : (
+                                                    <span className={clsx(
+                                                        "font-bold",
+                                                        diff > 0 ? "text-green-600" : "text-red-500"
+                                                    )}>
+                                                        {diff > 0 ? '+' : ''}{diff}
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
