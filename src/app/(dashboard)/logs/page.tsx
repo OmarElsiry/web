@@ -1,22 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
-import { ScrollText, RefreshCcw, Loader2, Calendar, User, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getUsers } from '@/app/actions/users';
+import { ScrollText, RefreshCcw, Loader2, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import clsx from 'clsx';
 
 const ITEMS_PER_PAGE = 50;
 
-export default function LogsPage() {
+function LogsContent() {
+    const searchParams = useSearchParams();
     const [logs, setLogs] = useState<any[]>([]);
+    const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
+    const [selectedUserId, setSelectedUserId] = useState<string>(searchParams.get('user') || '');
     const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
 
     const fetchLogs = async () => {
         setLoading(true);
         try {
-            const res = await getAuditLogs(page, ITEMS_PER_PAGE);
+            const res = await getAuditLogs(page, ITEMS_PER_PAGE, selectedUserId || undefined);
             if (res.success && res.logs) {
                 setLogs(res.logs);
                 setPagination(res.pagination || { total: 0, pages: 1, current: 1 });
@@ -27,8 +32,12 @@ export default function LogsPage() {
     };
 
     useEffect(() => {
+        getUsers().then(setUsers);
+    }, []);
+
+    useEffect(() => {
         fetchLogs();
-    }, [page]);
+    }, [page, selectedUserId]);
 
     const getActionColor = (action: string) => {
         if (action.includes('SALE')) return 'bg-green-100 text-green-700 border-green-200';
@@ -56,6 +65,32 @@ export default function LogsPage() {
                     <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
                     Refresh
                 </button>
+            </div>
+
+            {/* User Filter */}
+            <div className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
+                <Filter size={16} className="text-muted-foreground" />
+                <span className="text-sm font-medium">Filter by User:</span>
+                <select
+                    value={selectedUserId}
+                    onChange={(e) => { setSelectedUserId(e.target.value); setPage(1); }}
+                    className="bg-secondary/50 border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 ring-primary/20"
+                >
+                    <option value="">All Users</option>
+                    {users.map((u) => (
+                        <option key={u.id} value={u.id}>
+                            {u.name || u.username} ({u.role})
+                        </option>
+                    ))}
+                </select>
+                {selectedUserId && (
+                    <button
+                        onClick={() => { setSelectedUserId(''); setPage(1); }}
+                        className="text-xs text-primary hover:underline"
+                    >
+                        Clear filter
+                    </button>
+                )}
             </div>
 
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -124,5 +159,13 @@ export default function LogsPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function LogsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>}>
+            <LogsContent />
+        </Suspense>
     );
 }

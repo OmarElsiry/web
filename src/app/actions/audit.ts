@@ -49,13 +49,16 @@ export async function logActivity(
     }
 }
 
-export async function getAuditLogs(page = 1, limit = 50) {
+export async function getAuditLogs(page = 1, limit = 50, userId?: string) {
     const prisma = getPrisma();
     const skip = (page - 1) * limit;
+
+    const where = userId ? { userId } : {};
 
     try {
         const [logs, total] = await Promise.all([
             prisma.auditLog.findMany({
+                where,
                 skip,
                 take: limit,
                 orderBy: { timestamp: 'desc' },
@@ -65,7 +68,7 @@ export async function getAuditLogs(page = 1, limit = 50) {
                     }
                 }
             }),
-            prisma.auditLog.count()
+            prisma.auditLog.count({ where })
         ]);
 
         return {

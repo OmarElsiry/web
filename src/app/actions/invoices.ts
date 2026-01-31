@@ -11,7 +11,7 @@ export async function getInvoices() {
         orderBy: { date: 'desc' },
         include: {
             user: {
-                select: { name: true, username: true }
+                select: { id: true, name: true, username: true, phone: true, address: true }
             },
             items: {
                 include: {

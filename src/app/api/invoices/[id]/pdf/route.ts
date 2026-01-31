@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const invoice = await prisma.invoice.findUnique({
         where: { id },
-        include: { items: { include: { product: true } }, user: true }
+        include: { items: { include: { product: true } }, user: { select: { name: true, username: true, phone: true, address: true } } }
     });
 
     if (!invoice) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
 
-        // -- Content Generation (Ported from legacy) --
+        // -- Content Generation --
         doc.fillColor('#444444')
             .fontSize(20)
             .text('Coffee Distribution Co.', 50, 57)
@@ -44,16 +44,31 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             .text('Cairo, Egypt', 200, 80, { align: 'right' })
             .moveDown();
 
-        doc.fillColor('#000000').fontSize(20).text('INVOICE', 50, 160);
+        doc.fillColor('#000000').fontSize(20).text('INVOICE', 50, 130);
 
+        // Invoice Details
         doc.fontSize(10)
-            .text(`Invoice Number: ${invoice.id.slice(0, 8).toUpperCase()}`, 50, 200)
-            .text(`Invoice Date: ${new Date(invoice.date).toLocaleDateString()}`, 50, 215)
-            .text(`Customer: ${invoice.customerName || 'Walk-in Customer'}`, 50, 230)
-            .text(`Salesperson: ${invoice.user?.name || invoice.user?.username || 'N/A'}`, 50, 245)
+            .text(`Invoice Number: ${invoice.id.slice(0, 8).toUpperCase()}`, 50, 170)
+            .text(`Date & Time: ${new Date(invoice.date).toLocaleString()}`, 50, 185)
             .moveDown();
 
-        const tableTop = 330;
+        // Salesperson (Recorded By)
+        doc.fontSize(12).fillColor('#0055AA').text('Salesperson (Recorded By)', 50, 210);
+        doc.fontSize(10).fillColor('#000000')
+            .text(`Name: ${invoice.user?.name || invoice.user?.username || 'N/A'}`, 50, 230)
+            .text(`Username: @${invoice.user?.username || 'N/A'}`, 250, 230)
+            .text(`Phone: ${invoice.user?.phone || 'N/A'}`, 50, 245)
+            .text(`Address: ${invoice.user?.address || 'N/A'}`, 250, 245);
+
+        // Buyer Information
+        doc.fontSize(12).fillColor('#AA5500').text('Buyer Information', 50, 275);
+        doc.fontSize(10).fillColor('#000000')
+            .text(`Name: ${invoice.customerName || 'Walk-in Customer'}`, 50, 295)
+            .text(`Phone: ${invoice.customerPhone || 'N/A'}`, 250, 295)
+            .text(`Address: ${invoice.customerAddress || 'N/A'}`, 50, 310)
+            .moveDown();
+
+        const tableTop = 350;
         doc.font('Helvetica-Bold');
         doc.text('Item', 50, tableTop);
         doc.text('Quantity', 280, tableTop, { width: 90, align: 'right' });

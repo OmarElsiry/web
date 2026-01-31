@@ -7,7 +7,17 @@ import { revalidatePath } from 'next/cache';
 export async function getUsers() {
     const prisma = getPrisma();
     return prisma.user.findMany({
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            username: true,
+            name: true,
+            role: true,
+            phone: true,
+            address: true,
+            permissions: true,
+            createdAt: true,
+        }
     });
 }
 
@@ -36,6 +46,16 @@ export async function createUser(formData: FormData) {
     const username = formData.get('username') as string;
     const role = formData.get('role') as any;
     const name = formData.get('name') as string;
+    const phone = formData.get('phone') as string | null;
+    const address = formData.get('address') as string | null;
+    const permissionsJson = formData.get('permissions') as string;
+
+    let permissions: string[] = [];
+    try {
+        permissions = JSON.parse(permissionsJson || '[]');
+    } catch {
+        permissions = [];
+    }
 
     const supabase = await createClient();
 
@@ -58,10 +78,48 @@ export async function createUser(formData: FormData) {
             username,
             password: 'EXTERNAL_AUTH', // Password is managed by Supabase Auth
             role,
-            name
+            name,
+            phone: phone || null,
+            address: address || null,
+            permissions,
         }
     });
 
     revalidatePath('/users');
     return { success: true };
+}
+
+export async function updateUser(id: string, formData: FormData) {
+    const role = formData.get('role') as any;
+    const name = formData.get('name') as string;
+    const phone = formData.get('phone') as string | null;
+    const address = formData.get('address') as string | null;
+    const permissionsJson = formData.get('permissions') as string;
+
+    let permissions: string[] = [];
+    try {
+        permissions = JSON.parse(permissionsJson || '[]');
+    } catch {
+        permissions = [];
+    }
+
+    const prisma = getPrisma();
+
+    try {
+        await prisma.user.update({
+            where: { id },
+            data: {
+                role,
+                name,
+                phone: phone || null,
+                address: address || null,
+                permissions,
+            }
+        });
+
+        revalidatePath('/users');
+        return { success: true };
+    } catch (err: any) {
+        return { error: err.message || 'Failed to update user' };
+    }
 }

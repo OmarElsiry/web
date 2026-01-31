@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -20,6 +20,34 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
+import { getMenuItemsForUser, getCurrentUser } from '@/app/actions/permissions';
+
+const iconMap: Record<string, any> = {
+    '/dashboard': LayoutDashboard,
+    '/sales': ShoppingCart,
+    '/stocktake': ClipboardCheck,
+    '/movements': ArrowLeftRight,
+    '/products': Package,
+    '/invoices': FileText,
+    '/profits': TrendingUp,
+    '/staff-sales': UserCheck,
+    '/logs': ScrollText,
+    '/users': Users,
+};
+
+interface MenuItem {
+    to: string;
+    label: string;
+    labelAr: string;
+    permission: string;
+}
+
+interface CurrentUser {
+    id: string;
+    username: string;
+    name: string | null;
+    role: string;
+}
 
 const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, icon: any, label: string, labelAr: string, active: boolean }) => (
     <Link
@@ -39,19 +67,15 @@ const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, i
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const [isSidebarOpen, setSidebarOpen] = useState(true);
+    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
     const pathname = usePathname();
 
-    const menuItems = [
-        { to: '/dashboard', icon: LayoutDashboard, label: 'Home', labelAr: 'الرئيسية' },
-        { to: '/sales', icon: ShoppingCart, label: 'POS', labelAr: 'البيع' },
-        { to: '/stocktake', icon: ClipboardCheck, label: 'Stock Count', labelAr: 'الجرد' },
-        { to: '/movements', icon: ArrowLeftRight, label: 'Stock In/Out', labelAr: 'الطالع والداخل' },
-        { to: '/products', icon: Package, label: 'Products & Pricing', labelAr: 'الأصناف والتسعير' },
-        { to: '/invoices', icon: FileText, label: 'Invoices', labelAr: 'الفواتير' },
-        { to: '/profits', icon: TrendingUp, label: 'Profits', labelAr: 'الأرباح' },
-        { to: '/staff-sales', icon: UserCheck, label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },
-        { to: '/logs', icon: ScrollText, label: 'Audit Logs', labelAr: 'سجل النظام' },
-    ];
+    useEffect(() => {
+        // Load menu items based on user permissions
+        getMenuItemsForUser().then(setMenuItems);
+        getCurrentUser().then(setCurrentUser);
+    }, []);
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -85,7 +109,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <SidebarItem
                             key={item.to}
                             to={item.to}
-                            icon={item.icon}
+                            icon={iconMap[item.to] || LayoutDashboard}
                             label={item.label}
                             labelAr={item.labelAr}
                             active={pathname === item.to || pathname.startsWith(item.to + '/')}
@@ -113,9 +137,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Menu />
                     </button>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">Admin User</span>
-                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                            A
+                        <div className="text-right">
+                            <div className="text-sm font-medium">{currentUser?.name || currentUser?.username || 'User'}</div>
+                            <div className="text-[10px] text-muted-foreground uppercase">{currentUser?.role || 'Loading...'}</div>
+                        </div>
+                        <div className={clsx(
+                            "w-8 h-8 rounded-full flex items-center justify-center font-bold text-white",
+                            currentUser?.role === 'ROOT' ? 'bg-purple-500' :
+                                currentUser?.role === 'ADMIN' ? 'bg-blue-500' :
+                                    currentUser?.role === 'ACCOUNTANT' ? 'bg-green-500' :
+                                        currentUser?.role === 'SALESPERSON' ? 'bg-orange-500' :
+                                            'bg-gray-500'
+                        )}>
+                            {(currentUser?.name || currentUser?.username || 'U')[0].toUpperCase()}
                         </div>
                     </div>
                 </header>

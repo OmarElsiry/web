@@ -6,8 +6,16 @@ import { getInvoices } from '@/app/actions/invoices';
 
 interface Invoice {
     id: string;
-    customerName: string;
-    user?: { name: string | null, username: string };
+    customerName: string | null;
+    customerPhone: string | null;
+    customerAddress: string | null;
+    user?: {
+        id: string;
+        name: string | null;
+        username: string;
+        phone: string | null;
+        address: string | null;
+    };
     date: Date;
     totalAmount: number;
     paymentMethod: string;
@@ -155,7 +163,7 @@ export default function InvoicesPage() {
                             {/* Summary Header */}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/20 rounded-xl border border-border">
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Date</label>
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Date & Time</label>
                                     <div className="text-sm font-semibold">{new Date(selectedInvoice.date).toLocaleString()}</div>
                                 </div>
                                 <div>
@@ -163,12 +171,54 @@ export default function InvoicesPage() {
                                     <div className="text-sm font-semibold">{selectedInvoice.paymentMethod}</div>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Cashier</label>
-                                    <div className="text-sm font-semibold">{selectedInvoice.user?.username || 'N/A'}</div>
-                                </div>
-                                <div>
                                     <label className="text-[10px] font-bold uppercase text-muted-foreground">Status</label>
                                     <div className="text-sm font-bold text-green-500">PAID</div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold uppercase text-muted-foreground">Invoice #</label>
+                                    <div className="text-sm font-mono">{selectedInvoice.id.slice(0, 8).toUpperCase()}</div>
+                                </div>
+                            </div>
+
+                            {/* Salesperson Info */}
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                                <h4 className="font-bold text-sm uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">Salesperson (Recorded By)</h4>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground">Name: </span>
+                                        <span className="font-medium">{selectedInvoice.user?.name || selectedInvoice.user?.username || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Username: </span>
+                                        <span className="font-medium">@{selectedInvoice.user?.username || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Phone: </span>
+                                        <span className="font-medium">{selectedInvoice.user?.phone || 'N/A'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Address: </span>
+                                        <span className="font-medium">{selectedInvoice.user?.address || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Buyer Info */}
+                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                                <h4 className="font-bold text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">Buyer Information</h4>
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <span className="text-muted-foreground">Name: </span>
+                                        <span className="font-medium">{selectedInvoice.customerName || 'Walk-in Customer'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-muted-foreground">Phone: </span>
+                                        <span className="font-medium">{selectedInvoice.customerPhone || 'N/A'}</span>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <span className="text-muted-foreground">Address: </span>
+                                        <span className="font-medium">{selectedInvoice.customerAddress || 'N/A'}</span>
+                                    </div>
                                 </div>
                             </div>
 

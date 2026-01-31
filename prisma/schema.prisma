@@ -10,6 +10,8 @@ datasource db {
 enum Role {
   ROOT
   ADMIN
+  ACCOUNTANT
+  SALESPERSON
   READ_ONLY
 }
 
@@ -34,16 +36,17 @@ enum PaymentMethod {
 
 // Models
 model User {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  role      Role     @default(READ_ONLY)
-  name      String?
-  phone     String?
-  address   String?
-  branchId  String?  // Optional link to a specific location
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  username    String   @unique
+  password    String
+  role        Role     @default(READ_ONLY)
+  name        String?
+  phone       String?
+  address     String?
+  permissions String[] @default([])  // Page access: ["dashboard", "sales", "invoices", etc.]
+  branchId    String?  // Optional link to a specific location
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   // Relations
   sales           Invoice[]
