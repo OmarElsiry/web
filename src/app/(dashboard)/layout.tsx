@@ -69,7 +69,7 @@ const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, i
 );
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const [isSidebarOpen, setSidebarOpen] = useState(true);
+    const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
     const pathname = usePathname();
@@ -83,10 +83,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
             {/* Mobile Sidebar Overlay */}
-            {!isSidebarOpen && (
+            {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-20 md:hidden"
-                    onClick={() => setSidebarOpen(true)}
+                    onClick={() => setSidebarOpen(false)}
                 />
             )}
 
@@ -97,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="https://raw.githubusercontent.com/OmarElsiry/web/refs/heads/main/public/logo.jpg?token=GHSAT0AAAAAADQQZRGNEC4CRE65II5KD66S2L6GYGA" alt="Logo" className="w-full h-full object-cover" />
+                        <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
                     </div>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
                         Dashboard
