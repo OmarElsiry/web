@@ -106,7 +106,6 @@ export default async function DashboardPage() {
                                         <div className="font-medium">Invoice #{sale.id.slice(0, 8).toUpperCase()}</div>
                                         <div className="text-sm text-muted-foreground">
                                             {sale.user?.name || sale.user?.username || 'Unknown User'}
-                                            Running terminal command: `cmd /c "cd web && npm run build"`
                                             <span className="mx-1">•</span>
                                             {new Date(sale.date).toLocaleTimeString()}
                                         </div>

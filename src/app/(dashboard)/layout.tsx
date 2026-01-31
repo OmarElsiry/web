@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+                        <img src="https://raw.githubusercontent.com/OmarElsiry/web/refs/heads/main/public/logo.jpg?token=GHSAT0AAAAAADQQZRGMC7NL6GSFR2CVVZOO2L6EGBA" alt="Logo" className="w-full h-full object-cover" />
                     </div>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
                         Dashboard
