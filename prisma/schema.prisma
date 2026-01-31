@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Enums
+enum Role {
+  ROOT
+  ADMIN
+  READ_ONLY
+}
+
+enum LocationType {
+  WAREHOUSE
+  VEHICLE
+}
+
+enum TransactionType {
+  SALE
+  IN
+  OUT
+  TRANSFER
+  RETURN
+}
+
+enum PaymentMethod {
+  CASH
+  INSTAPAY
+  CREDIT
+}
+
+// Models
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(READ_ONLY)
+  name      String?
+  branchId  String?  // Optional link to a specific location
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  sales           Invoice[]
+  inventoryLogs   AuditLog[]
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  products  Product[]
+}
+
+model Product {
+  id               String   @id @default(uuid())
+  name             String
+  sku              String   @unique
+  categoryId       String
+  category         Category @relation(fields: [categoryId], references: [id])
+  costPrice        Decimal
+  baseSellingPrice Decimal
+  unit             String   @default("piece") // piece, kg, carton
+  image            String?
+  
+  inventoryItems   Inventory[]
+  transactionItems TransactionItem[]
+  invoiceItems     InvoiceItem[]
+}
+
+model Location {
+  id        String       @id @default(uuid())
+  name      String
+  type      LocationType
+  
+  inventory      Inventory[]
+  sentTransfers  Transaction[]  @relation("FromLocation")
+  receivedTransfers Transaction[] @relation("ToLocation")
+}
+
+model Inventory {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id])
+  quantity   Int      @default(0)
+
+  @@unique([productId, locationId])
+}
+
+model Transaction {
+  id           String          @id @default(uuid())
+  type         TransactionType
+  date         DateTime        @default(now())
+  
+  fromLocationId String?
+  fromLocation   Location? @relation("FromLocation", fields: [fromLocationId], references: [id])
+  
+  toLocationId   String?
+  toLocation     Location? @relation("ToLocation", fields: [toLocationId], references: [id])
+  
+  items        TransactionItem[]
+  
+  notes        String?
+  createdById  String?
+}
+
+model TransactionItem {
+  id            String      @id @default(uuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id])
+  quantity      Int
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  date          DateTime      @default(now())
+  totalAmount   Decimal
+  paymentMethod PaymentMethod
+  customerName  String?
+  
+  userId        String?
+  user          User?         @relation(fields: [userId], references: [id])
+  
+  items         InvoiceItem[]
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal
+  subtotal  Decimal
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+}
