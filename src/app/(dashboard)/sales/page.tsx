@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, Phone, MapPin, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Filter } from 'lucide-react';
-import { getProducts, processSale, getCategories } from '@/app/actions/sales';
+import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
 import clsx from 'clsx';
 
 interface Product {
@@ -20,6 +20,12 @@ interface CartItem {
     quantity: number;
 }
 
+interface Staff {
+    id: string;
+    name: string | null;
+    username: string;
+}
+
 export default function SalesPage() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +38,10 @@ export default function SalesPage() {
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+    // Salesperson
+    const [staffList, setStaffList] = useState<Staff[]>([]);
+    const [selectedStaffId, setSelectedStaffId] = useState<string>('');
 
     // Discount & Notes
     const [discount, setDiscount] = useState(0);
@@ -46,15 +56,16 @@ export default function SalesPage() {
     });
 
     useEffect(() => {
-        Promise.all([getProducts(), getCategories()]).then(([prods, cats]) => {
+        Promise.all([getProducts(), getCategories(), getStaffList()]).then(([prods, cats, staff]) => {
             setProducts(prods);
             setCategories(cats);
+            setStaffList(staff);
             setLoading(false);
         });
     }, []);
 
     const addToCart = (product: Product) => {
-        // Check stock before adding
+        // ... (existing logic)
         const currentInCart = cart.find(item => item.product.id === product.id)?.quantity || 0;
         if (currentInCart >= product.stock) {
             setError(`Cannot add more ${product.name}. Only ${product.stock} in stock.`);
@@ -84,8 +95,7 @@ export default function SalesPage() {
             return prev.map(item => {
                 if (item.product.id === productId) {
                     const newQty = item.quantity + delta;
-                    if (newQty <= 0) return null; // Mark for removal
-                    // Check stock on increase
+                    if (newQty <= 0) return null;
                     if (delta > 0 && newQty > item.product.stock) {
                         setError(`Cannot add more. Only ${item.product.stock} in stock.`);
                         setTimeout(() => setError(null), 3000);
@@ -111,7 +121,9 @@ export default function SalesPage() {
             const result = await processSale(
                 cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
                 paymentMethod,
-                buyerInfo.customerName ? buyerInfo : undefined
+                buyerInfo.customerName ? buyerInfo : undefined,
+                undefined, // authenticated userId handled by server if not passed, skipping it here
+                selectedStaffId // Pass selected staff ID
             );
 
             if (result.success) {
@@ -120,8 +132,9 @@ export default function SalesPage() {
                 setBuyerInfo({ customerName: '', customerPhone: '', customerAddress: '' });
                 setDiscount(0);
                 setOrderNotes('');
+                // Reset staff selection? Maybe keep it for next sale.
+                // setSelectedStaffId(''); 
                 setTimeout(() => setShowSuccess(false), 3000);
-                // Refresh products to update stock
                 getProducts().then(setProducts);
             } else {
                 setError(result.error || 'Failed to process sale.');
@@ -271,6 +284,23 @@ export default function SalesPage() {
                     <ShoppingCart size={20} />
                     فاتورة جديدة
                     <span className="text-xs text-muted-foreground ml-auto">New Invoice</span>
+                </div>
+
+                {/* Salesperson Selector - NEW */}
+                <div className="p-3 border-b border-border bg-amber-50/50">
+                    <label className="text-xs font-bold text-amber-700 block mb-1">Salesperson (Your Name)</label>
+                    <select
+                        value={selectedStaffId}
+                        onChange={e => setSelectedStaffId(e.target.value)}
+                        className="w-full p-2 text-sm bg-white border border-amber-200 rounded-lg text-amber-900 outline-none focus:ring-2 focus:ring-amber-200"
+                    >
+                        <option value="">-- Select Salesperson --</option>
+                        {staffList.map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                                {emp.name || emp.username}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Buyer Info Section */}

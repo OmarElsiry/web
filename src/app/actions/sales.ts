@@ -39,13 +39,27 @@ export async function getCategories() {
     return prisma.category.findMany({ orderBy: { name: 'asc' } });
 }
 
+export async function getStaffList() {
+    const prisma = getPrisma();
+    // Fetch users who are likely staff (e.g., ADMIN or READ_ONLY, or just all users)
+    // For now, fetch all users.
+    return prisma.user.findMany({
+        select: { id: true, username: true, name: true, role: true },
+        orderBy: { name: 'asc' }
+    });
+}
+
 export async function processSale(
     items: { productId: string, quantity: number }[],
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
     buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string },
-    userId?: string
+    userId?: string,
+    staffId?: string
 ) {
     const prisma = getPrisma();
+
+    // Determine who gets credit for the sale (Staff ID if selected, otherwise logged-in user)
+    const sellerId = staffId || userId;
 
     // 1. Calculate Total & Validate Stock
     let totalAmount = 0;
@@ -121,7 +135,7 @@ export async function processSale(
                     customerName: buyerInfo?.customerName || null,
                     customerPhone: buyerInfo?.customerPhone || null,
                     customerAddress: buyerInfo?.customerAddress || null,
-                    userId: userId || null,
+                    userId: sellerId || null, // Attribute to Staff or User
                     items: {
                         create: invoiceItemsData
                     }
@@ -136,7 +150,7 @@ export async function processSale(
                 data: {
                     type: 'SALE',
                     fromLocationId: loc.id,
-                    createdById: userId,
+                    createdById: sellerId, // Attribute to Staff or User
                     items: {
                         create: items.map(item => ({
                             productId: item.productId,
@@ -155,9 +169,11 @@ export async function processSale(
         // 3. Audit Log (Async, non-blocking)
         try {
             const { logActivity } = await import('./audit');
+            const actionDetails = `Processed sale #${invoice.id} - ${items.reduce((acc, i) => acc + i.quantity, 0)} items. Total: ${invoice.totalAmount}${staffId ? ` (Attributed to Staff: ${staffId})` : ''}`;
+
             await logActivity(
                 'SALE',
-                `Processed sale #${invoice.id} - ${items.reduce((acc, i) => acc + i.quantity, 0)} items. Total: ${invoice.totalAmount}`,
+                actionDetails,
                 userId
             );
         } catch (e) {
