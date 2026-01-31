@@ -1,8 +1,8 @@
 // Default permissions by role - shared between client and server
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'staff_sales', 'logs', 'users'],
-    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'staff_sales', 'logs', 'users'],
-    ACCOUNTANT: ['dashboard', 'invoices', 'profits', 'staff_sales', 'logs'],
+    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs', 'users'],
+    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs', 'users'],
+    ACCOUNTANT: ['dashboard', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs'],
     SALESPERSON: ['dashboard', 'sales', 'invoices'],
     READ_ONLY: ['dashboard', 'invoices'],
 };
@@ -19,6 +19,7 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
     '/staff-sales': 'staff_sales',
     '/logs': 'logs',
     '/users': 'users',
+    '/expenses': 'expenses',
 };
 
 export function getDefaultPermissions(role: string): string[] {
@@ -37,4 +38,5 @@ export const ALL_PERMISSIONS = [
     { key: 'staff_sales', label: 'Staff Sales' },
     { key: 'logs', label: 'Audit Logs' },
     { key: 'users', label: 'Team Management' },
+    { key: 'expenses', label: 'Expenses' },
 ];

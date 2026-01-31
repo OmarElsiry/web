@@ -16,7 +16,9 @@ import {
     ClipboardCheck,
     TrendingUp,
     UserCheck,
-    ScrollText
+
+    ScrollText,
+    DollarSign
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -33,6 +35,7 @@ const iconMap: Record<string, any> = {
     '/staff-sales': UserCheck,
     '/logs': ScrollText,
     '/users': Users,
+    '/expenses': DollarSign,
 };
 
 interface MenuItem {

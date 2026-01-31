@@ -54,6 +54,7 @@ export async function getMenuItemsForUser() {
         { to: '/staff-sales', permission: 'staff_sales', label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },
         { to: '/logs', permission: 'logs', label: 'Audit Logs', labelAr: 'سجل النظام' },
         { to: '/users', permission: 'users', label: 'Team', labelAr: 'الفريق' },
+        { to: '/expenses', permission: 'expenses', label: 'Expenses', labelAr: 'المصروفات' },
     ];
 
     return allMenuItems.filter(item => permissions.includes(item.permission));
