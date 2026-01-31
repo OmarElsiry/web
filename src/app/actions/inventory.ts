@@ -46,6 +46,14 @@ export async function createCategory(name: string) {
         const category = await prisma.category.create({
             data: { name }
         });
+
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('CREATE_CATEGORY', `Created category "${name}"`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
+
         revalidatePath('/products');
         return { success: true, category };
     } catch (error: any) {
@@ -65,6 +73,14 @@ export async function deleteCategory(id: string) {
             return { success: false, error: `Cannot delete: ${count} products use this category.` };
         }
         await prisma.category.delete({ where: { id } });
+
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('DELETE_CATEGORY', `Deleted category ID: ${id}`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
+
         revalidatePath('/products');
         return { success: true };
     } catch {
@@ -116,7 +132,7 @@ export async function createProduct(data: {
             }
 
             // 3. Create Initial Inventory if provided
-            if (data.initialQuantity !== undefined) {
+            if (data.initialQuantity !== undefined && data.initialQuantity > 0) {
                 await tx.inventory.create({
                     data: {
                         productId: newProduct.id,
@@ -124,10 +140,32 @@ export async function createProduct(data: {
                         quantity: data.initialQuantity
                     }
                 });
+
+                // [NEW] Create Transaction for Opening Stock
+                await tx.transaction.create({
+                    data: {
+                        type: 'IN',
+                        toLocationId: location.id,
+                        items: {
+                            create: [{
+                                productId: newProduct.id,
+                                quantity: data.initialQuantity
+                            }]
+                        }
+                    }
+                });
             }
 
             return newProduct;
         });
+
+        // 4. Audit Log
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('CREATE_PRODUCT', `Created product "${data.name}" (${data.sku})`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
 
         revalidatePath('/inventory');
         revalidatePath('/sales');
@@ -179,6 +217,14 @@ export async function updateProduct(id: string, data: {
                 image: data.image
             }
         });
+
+        // Audit Log
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('UPDATE_PRODUCT', `Updated product "${data.name}" (${data.sku})`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
 
         revalidatePath('/inventory');
         revalidatePath('/sales');

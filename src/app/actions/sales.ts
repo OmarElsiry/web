@@ -131,15 +131,44 @@ export async function processSale(
                 }
             });
 
+            // C. CREATE TRANSACTION (Stock Movement Log)
+            await tx.transaction.create({
+                data: {
+                    type: 'SALE',
+                    fromLocationId: loc.id,
+                    createdById: userId,
+                    items: {
+                        create: items.map(item => ({
+                            productId: item.productId,
+                            quantity: item.quantity
+                        }))
+                    }
+                }
+            });
+
             return newInvoice;
 
         }, {
-            timeout: 10000 // Ensure transaction doesn't hang
+            timeout: 10000
         });
+
+        // 3. Audit Log (Async, non-blocking)
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity(
+                'SALE',
+                `Processed sale #${invoice.id} - ${items.reduce((acc, i) => acc + i.quantity, 0)} items. Total: ${invoice.totalAmount}`,
+                userId
+            );
+        } catch (e) {
+            console.error('Failed to log activity:', e);
+        }
 
         revalidatePath('/dashboard');
         revalidatePath('/inventory');
         revalidatePath('/sales');
+        revalidatePath('/logs');
+        revalidatePath('/inventory/transactions');
 
         return {
             success: true,

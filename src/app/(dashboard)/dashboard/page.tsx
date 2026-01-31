@@ -1,5 +1,6 @@
 import { getDashboardStats } from '@/app/actions/dashboard';
-import { RefreshCcw, ShoppingCart } from 'lucide-react';
+import { getAuditLogs } from '@/app/actions/audit';
+import { RefreshCcw, ShoppingCart, Activity, User } from 'lucide-react';
 import Link from 'next/link';
 
 // Force dynamic rendering to ensure fresh data
@@ -7,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
     const stats = await getDashboardStats();
+    const { logs: recentLogs } = await getAuditLogs(1, 4);
 
     return (
         <div className="space-y-6">
@@ -110,6 +112,41 @@ export default async function DashboardPage() {
                                         </div>
                                     </div>
                                     <div className="font-bold">+EGP {Number(sale.totalAmount).toLocaleString()}</div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Recent Activity Widget */}
+            <div className="grid gap-4">
+                <div className="rounded-xl border border-border bg-card text-card-foreground p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <Activity className="text-primary" />
+                            <h3 className="font-semibold text-lg">Recent System Activity</h3>
+                        </div>
+                        <Link href="/logs" className="text-sm text-primary hover:underline">View All</Link>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                        {(!recentLogs || recentLogs.length === 0) ? (
+                            <div className="col-span-full text-center text-muted-foreground py-4">No recent activity.</div>
+                        ) : (
+                            recentLogs.map((log) => (
+                                <div key={log.id} className="p-4 rounded-lg bg-secondary/10 border border-border flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground border border-border">
+                                            {log.action}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                    </div>
+                                    <p className="text-sm font-medium line-clamp-2">{log.details}</p>
+                                    <div className="mt-auto flex items-center gap-1.5 text-xs text-muted-foreground pt-2">
+                                        <User size={12} />
+                                        {log.user?.name || log.user?.username || 'System'}
+                                    </div>
                                 </div>
                             ))
                         )}

@@ -15,7 +15,8 @@ import {
     ArrowLeftRight,
     ClipboardCheck,
     TrendingUp,
-    UserCheck
+    UserCheck,
+    ScrollText
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -49,6 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         { to: '/invoices', icon: FileText, label: 'Invoices', labelAr: 'الفواتير' },
         { to: '/profits', icon: TrendingUp, label: 'Profits', labelAr: 'الأرباح' },
         { to: '/staff-sales', icon: UserCheck, label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },
+        { to: '/logs', icon: ScrollText, label: 'Audit Logs', labelAr: 'سجل النظام' },
     ];
 
     return (

@@ -1,53 +1,173 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeftRight, ArrowDownCircle, ArrowUpCircle, Filter, Search } from 'lucide-react';
+import { getStockMovements } from '@/app/actions/transactions';
+import {
+    History, RefreshCcw, Loader2,
+    ArrowDownLeft, ArrowUpRight, ShoppingCart, ArrowRightLeft,
+    MapPin, Package, Calendar
+} from 'lucide-react';
 import clsx from 'clsx';
 
+const ITEMS_PER_PAGE = 50;
+
+type TransactionType = 'SALE' | 'IN' | 'OUT' | 'TRANSFER' | 'RETURN';
+
 export default function MovementsPage() {
-    const [filter, setFilter] = useState<'all' | 'in' | 'out'>('all');
+    const [transactions, setTransactions] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [filterType, setFilterType] = useState('ALL');
+    const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const res = await getStockMovements(page, ITEMS_PER_PAGE, { type: filterType });
+            if (res.success && res.movements) {
+                setTransactions(res.movements);
+                setPagination(res.pagination || { total: 0, pages: 1, current: 1 });
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [page, filterType]);
+
+    const getTypeConfig = (type: TransactionType) => {
+        switch (type) {
+            case 'SALE': return { icon: ShoppingCart, color: 'text-blue-600 bg-blue-100 border-blue-200', label: 'Sale' };
+            case 'IN': return { icon: ArrowDownLeft, color: 'text-green-600 bg-green-100 border-green-200', label: 'Stock In' };
+            case 'OUT': return { icon: ArrowUpRight, color: 'text-red-600 bg-red-100 border-red-200', label: 'Stock Out' };
+            case 'TRANSFER': return { icon: ArrowRightLeft, color: 'text-orange-600 bg-orange-100 border-orange-200', label: 'Transfer' };
+            case 'RETURN': return { icon: RefreshCcw, color: 'text-purple-600 bg-purple-100 border-purple-200', label: 'Return' };
+            default: return { icon: History, color: 'text-gray-600 bg-gray-100 border-gray-200', label: type };
+        }
+    };
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <ArrowLeftRight className="text-primary" />
-                        الطالع والداخل
+                        <History className="text-primary" />
+                        حركات المخزون
                     </h2>
-                    <p className="text-muted-foreground">Stock Movements - In & Out</p>
+                    <p className="text-muted-foreground">Stock Movement History</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary"
+                    >
+                        <option value="ALL">All Types</option>
+                        <option value="SALE">Sales</option>
+                        <option value="IN">Stock In</option>
+                        <option value="OUT">Stock Out</option>
+                        <option value="TRANSFER">Transfers</option>
+                    </select>
+
+                    <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
+                        <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+                        Refresh
+                    </button>
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border">
-                <div className="flex gap-2">
-                    {(['all', 'in', 'out'] as const).map(f => (
+            <div className="space-y-4">
+                {loading ? (
+                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
+                ) : transactions.length === 0 ? (
+                    <div className="text-center py-20 bg-card border border-border rounded-xl text-muted-foreground">
+                        No transactions found matching your filters.
+                    </div>
+                ) : (
+                    transactions.map((tx) => {
+                        const { icon: Icon, color, label } = getTypeConfig(tx.type);
+                        return (
+                            <div key={tx.id} className="bg-card border border-border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="flex flex-col md:flex-row gap-4 justify-between">
+                                    {/* Header: Type & Date */}
+                                    <div className="flex items-start gap-4 min-w-[200px]">
+                                        <div className={clsx("p-3 rounded-xl border", color)}>
+                                            <Icon size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-foreground">{label}</h4>
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                                <Calendar size={12} />
+                                                {new Date(tx.date).toLocaleString()}
+                                            </div>
+                                            {tx.createdById && <div className="text-xs text-muted-foreground mt-0.5">By: {tx.createdById}</div>}
+                                        </div>
+                                    </div>
+
+                                    {/* Items List */}
+                                    <div className="flex-1 space-y-2">
+                                        {tx.items.map((item: any) => (
+                                            <div key={item.id} className="flex items-center justify-between text-sm p-2 bg-secondary/20 rounded-lg">
+                                                <div className="flex items-center gap-2 font-medium">
+                                                    <Package size={14} className="text-muted-foreground" />
+                                                    {item.product.name}
+                                                    <span className="text-xs text-muted-foreground font-mono">({item.product.sku})</span>
+                                                </div>
+                                                <div className="font-bold font-mono">
+                                                    x{item.quantity}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Locations */}
+                                    <div className="min-w-[150px] text-right space-y-2 text-sm">
+                                        {(tx.fromLocation || tx.type === 'SALE' || tx.type === 'OUT') && (
+                                            <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
+                                                <span className="text-xs uppercase font-bold">From</span>
+                                                <span className="font-medium text-foreground">{tx.fromLocation?.name || 'Unknown'}</span>
+                                                <MapPin size={14} />
+                                            </div>
+                                        )}
+                                        {tx.toLocation && (
+                                            <div className="flex items-center justify-end gap-1.5 text-muted-foreground">
+                                                <span className="text-xs uppercase font-bold">To</span>
+                                                <span className="font-medium text-foreground">{tx.toLocation?.name}</span>
+                                                <MapPin size={14} className="text-green-500" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+
+                {/* Pagination Controls */}
+                {pagination.pages > 1 && (
+                    <div className="flex justify-center gap-2 pt-4">
                         <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={clsx(
-                                "px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                                filter === f
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                            )}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
                         >
-                            {f === 'in' && <ArrowDownCircle size={16} />}
-                            {f === 'out' && <ArrowUpCircle size={16} />}
-                            {f === 'all' ? 'All' : f === 'in' ? 'Stock In' : 'Stock Out'}
+                            Previous
                         </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-xl p-8 text-center">
-                <ArrowLeftRight size={48} className="mx-auto text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-bold mb-2">Stock Movement History</h3>
-                <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                    Track all incoming purchases from suppliers and outgoing sales to customers.
-                    This view shows the complete history of inventory changes.
-                </p>
+                        <span className="px-4 py-2 text-sm text-muted-foreground self-center">
+                            Page {page} of {pagination.pages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                            disabled={page === pagination.pages}
+                            className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );
