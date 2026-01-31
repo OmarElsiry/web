@@ -7,6 +7,26 @@ import clsx from 'clsx';
 
 type Period = 'day' | 'week' | 'month' | '2months' | '6months' | 'all';
 
+interface StaffMember {
+    id: string;
+    name: string | null;
+    username: string;
+    phone?: string | null;
+}
+
+interface Invoice {
+    id: string;
+    date: Date | string;
+    customerName: string | null;
+    totalAmount: number | string | { toNumber: () => number };
+}
+
+interface StaffSalesDetail {
+    totalSales: number;
+    totalTransactions: number;
+    invoices: Invoice[];
+}
+
 const periodLabels: Record<Period, string> = {
     day: 'Today',
     week: 'This Week',
@@ -17,14 +37,14 @@ const periodLabels: Record<Period, string> = {
 };
 
 export default function StaffSalesPage() {
-    const [staff, setStaff] = useState<any[]>([]);
+    const [staff, setStaff] = useState<StaffMember[]>([]);
     const [salesData, setSalesData] = useState<Record<string, { total: number, count: number }>>({});
     const [loading, setLoading] = useState(true);
 
     // Modal state
-    const [selectedStaff, setSelectedStaff] = useState<any>(null);
+    const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
     const [modalPeriod, setModalPeriod] = useState<Period>('month');
-    const [modalData, setModalData] = useState<any>(null);
+    const [modalData, setModalData] = useState<StaffSalesDetail | null>(null);
     const [modalLoading, setModalLoading] = useState(false);
 
     const printRef = useRef<HTMLDivElement>(null);
@@ -122,9 +142,9 @@ export default function StaffSalesPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                         <UserCheck className="text-primary" />
-                        مبيعات الاشخاص
+                        Staff Sales
                     </h2>
-                    <p className="text-muted-foreground">Staff Sales Performance</p>
+                    <p className="text-muted-foreground">Performance Tracking</p>
                 </div>
             </div>
 

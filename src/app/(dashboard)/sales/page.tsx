@@ -282,8 +282,7 @@ export default function SalesPage() {
             <div className="w-full lg:w-96 bg-card border border-border rounded-xl flex flex-col h-full shadow-lg">
                 <div className="p-4 border-b border-border font-bold text-lg flex items-center gap-2">
                     <ShoppingCart size={20} />
-                    فاتورة جديدة
-                    <span className="text-xs text-muted-foreground ml-auto">New Invoice</span>
+                    New Invoice
                 </div>
 
                 {/* Salesperson Selector - NEW */}
@@ -311,7 +310,7 @@ export default function SalesPage() {
                     >
                         <span className="flex items-center gap-2">
                             <User size={16} className="text-primary" />
-                            بيانات المشتري (Buyer Info)
+                            Buyer Info
                         </span>
                         {showBuyerInfo ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
@@ -441,10 +440,7 @@ export default function SalesPage() {
                         disabled={processing || cart.length === 0}
                         className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:bg-primary/90 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                        {processing ? <Loader2 className="animate-spin" size={20} /> : 'إنشاء فاتورة'}
-                    </button>
-                    <button className="w-full py-3 border border-border font-bold rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-                        Save as Draft
+                        {processing ? <Loader2 className="animate-spin" size={20} /> : 'Checkout'}
                     </button>
                 </div>
             </div>
@@ -452,7 +448,7 @@ export default function SalesPage() {
             {/* Confirmation Dialog */}
             {showConfirmDialog && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95">
+                    <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-border flex items-center gap-3 bg-amber-50">
                             <AlertTriangle className="text-amber-500" size={24} />
                             <h3 className="text-lg font-bold">Confirm Sale</h3>
@@ -494,12 +490,12 @@ export default function SalesPage() {
 
             {/* Success Animation Overlay */}
             {showSuccess && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-500">
-                    <div className="flex flex-col items-center gap-4 animate-in zoom-in-95 duration-500">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-4">
                         <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-green-500/20">
                             <Check size={40} className="stroke-[3]" />
                         </div>
-                        <h2 className="text-2xl font-bold">تم إنشاء الفاتورة!</h2>
+                        <h2 className="text-2xl font-bold">Invoice Created!</h2>
                         <p className="text-muted-foreground">Invoice created successfully.</p>
                     </div>
                 </div>

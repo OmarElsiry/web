@@ -78,20 +78,24 @@ export default async function DashboardPage() {
                     </div>
 
                     <div className="flex-1 flex items-end gap-3 min-h-[200px] border-b border-border pb-1">
-                        {/* Mock Chart Bars based on real stats or distributions */}
-                        {[40, 70, 45, 90, 65, 80, 55].map((height, i) => (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
-                                <div
-                                    className="w-full bg-primary/20 rounded-t-md hover:bg-primary transition-all duration-500 group-hover:shadow-[0_0_20px_rgba(var(--primary),0.3)]"
-                                    style={{ height: `${height}%` }}
-                                >
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                        EGP {(height * 100).toLocaleString()}
+                        {/* Chart Bars using real weekly data */}
+                        {stats.weeklyData.map((day, i) => {
+                            const maxAmount = Math.max(...stats.weeklyData.map(d => d.amount), 1);
+                            const heightPercent = Math.max((day.amount / maxAmount) * 100, 5);
+                            return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                                    <div
+                                        className="w-full bg-primary/80 rounded-t-md"
+                                        style={{ height: `${heightPercent}%` }}
+                                    >
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 whitespace-nowrap z-10">
+                                            EGP {day.amount.toLocaleString()}
+                                        </div>
                                     </div>
+                                    <span className="text-[10px] text-muted-foreground font-medium">{day.day}</span>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground font-medium">Day {i + 1}</span>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
                 <div className="col-span-3 rounded-xl border border-border bg-card text-card-foreground p-6">
