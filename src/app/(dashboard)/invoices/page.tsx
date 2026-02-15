@@ -325,8 +325,17 @@ export default function InvoicesPage() {
                                 onClick={() => handleDownload(selectedInvoice)}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all"
                             >
-                                <Printer size={18} />
-                                Print / Save PDF
+                                <span className="flex items-center gap-2">
+                                    <Printer size={18} />
+                                    Quick Print
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => window.open(`/invoices/${selectedInvoice.id}/print`, '_blank')}
+                                className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all hover:bg-blue-700"
+                            >
+                                <FileText size={18} />
+                                Official Invoice (فاتورة)
                             </button>
                             <button
                                 onClick={() => setSelectedInvoice(null)}
@@ -337,7 +346,8 @@ export default function InvoicesPage() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
 
             {/* Hidden Print Content */}
@@ -387,6 +397,6 @@ export default function InvoicesPage() {
                     </tfoot>
                 </table>
             </div>
-        </div>
+        </div >
     );
 }
