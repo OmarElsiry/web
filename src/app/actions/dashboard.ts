@@ -6,18 +6,30 @@ export async function getDashboardStats() {
     const prisma = getPrisma();
 
     // Parallelize queries for performance
-    const [totalRevenue, inventoryCount, salesToday, recentSales, activeVehicles, weeklyData] = await Promise.all([
-        // 1. Total Revenue (Sum of all invoices)
+    // Parallelize queries for performance
+    const [
+        totalRevenue, totalRefunds,
+        inventoryCount,
+        salesToday, refundsToday,
+        recentSales,
+        activeVehicles,
+        weeklyInvoices, weeklyRefunds
+    ] = await Promise.all([
+        // 1. Total Revenue (Invoices)
         prisma.invoice.aggregate({
             _sum: { totalAmount: true }
         }),
+        // 1b. Total Refunds
+        prisma.refund.aggregate({
+            _sum: { totalAmount: true }
+        }),
 
-        // 2. Active Inventory (Sum of quantity across all stock)
+        // 2. Active Inventory
         prisma.inventory.aggregate({
             _sum: { quantity: true }
         }),
 
-        // 3. Sales Today (Sum of totalAmount for invoices created today)
+        // 3. Sales Today
         prisma.invoice.aggregate({
             _sum: { totalAmount: true },
             where: {
@@ -26,8 +38,17 @@ export async function getDashboardStats() {
                 }
             }
         }),
+        // 3b. Refunds Today
+        prisma.refund.aggregate({
+            _sum: { totalAmount: true },
+            where: {
+                createdAt: {
+                    gte: new Date(new Date().setHours(0, 0, 0, 0))
+                }
+            }
+        }),
 
-        // 4. Recent Sales (Latest 5 invoices)
+        // 4. Recent Sales
         prisma.invoice.findMany({
             take: 5,
             orderBy: { date: 'desc' },
@@ -44,37 +65,51 @@ export async function getDashboardStats() {
             where: { type: 'VEHICLE' }
         }),
 
-        // 6. Daily sales for last 7 days
+        // 6. Weekly Invoices
         (async () => {
-            const days = 7;
             const dailyData = [];
-            for (let i = days - 1; i >= 0; i--) {
+            for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-                const endOfDay = new Date(date.setHours(23, 59, 59, 999));
-
-                const daySales = await prisma.invoice.aggregate({
+                const start = new Date(date.setHours(0, 0, 0, 0));
+                const end = new Date(date.setHours(23, 59, 59, 999));
+                const res = await prisma.invoice.aggregate({
                     _sum: { totalAmount: true },
-                    where: {
-                        date: { gte: startOfDay, lte: endOfDay }
-                    }
+                    where: { date: { gte: start, lte: end } }
                 });
-
-                const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                dailyData.push({
-                    day: dayNames[new Date(startOfDay).getDay()],
-                    amount: Number(daySales._sum.totalAmount || 0)
+                dailyData.push({ start, amount: Number(res._sum.totalAmount || 0) });
+            }
+            return dailyData;
+        })(),
+        // 6b. Weekly Refunds
+        (async () => {
+            const dailyData = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const start = new Date(date.setHours(0, 0, 0, 0));
+                const end = new Date(date.setHours(23, 59, 59, 999));
+                const res = await prisma.refund.aggregate({
+                    _sum: { totalAmount: true },
+                    where: { createdAt: { gte: start, lte: end } }
                 });
+                dailyData.push({ amount: Number(res._sum.totalAmount || 0) });
             }
             return dailyData;
         })()
     ]);
 
+    // Format Weekly Data
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeklyFormatted = weeklyInvoices.map((day, idx) => ({
+        day: dayNames[new Date(day.start).getDay()],
+        amount: day.amount - (weeklyRefunds[idx]?.amount || 0)
+    }));
+
     return {
-        revenue: Number(totalRevenue._sum.totalAmount || 0),
+        revenue: Number(totalRevenue._sum.totalAmount || 0) - Number(totalRefunds._sum.totalAmount || 0),
         activeInventory: inventoryCount._sum.quantity || 0,
-        salesToday: Number(salesToday._sum.totalAmount || 0),
+        salesToday: Number(salesToday._sum.totalAmount || 0) - Number(refundsToday._sum.totalAmount || 0),
         recentSales: recentSales.map(inv => ({
             ...inv,
             totalAmount: Number(inv.totalAmount),
@@ -85,6 +120,6 @@ export async function getDashboardStats() {
             }))
         })),
         activeVehicles,
-        weeklyData: weeklyData
+        weeklyData: weeklyFormatted
     };
 }

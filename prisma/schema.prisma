@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/client"
 }
 
 datasource db {
@@ -26,6 +27,8 @@ enum TransactionType {
   OUT
   TRANSFER
   RETURN
+  REFUND_RESTOCK
+  REFUND_DEFECTIVE
 }
 
 enum PaymentMethod {
@@ -52,6 +55,7 @@ model User {
   sales           Invoice[]
   inventoryLogs   AuditLog[]
   expenses        Expense[] @relation("UserExpenses")
+  processedRefunds Refund[]
 }
 
 model Category {
@@ -71,9 +75,14 @@ model Product {
   unit             String   @default("piece") // piece, kg, carton
   image            String?
   
+  // New Fields for Refund System
+  defectiveStock   Int      @default(0)
+  totalRefunded    Int      @default(0)
+  
   inventoryItems   Inventory[]
   transactionItems TransactionItem[]
   invoiceItems     InvoiceItem[]
+  refundItems      RefundItem[]
 }
 
 model Location {
@@ -150,6 +159,7 @@ model Invoice {
   user            User?         @relation(fields: [userId], references: [id])
   
   items           InvoiceItem[]
+  refunds         Refund[]
 }
 
 
@@ -162,6 +172,40 @@ model InvoiceItem {
   quantity  Int
   unitPrice Decimal
   subtotal  Decimal
+}
+
+// Refund System Models
+model Refund {
+  id          String       @id @default(uuid())
+  createdAt   DateTime     @default(now())
+  totalAmount Decimal
+  reason      String?
+  
+  invoiceId   String?
+  invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
+  
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  
+  items       RefundItem[]
+}
+
+model RefundItem {
+  id        String     @id @default(uuid())
+  refundId  String
+  refund    Refund     @relation(fields: [refundId], references: [id])
+  
+  productId String
+  product   Product    @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  unitPrice Decimal
+  condition RefundCondition
+}
+
+enum RefundCondition {
+  NEW
+  DEFECTIVE
 }
 
 model AuditLog {

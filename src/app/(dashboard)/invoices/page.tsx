@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Filter, Search, Calendar, Loader2, X, Printer } from 'lucide-react';
+import { FileText, Download, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw } from 'lucide-react';
 import { getInvoices } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
+import RefundModal from '@/components/RefundModal';
 
 interface Invoice {
     id: string;
@@ -22,6 +23,7 @@ interface Invoice {
     paymentMethod: string;
     items?: Array<{
         id: string;
+        productId: string;
         product: { name: string, sku: string };
         quantity: number;
         unitPrice: number;
@@ -34,6 +36,7 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [showRefundModal, setShowRefundModal] = useState(false);
 
     // Date Filter State
     const [showDateFilter, setShowDateFilter] = useState(false);
@@ -344,10 +347,34 @@ export default function InvoicesPage() {
                                 Close
                             </button>
                         </div>
+
+                        <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-red-50/20 dark:bg-red-950/5 flex flex-col gap-2">
+                            <h4 className="text-[10px] font-bold uppercase text-red-500 tracking-widest pl-1">Actions</h4>
+                            <button
+                                onClick={() => setShowRefundModal(true)}
+                                className="flex items-center justify-center gap-2 py-3 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-xl font-bold transition-all hover:bg-red-200 dark:hover:bg-red-900/40"
+                            >
+                                <RefreshCcw size={18} />
+                                Process Item Refund
+                            </button>
+                        </div>
                     </div>
                 </div>
             )
             }
+
+            {/* Refund Modal */}
+            {showRefundModal && selectedInvoice && (
+                <RefundModal
+                    invoice={selectedInvoice}
+                    onClose={() => setShowRefundModal(false)}
+                    onSuccess={() => {
+                        setShowRefundModal(false);
+                        setSelectedInvoice(null);
+                        getInvoices().then(data => setInvoices(data as any));
+                    }}
+                />
+            )}
 
 
             {/* Hidden Print Content */}

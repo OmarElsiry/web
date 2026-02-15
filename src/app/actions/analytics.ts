@@ -10,28 +10,40 @@ interface DateRange {
 
 export async function getBuyerReport({ startDate, endDate }: DateRange) {
     const prisma = getPrisma();
-    const where: any = {};
+    const whereInvoice: any = {};
+    const whereRefund: any = {};
 
     if (startDate && endDate) {
-        where.date = {
+        const dateRange = {
             gte: new Date(startDate),
             lte: new Date(new Date(endDate).setHours(23, 59, 59))
         };
+        whereInvoice.date = dateRange;
+        whereRefund.createdAt = dateRange;
     }
 
-    const invoices = await prisma.invoice.findMany({
-        where,
-        select: {
-            id: true,
-            customerName: true,
-            customerPhone: true,
-            customerAddress: true,
-            totalAmount: true,
-            date: true,
-            items: true
-        },
-        orderBy: { date: 'desc' }
-    });
+    const [invoices, refunds] = await Promise.all([
+        prisma.invoice.findMany({
+            where: whereInvoice,
+            select: {
+                id: true,
+                customerName: true,
+                customerPhone: true,
+                customerAddress: true,
+                totalAmount: true,
+                date: true,
+                items: true
+            },
+            orderBy: { date: 'desc' }
+        }),
+        prisma.refund.findMany({
+            where: whereRefund,
+            include: {
+                items: true,
+                invoice: true
+            }
+        })
+    ]);
 
     // Build product name lookup
     const products = await prisma.product.findMany({ select: { id: true, name: true } });
@@ -71,6 +83,25 @@ export async function getBuyerReport({ startDate, endDate }: DateRange) {
         }
     });
 
+    // Subtract Refunds from Buyers
+    refunds.forEach(ref => {
+        const name = ref.invoice?.customerName || 'Unknown';
+        const phone = ref.invoice?.customerPhone || 'N/A';
+        const key = `${name}-${phone === 'N/A' ? '' : phone}`;
+
+        const buyer = buyerMap.get(key);
+        if (buyer) {
+            buyer.totalSpent -= Number(ref.totalAmount);
+            // We don't necessarily subtract visitCount unless we consider refund a "negative visit"
+            // But we should subtract quantities from purchase history
+            ref.items.forEach((item: any) => {
+                const pName = productNameMap.get(item.productId) || 'Unknown';
+                const existing = buyer.purchaseHistory.get(pName) || 0;
+                buyer.purchaseHistory.set(pName, Math.max(0, existing - (Number(item.quantity) || 0)));
+            });
+        }
+    });
+
     return Array.from(buyerMap.values()).map(b => ({
         ...b,
         purchaseHistory: Array.from(b.purchaseHistory.entries() as IterableIterator<[string, number]>).map(([name, qty]) => ({ name, quantity: qty })).sort((a, b) => b.quantity - a.quantity)
@@ -79,60 +110,59 @@ export async function getBuyerReport({ startDate, endDate }: DateRange) {
 
 export async function getProductReport({ startDate, endDate }: DateRange) {
     const prisma = getPrisma();
-    const where: any = {};
+    const whereInvoice: any = {};
+    const whereRefund: any = {};
 
     if (startDate && endDate) {
-        where.date = {
+        const dateRange = {
             gte: new Date(startDate),
             lte: new Date(new Date(endDate).setHours(23, 59, 59))
         };
+        whereInvoice.date = dateRange;
+        whereRefund.createdAt = dateRange;
     }
 
-    const invoices = await prisma.invoice.findMany({
-        where,
-        select: {
-            date: true,
-            items: true
-        }
-    });
+    const [invoices, refunds] = await Promise.all([
+        prisma.invoice.findMany({
+            where: whereInvoice,
+            select: { items: true }
+        }),
+        prisma.refund.findMany({
+            where: whereRefund,
+            include: { items: true }
+        })
+    ]);
 
-    // Aggregate by Product
     const productMap = new Map();
-
-    // We need complete inventory list to show 0 sales items? Maybe later.
-    // For now, show sold items.
-
-    // To get product names properly, we might want to fetch products or trust the json in items.
-    // The items JSON usually contains name, productId, etc.  
-    // Let's assume structure: { productId: string, quantity: number, price: number, name?: string }
-
     const products = await prisma.product.findMany({ select: { id: true, name: true, sku: true } });
     const productInfoMap = new Map(products.map(p => [p.id, p]));
 
+    const processItem = (item: any, multiplier: number) => {
+        const pId = item.productId;
+        if (!productMap.has(pId)) {
+            const info = productInfoMap.get(pId);
+            productMap.set(pId, {
+                id: pId,
+                name: info?.name || item.name || 'Unknown Product',
+                sku: info?.sku || 'N/A',
+                quantitySold: 0,
+                revenue: 0
+            });
+        }
+        const stat = productMap.get(pId);
+        const qty = (Number(item.quantity) || 0) * multiplier;
+        stat.quantitySold += qty;
+        const lineTotal = (Number(item.unitPrice || item.price) * (Number(item.quantity) || 0)) * multiplier;
+        stat.revenue += lineTotal;
+    };
+
     invoices.forEach(inv => {
         const items = inv.items as any[];
-        if (!Array.isArray(items)) return;
+        if (Array.isArray(items)) items.forEach(item => processItem(item, 1));
+    });
 
-        items.forEach(item => {
-            const pId = item.productId;
-            if (!productMap.has(pId)) {
-                const info = productInfoMap.get(pId);
-                productMap.set(pId, {
-                    id: pId,
-                    name: info?.name || item.name || 'Unknown Product',
-                    sku: info?.sku || 'N/A',
-                    quantitySold: 0,
-                    revenue: 0
-                });
-            }
-            const stat = productMap.get(pId);
-            stat.quantitySold += Number(item.quantity) || 0;
-            // Revenue calculation might depend on if we stored line total or unit price
-            // Assuming simplified: price * quantity
-            // If item has total, use it.
-            const lineTotal = item.price * item.quantity;
-            stat.revenue += lineTotal;
-        });
+    refunds.forEach(ref => {
+        ref.items.forEach(item => processItem(item, -1));
     });
 
     return Array.from(productMap.values()).sort((a, b) => b.quantitySold - a.quantitySold);

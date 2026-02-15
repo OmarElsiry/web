@@ -19,19 +19,33 @@ export async function getInvoices() {
                 include: {
                     product: true
                 }
+            },
+            refunds: {
+                include: { items: true }
             }
         }
     });
 
-    return invoices.map(inv => ({
-        ...inv,
-        totalAmount: Number(inv.totalAmount),
-        items: inv.items.map(item => ({
-            ...item,
-            unitPrice: Number(item.unitPrice),
-            subtotal: Number(item.subtotal)
-        }))
-    }));
+    return invoices.map(inv => {
+        const refundedQtyMap = new Map<string, number>();
+        inv.refunds?.forEach(ref => {
+            ref.items.forEach(ri => {
+                const current = refundedQtyMap.get(ri.productId) || 0;
+                refundedQtyMap.set(ri.productId, current + ri.quantity);
+            });
+        });
+
+        return {
+            ...inv,
+            totalAmount: Number(inv.totalAmount),
+            items: inv.items.map(item => ({
+                ...item,
+                unitPrice: Number(item.unitPrice),
+                subtotal: Number(item.subtotal),
+                refundableQuantity: Math.max(0, item.quantity - (refundedQtyMap.get(item.productId) || 0))
+            }))
+        };
+    });
 }
 
 export async function getInvoiceById(id: string) {
@@ -50,11 +64,22 @@ export async function getInvoiceById(id: string) {
                         }
                     }
                 }
+            },
+            refunds: {
+                include: { items: true }
             }
         }
     });
 
     if (!invoice) return null;
+
+    const refundedQtyMap = new Map<string, number>();
+    invoice.refunds?.forEach(ref => {
+        ref.items.forEach(ri => {
+            const current = refundedQtyMap.get(ri.productId) || 0;
+            refundedQtyMap.set(ri.productId, current + ri.quantity);
+        });
+    });
 
     return {
         ...invoice,
@@ -63,6 +88,7 @@ export async function getInvoiceById(id: string) {
             ...item,
             unitPrice: Number(item.unitPrice),
             subtotal: Number(item.subtotal),
+            refundableQuantity: Math.max(0, item.quantity - (refundedQtyMap.get(item.productId) || 0)),
             // Ensure product fields are accessible
             productCode: item.product.sku,
             productName: item.product.name,
