@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     User, Phone, MapPin, Calendar, ShoppingBag,
@@ -12,7 +12,7 @@ import { getCustomerProfile } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 
-export default function CustomerProfilePage() {
+function ProfileContent() {
     const searchParams = useSearchParams();
     const name = searchParams.get('name');
     const phone = searchParams.get('phone');
@@ -188,5 +188,18 @@ export default function CustomerProfilePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CustomerProfilePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
+                <Loader2 className="animate-spin text-primary" size={64} />
+                <p className="text-muted-foreground font-black text-xl animate-pulse">Loading Profile...</p>
+            </div>
+        }>
+            <ProfileContent />
+        </Suspense>
     );
 }

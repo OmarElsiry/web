@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getExpenses, createExpense, deleteExpense } from '@/app/actions/expenses';
+import { getExpenses, createExpense, deleteExpense, getSalaryReport } from '@/app/actions/expenses';
 import { getStaffList } from '@/app/actions/sales';
-import { Plus, Trash2, Calendar, User, DollarSign, Tag, Search, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Calendar, User, DollarSign, Tag, Search, Loader2, FileText, Percent, Briefcase, Receipt } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function ExpensesPage() {
@@ -11,6 +11,7 @@ export default function ExpensesPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [salaryMetrics, setSalaryMetrics] = useState({ salaryTotal: 0, nonSalaryTotal: 0, grandTotal: 0, salaryPercent: 0 });
 
     // New Expense State
     const [showForm, setShowForm] = useState(false);
@@ -24,6 +25,8 @@ export default function ExpensesPage() {
 
     // Filtering
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
+    const [categoryFilter, setCategoryFilter] = useState('ALL');
+    const [generatingPdf, setGeneratingPdf] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -31,19 +34,33 @@ export default function ExpensesPage() {
 
     async function loadData() {
         setLoading(true);
-        const [exp, staff] = await Promise.all([
+        const [expData, staff] = await Promise.all([
             getExpenses(dateRange.start, dateRange.end),
             getStaffList()
         ]);
-        setExpenses(exp);
+        setExpenses(expData.expenses);
+        setSalaryMetrics({
+            salaryTotal: expData.salaryTotal,
+            nonSalaryTotal: expData.nonSalaryTotal,
+            grandTotal: expData.grandTotal,
+            salaryPercent: expData.salaryPercent
+        });
         setUsers(staff);
         setLoading(false);
     }
 
     // Refresh when filters change
     useEffect(() => {
-        if (!loading) { // Don't reload on first render if already loading
-            getExpenses(dateRange.start, dateRange.end).then(setExpenses);
+        if (!loading) {
+            getExpenses(dateRange.start, dateRange.end).then(data => {
+                setExpenses(data.expenses);
+                setSalaryMetrics({
+                    salaryTotal: data.salaryTotal,
+                    nonSalaryTotal: data.nonSalaryTotal,
+                    grandTotal: data.grandTotal,
+                    salaryPercent: data.salaryPercent
+                });
+            });
         }
     }, [dateRange]);
 
@@ -84,19 +101,121 @@ export default function ExpensesPage() {
         loadData();
     };
 
-    const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const handleExportSalaryPdf = async () => {
+        if (!dateRange.start || !dateRange.end) {
+            alert('Please select a date range first to generate salary report.');
+            return;
+        }
+        setGeneratingPdf(true);
+        try {
+            const report = await getSalaryReport(dateRange.start, dateRange.end);
+
+            // Generate client-side printable report
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) return;
+
+            const html = `<!DOCTYPE html>
+<html dir="rtl"><head><meta charset="utf-8"><title>Salary Report</title>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; }
+    h1 { text-align: center; border-bottom: 3px solid #333; padding-bottom: 10px; }
+    .period { text-align: center; color: #666; margin-bottom: 30px; }
+    .summary { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; justify-content: space-between; }
+    .summary-item { text-align: center; }
+    .summary-item .value { font-size: 24px; font-weight: bold; color: #1a1a1a; }
+    .summary-item .label { font-size: 12px; color: #666; text-transform: uppercase; }
+    .employee { margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+    .employee-header { background: #333; color: white; padding: 12px 16px; display: flex; justify-content: space-between; }
+    .employee-entries { padding: 0; }
+    .entry { display: flex; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #eee; }
+    .entry:last-child { border-bottom: none; }
+    @media print { body { padding: 20px; } }
+</style></head><body>
+<h1>📋 Salary Expense Report</h1>
+<div class="period">Period: ${report.period.startDate} to ${report.period.endDate}</div>
+<div class="summary">
+    <div class="summary-item"><div class="value">EGP ${report.grandTotal.toLocaleString()}</div><div class="label">Total Salaries</div></div>
+    <div class="summary-item"><div class="value">${report.employees.length}</div><div class="label">Employees</div></div>
+</div>
+${report.employees.map(emp => `
+<div class="employee">
+    <div class="employee-header">
+        <span>${emp.name}</span>
+        <span>EGP ${emp.total.toLocaleString()}</span>
+    </div>
+    <div class="employee-entries">
+        ${emp.entries.map(e => `<div class="entry"><span>${new Date(e.date).toLocaleDateString()}</span><span>${e.description}</span><span style="font-weight:bold">EGP ${e.amount.toLocaleString()}</span></div>`).join('')}
+    </div>
+</div>`).join('')}
+</body></html>`;
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 500);
+        } catch (err) {
+            console.error(err);
+            alert('Failed to generate report');
+        } finally {
+            setGeneratingPdf(false);
+        }
+    };
+
+    // Filter by category on client-side
+    const filteredExpenses = categoryFilter === 'ALL'
+        ? expenses
+        : categoryFilter === 'SALARY'
+            ? expenses.filter(e => e.category?.toUpperCase() === 'SALARY')
+            : expenses.filter(e => e.category?.toUpperCase() !== 'SALARY');
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
-                    <p className="text-muted-foreground">Track company spending</p>
+                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                        <Receipt className="text-primary" />
+                        المصروفات
+                    </h1>
+                    <p className="text-muted-foreground">Expenses & Salary Tracking</p>
                 </div>
-                <div className="flex items-center gap-3 bg-secondary/30 p-2 rounded-xl">
-                    <div className="text-right px-2">
-                        <div className="text-xs text-muted-foreground font-bold uppercase">Total Spend</div>
-                        <div className="text-xl font-black text-primary">EGP {totalAmount.toLocaleString()}</div>
+            </div>
+
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-card to-secondary/30 p-5 rounded-2xl border border-border shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary"><DollarSign size={18} /></div>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Total Spend</span>
+                    </div>
+                    <div className="text-2xl font-black">EGP {salaryMetrics.grandTotal.toLocaleString()}</div>
+                </div>
+
+                <div className="bg-gradient-to-br from-card to-secondary/30 p-5 rounded-2xl border border-border shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500"><Briefcase size={18} /></div>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Salary Total</span>
+                    </div>
+                    <div className="text-2xl font-black text-blue-600">EGP {salaryMetrics.salaryTotal.toLocaleString()}</div>
+                </div>
+
+                <div className="bg-gradient-to-br from-card to-secondary/30 p-5 rounded-2xl border border-border shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-orange-500/10 rounded-lg text-orange-500"><Tag size={18} /></div>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Other Expenses</span>
+                    </div>
+                    <div className="text-2xl font-black text-orange-600">EGP {salaryMetrics.nonSalaryTotal.toLocaleString()}</div>
+                </div>
+
+                <div className="bg-gradient-to-br from-card to-secondary/30 p-5 rounded-2xl border border-border shadow-sm">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500"><Percent size={18} /></div>
+                        <span className="text-xs font-bold text-muted-foreground uppercase">Salary %</span>
+                    </div>
+                    <div className="flex items-end gap-2">
+                        <span className="text-2xl font-black text-purple-600">{salaryMetrics.salaryPercent}%</span>
+                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden mb-1">
+                            <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: `${salaryMetrics.salaryPercent}%` }} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -118,13 +237,34 @@ export default function ExpensesPage() {
                         className="bg-background border border-border rounded-lg p-2 text-sm"
                     />
                 </div>
-                <button
-                    onClick={() => setShowForm(!showForm)}
-                    className="ml-auto flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors"
+
+                <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    className="px-3 py-2 bg-background border border-input rounded-lg text-sm"
                 >
-                    <Plus size={18} />
-                    New Expense
-                </button>
+                    <option value="ALL">All Categories</option>
+                    <option value="SALARY">Salaries Only</option>
+                    <option value="OTHER">Non-Salary Only</option>
+                </select>
+
+                <div className="ml-auto flex items-center gap-2">
+                    <button
+                        onClick={handleExportSalaryPdf}
+                        disabled={generatingPdf}
+                        className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+                    >
+                        {generatingPdf ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />}
+                        Salary PDF
+                    </button>
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors"
+                    >
+                        <Plus size={18} />
+                        New Expense
+                    </button>
+                </div>
             </div>
 
             {/* Form */}
@@ -182,23 +322,21 @@ export default function ExpensesPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-muted-foreground">Category (Optional)</label>
+                            <label className="text-xs font-bold text-muted-foreground">Category</label>
                             <div className="flex items-center gap-2 border border-border rounded-lg p-2 bg-background focus-within:ring-2 ring-primary/20">
                                 <Search size={16} className="text-muted-foreground" />
-                                <input
-                                    list="categories"
-                                    placeholder="Utilities, Supplies..."
+                                <select
                                     value={formData.category}
                                     onChange={e => setFormData({ ...formData, category: e.target.value })}
-                                    className="flex-1 bg-transparent outline-none text-sm"
-                                />
-                                <datalist id="categories">
-                                    <option value="Utilities" />
-                                    <option value="Supplies" />
-                                    <option value="Maintenance" />
-                                    <option value="Salary" />
-                                    <option value="Other" />
-                                </datalist>
+                                    className="flex-1 bg-transparent outline-none text-sm cursor-pointer"
+                                >
+                                    <option value="">Select Category...</option>
+                                    <option value="SALARY">💰 Salary</option>
+                                    <option value="Utilities">⚡ Utilities</option>
+                                    <option value="Supplies">📦 Supplies</option>
+                                    <option value="Maintenance">🔧 Maintenance</option>
+                                    <option value="Other">📋 Other</option>
+                                </select>
                             </div>
                         </div>
 
@@ -249,18 +387,23 @@ export default function ExpensesPage() {
                                         <Loader2 className="animate-spin mx-auto mb-2" /> Loading expenses...
                                     </td>
                                 </tr>
-                            ) : expenses.length === 0 ? (
+                            ) : filteredExpenses.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="p-8 text-center text-muted-foreground">No expenses found for this period.</td>
                                 </tr>
                             ) : (
-                                expenses.map(exp => (
+                                filteredExpenses.map(exp => (
                                     <tr key={exp.id} className="hover:bg-secondary/10 transition-colors">
                                         <td className="px-4 py-3">{new Date(exp.date).toLocaleDateString()}</td>
                                         <td className="px-4 py-3 font-medium">{exp.description}</td>
                                         <td className="px-4 py-3">
                                             {exp.category && (
-                                                <span className="bg-secondary px-2 py-1 rounded text-xs font-medium">{exp.category}</span>
+                                                <span className={clsx(
+                                                    "px-2 py-1 rounded text-xs font-bold",
+                                                    exp.category?.toUpperCase() === 'SALARY' ? "bg-blue-100 text-blue-700" : "bg-secondary text-foreground"
+                                                )}>
+                                                    {exp.category?.toUpperCase() === 'SALARY' ? '💰 ' : ''}{exp.category}
+                                                </span>
                                             )}
                                         </td>
                                         <td className="px-4 py-3">{exp.userName}</td>

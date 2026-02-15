@@ -193,6 +193,50 @@ export async function createProduct(data: {
     }
 }
 
+export async function getUnifiedProducts() {
+    const prisma = getPrisma();
+
+    const products = await prisma.product.findMany({
+        include: {
+            category: true,
+            inventoryItems: {
+                include: { location: true }
+            }
+        },
+        orderBy: { name: 'asc' }
+    });
+
+    // Compute grand total stock across all products
+    const grandTotal = products.reduce((sum, p) =>
+        sum + p.inventoryItems.reduce((s, inv) => s + inv.quantity, 0), 0
+    );
+
+    return products.map(p => {
+        const totalStock = p.inventoryItems.reduce((s, inv) => s + inv.quantity, 0);
+        const percentOfTotal = grandTotal > 0 ? Number(((totalStock / grandTotal) * 100).toFixed(1)) : 0;
+
+        return {
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            unit: p.unit,
+            categoryId: p.categoryId,
+            categoryName: p.category?.name || 'Uncategorized',
+            costPrice: Number(p.costPrice),
+            baseSellingPrice: Number(p.baseSellingPrice),
+            image: p.image,
+            totalStock,
+            percentOfTotal,
+            locationBreakdown: p.inventoryItems.map(inv => ({
+                locationId: inv.locationId,
+                locationName: inv.location.name,
+                locationType: inv.location.type,
+                quantity: inv.quantity
+            }))
+        };
+    });
+}
+
 export async function updateProduct(id: string, data: {
     name: string;
     sku: string;

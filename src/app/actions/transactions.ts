@@ -9,6 +9,8 @@ export async function getStockMovements(
         type?: string;
         productId?: string;
         locationId?: string;
+        startDate?: string;
+        endDate?: string;
     }
 ) {
     const prisma = getPrisma();
@@ -29,6 +31,12 @@ export async function getStockMovements(
             whereClause.items = {
                 some: { productId: filters.productId }
             };
+        }
+        // Date range filter
+        if (filters?.startDate || filters?.endDate) {
+            whereClause.date = {};
+            if (filters.startDate) whereClause.date.gte = new Date(filters.startDate);
+            if (filters.endDate) whereClause.date.lte = new Date(new Date(filters.endDate).setHours(23, 59, 59));
         }
 
         const [movements, total] = await Promise.all([

@@ -25,12 +25,17 @@ export async function getBuyerReport({ startDate, endDate }: DateRange) {
             id: true,
             customerName: true,
             customerPhone: true,
+            customerAddress: true,
             totalAmount: true,
             date: true,
-            items: true // We might need to count items
+            items: true
         },
         orderBy: { date: 'desc' }
     });
+
+    // Build product name lookup
+    const products = await prisma.product.findMany({ select: { id: true, name: true } });
+    const productNameMap = new Map(products.map(p => [p.id, p.name]));
 
     // Aggregate by Customer (Name + Phone as key)
     const buyerMap = new Map();
@@ -41,21 +46,35 @@ export async function getBuyerReport({ startDate, endDate }: DateRange) {
             buyerMap.set(key, {
                 name: inv.customerName || 'Unknown',
                 phone: inv.customerPhone || 'N/A',
+                address: inv.customerAddress || '',
                 totalSpent: 0,
                 visitCount: 0,
-                lastVisit: inv.date
+                lastVisit: inv.date,
+                purchaseHistory: new Map()
             });
         }
         const buyer = buyerMap.get(key);
         buyer.totalSpent += Number(inv.totalAmount);
         buyer.visitCount += 1;
-        // Keep latest date
+        if (!buyer.address && inv.customerAddress) buyer.address = inv.customerAddress;
         if (new Date(inv.date) > new Date(buyer.lastVisit)) {
             buyer.lastVisit = inv.date;
         }
+        // Aggregate purchase history
+        const items = inv.items as any[];
+        if (Array.isArray(items)) {
+            items.forEach(item => {
+                const pName = productNameMap.get(item.productId) || item.name || 'Unknown';
+                const existing = buyer.purchaseHistory.get(pName) || 0;
+                buyer.purchaseHistory.set(pName, existing + (Number(item.quantity) || 0));
+            });
+        }
     });
 
-    return Array.from(buyerMap.values()).sort((a, b) => b.totalSpent - a.totalSpent);
+    return Array.from(buyerMap.values()).map(b => ({
+        ...b,
+        purchaseHistory: Array.from(b.purchaseHistory.entries() as IterableIterator<[string, number]>).map(([name, qty]) => ({ name, quantity: qty })).sort((a, b) => b.quantity - a.quantity)
+    })).sort((a, b) => b.totalSpent - a.totalSpent);
 }
 
 export async function getProductReport({ startDate, endDate }: DateRange) {

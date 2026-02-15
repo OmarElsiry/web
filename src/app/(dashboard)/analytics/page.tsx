@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BarChart3, Calendar, Download, Users, Package, Printer, FileText, DollarSign, Phone } from 'lucide-react';
+import { BarChart3, Calendar, Download, Users, Package, Printer, FileText, DollarSign, Phone, MapPin, ChevronDown } from 'lucide-react';
 import { getBuyerReport, getProductReport } from '@/app/actions/analytics';
 import { printElement } from '@/components/ui/PrintExport';
 import clsx from 'clsx';
@@ -14,6 +14,7 @@ export default function AnalyticsPage() {
 
     const [buyerData, setBuyerData] = useState<any[]>([]);
     const [productData, setProductData] = useState<any[]>([]);
+    const [expandedBuyer, setExpandedBuyer] = useState<number | null>(null);
 
     const fetchData = async () => {
         setLoading(true);
@@ -146,39 +147,77 @@ export default function AnalyticsPage() {
                                             <tr>
                                                 <th className="p-4 font-bold uppercase tracking-wider text-[10px]">Rank</th>
                                                 <th className="p-4 font-bold uppercase tracking-wider text-[10px]">Customer Details</th>
+                                                <th className="p-4 font-bold uppercase tracking-wider text-[10px]">Address</th>
                                                 <th className="p-4 font-bold uppercase tracking-wider text-[10px]">Frequency</th>
                                                 <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-right">Contribution</th>
+                                                <th className="p-4 font-bold uppercase tracking-wider text-[10px] w-8"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
                                             {buyerData.map((buyer, idx) => (
-                                                <tr key={idx} className="hover:bg-secondary/20 transition-colors group">
-                                                    <td className="p-4">
-                                                        <span className={clsx(
-                                                            "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
-                                                            idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
-                                                                idx === 1 ? "bg-gray-400/20 text-gray-600" :
-                                                                    idx === 2 ? "bg-orange-400/20 text-orange-600" : "bg-secondary text-muted-foreground"
-                                                        )}>
-                                                            #{idx + 1}
-                                                        </span>
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <div className="font-black text-base">{buyer.name}</div>
-                                                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                            <Phone size={10} /> {buyer.phone}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Calendar size={14} className="text-muted-foreground" />
-                                                            <span className="font-medium">{buyer.visitCount} visits</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 text-right">
-                                                        <div className="font-black text-primary text-lg">EGP {buyer.totalSpent.toLocaleString()}</div>
-                                                    </td>
-                                                </tr>
+                                                <>
+                                                    <tr key={idx} className="hover:bg-secondary/20 transition-colors group">
+                                                        <td className="p-4">
+                                                            <span className={clsx(
+                                                                "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
+                                                                idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
+                                                                    idx === 1 ? "bg-gray-400/20 text-gray-600" :
+                                                                        idx === 2 ? "bg-orange-400/20 text-orange-600" : "bg-secondary text-muted-foreground"
+                                                            )}>
+                                                                #{idx + 1}
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="font-black text-base">{buyer.name}</div>
+                                                            <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <Phone size={10} /> {buyer.phone}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            {buyer.address ? (
+                                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                    <MapPin size={12} className="text-primary shrink-0" />
+                                                                    <span className="truncate max-w-[200px]">{buyer.address}</span>
+                                                                </div>
+                                                            ) : <span className="text-xs text-muted-foreground/50">—</span>}
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <Calendar size={14} className="text-muted-foreground" />
+                                                                <span className="font-medium">{buyer.visitCount} visits</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-right">
+                                                            <div className="font-black text-primary text-lg">EGP {buyer.totalSpent.toLocaleString()}</div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            {buyer.purchaseHistory?.length > 0 && (
+                                                                <button
+                                                                    onClick={() => setExpandedBuyer(expandedBuyer === idx ? null : idx)}
+                                                                    className="p-1 rounded hover:bg-secondary"
+                                                                >
+                                                                    <ChevronDown size={14} className={clsx("transition-transform", expandedBuyer === idx && "rotate-180")} />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                    {expandedBuyer === idx && buyer.purchaseHistory?.length > 0 && (
+                                                        <tr key={`${idx}-history`} className="bg-secondary/10">
+                                                            <td colSpan={6} className="px-4 py-3">
+                                                                <div className="ml-12 space-y-1">
+                                                                    <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Purchase History</div>
+                                                                    {buyer.purchaseHistory.map((ph: any, i: number) => (
+                                                                        <div key={i} className="flex items-center gap-3 text-sm py-1 px-3 rounded hover:bg-secondary/30">
+                                                                            <Package size={14} className="text-primary" />
+                                                                            <span className="flex-1 font-medium">{ph.name}</span>
+                                                                            <span className="font-bold font-mono">{ph.quantity} units</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </>
                                             ))}
                                             {buyerData.length === 0 && (
                                                 <tr>

@@ -1,28 +1,27 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, Tag, Boxes, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getInventory, getCategories, createProduct, updateProduct, createCategory, deleteCategory } from '@/app/actions/inventory';
+import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, Tag, Boxes, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin, Percent } from 'lucide-react';
+import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory } from '@/app/actions/inventory';
 import clsx from 'clsx';
 
-type ViewMode = 'stock' | 'pricing';
-type SortField = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'sell' | 'margin';
+type SortField = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'sell' | 'margin' | 'percent';
 type SortOrder = 'asc' | 'desc';
 
 const ITEMS_PER_PAGE = 15;
 
 export default function ProductsPage() {
-    const [items, setItems] = useState<any[]>([]);
+    const [products, setProducts] = useState<any[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [viewMode, setViewMode] = useState<ViewMode>('stock');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
     // Sorting state
     const [sortField, setSortField] = useState<SortField>('name');
@@ -50,8 +49,8 @@ export default function ProductsPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [inv, cats] = await Promise.all([getInventory(), getCategories()]);
-            setItems(inv);
+            const [prods, cats] = await Promise.all([getUnifiedProducts(), getCategories()]);
+            setProducts(prods);
             setCategories(cats);
         } finally {
             setLoading(false);
@@ -73,17 +72,17 @@ export default function ProductsPage() {
         setIsModalOpen(true);
     };
 
-    const openEditModal = (item: any) => {
+    const openEditModal = (product: any) => {
         setIsEditMode(true);
-        setEditingId(item.product.id);
+        setEditingId(product.id);
         setFormData({
-            name: item.product.name,
-            sku: item.product.sku,
-            categoryId: item.product.categoryId,
-            costPrice: Number(item.product.costPrice),
-            baseSellingPrice: Number(item.product.baseSellingPrice),
-            unit: item.product.unit,
-            initialQuantity: item.quantity
+            name: product.name,
+            sku: product.sku,
+            categoryId: product.categoryId,
+            costPrice: product.costPrice,
+            baseSellingPrice: product.baseSellingPrice,
+            unit: product.unit,
+            initialQuantity: product.totalStock
         });
         setError(null);
         setIsModalOpen(true);
@@ -166,53 +165,30 @@ export default function ProductsPage() {
         return sortOrder === 'asc' ? <ArrowUp size={14} className="text-primary" /> : <ArrowDown size={14} className="text-primary" />;
     };
 
-    // Filter and sort items
+    // Filter and sort products
     const filteredAndSortedItems = useMemo(() => {
-        let result = (items || []).filter(item => {
-            const matchesSearch = item.product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = categoryFilter === 'all' || item.product.categoryId === categoryFilter;
+        let result = (products || []).filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                p.sku.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
             return matchesSearch && matchesCategory;
         });
 
-        // Sort
         result.sort((a, b) => {
             let aVal: any, bVal: any;
             switch (sortField) {
-                case 'name':
-                    aVal = a.product.name.toLowerCase();
-                    bVal = b.product.name.toLowerCase();
-                    break;
-                case 'sku':
-                    aVal = a.product.sku.toLowerCase();
-                    bVal = b.product.sku.toLowerCase();
-                    break;
-                case 'category':
-                    aVal = a.product.category?.name?.toLowerCase() || '';
-                    bVal = b.product.category?.name?.toLowerCase() || '';
-                    break;
-                case 'stock':
-                    aVal = a.quantity;
-                    bVal = b.quantity;
-                    break;
-                case 'cost':
-                    aVal = Number(a.product.costPrice);
-                    bVal = Number(b.product.costPrice);
-                    break;
-                case 'sell':
-                    aVal = Number(a.product.baseSellingPrice);
-                    bVal = Number(b.product.baseSellingPrice);
-                    break;
+                case 'name': aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); break;
+                case 'sku': aVal = a.sku.toLowerCase(); bVal = b.sku.toLowerCase(); break;
+                case 'category': aVal = a.categoryName.toLowerCase(); bVal = b.categoryName.toLowerCase(); break;
+                case 'stock': aVal = a.totalStock; bVal = b.totalStock; break;
+                case 'cost': aVal = a.costPrice; bVal = b.costPrice; break;
+                case 'sell': aVal = a.baseSellingPrice; bVal = b.baseSellingPrice; break;
+                case 'percent': aVal = a.percentOfTotal; bVal = b.percentOfTotal; break;
                 case 'margin':
-                    const aSell = Number(a.product.baseSellingPrice);
-                    const aCost = Number(a.product.costPrice);
-                    const bSell = Number(b.product.baseSellingPrice);
-                    const bCost = Number(b.product.costPrice);
-                    aVal = aSell > 0 ? ((aSell - aCost) / aSell) : 0;
-                    bVal = bSell > 0 ? ((bSell - bCost) / bSell) : 0;
+                    aVal = a.baseSellingPrice > 0 ? ((a.baseSellingPrice - a.costPrice) / a.baseSellingPrice) : 0;
+                    bVal = b.baseSellingPrice > 0 ? ((b.baseSellingPrice - b.costPrice) / b.baseSellingPrice) : 0;
                     break;
-                default:
-                    return 0;
+                default: return 0;
             }
             if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
             if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
@@ -220,7 +196,7 @@ export default function ProductsPage() {
         });
 
         return result;
-    }, [items, searchQuery, categoryFilter, sortField, sortOrder]);
+    }, [products, searchQuery, categoryFilter, sortField, sortOrder]);
 
     // Pagination
     const totalPages = Math.ceil(filteredAndSortedItems.length / ITEMS_PER_PAGE);
@@ -231,7 +207,7 @@ export default function ProductsPage() {
 
     const SortableHeader = ({ field, children, className = "" }: { field: SortField, children: React.ReactNode, className?: string }) => (
         <th
-            className={clsx("px-6 py-4 cursor-pointer hover:bg-secondary/50 transition-colors select-none", className)}
+            className={clsx("px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors select-none text-xs", className)}
             onClick={() => handleSort(field)}
         >
             <div className="flex items-center gap-1">
@@ -249,7 +225,7 @@ export default function ProductsPage() {
                         <Package className="text-primary" />
                         الأصناف والتسعير
                     </h2>
-                    <p className="text-muted-foreground">Products & Pricing Management</p>
+                    <p className="text-muted-foreground">Products, Pricing & Stock</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
@@ -268,30 +244,6 @@ export default function ProductsPage() {
 
             {/* Filters Bar */}
             <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
-                {/* View Toggle */}
-                <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
-                    <button
-                        onClick={() => setViewMode('stock')}
-                        className={clsx(
-                            "px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-all",
-                            viewMode === 'stock' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Boxes size={16} />
-                        Stock
-                    </button>
-                    <button
-                        onClick={() => setViewMode('pricing')}
-                        className={clsx(
-                            "px-4 py-2 rounded-md text-sm font-bold flex items-center gap-2 transition-all",
-                            viewMode === 'pricing' ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Tag size={16} />
-                        Pricing
-                    </button>
-                </div>
-
                 {/* Category Filter */}
                 <select
                     value={categoryFilter}
@@ -320,64 +272,103 @@ export default function ProductsPage() {
                 </div>
             </div>
 
-            {/* Table */}
+            {/* Unified Table */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                         <tr>
+                            <th className="px-4 py-3 w-8"></th>
                             <SortableHeader field="name">Product</SortableHeader>
                             <SortableHeader field="sku">SKU</SortableHeader>
                             <SortableHeader field="category">Category</SortableHeader>
-                            {viewMode === 'stock' ? (
-                                <SortableHeader field="stock" className="text-right">Stock</SortableHeader>
-                            ) : (
-                                <>
-                                    <SortableHeader field="cost" className="text-right">Cost (EGP)</SortableHeader>
-                                    <SortableHeader field="sell" className="text-right">Sell (EGP)</SortableHeader>
-                                    <SortableHeader field="margin" className="text-right">Margin</SortableHeader>
-                                </>
-                            )}
-                            <th className="px-6 py-4 text-right">Actions</th>
+                            <th className="px-4 py-3 text-xs">Unit</th>
+                            <SortableHeader field="cost" className="text-right">Cost</SortableHeader>
+                            <SortableHeader field="sell" className="text-right">Sell</SortableHeader>
+                            <SortableHeader field="margin" className="text-right">Margin</SortableHeader>
+                            <SortableHeader field="stock" className="text-right">Stock</SortableHeader>
+                            <SortableHeader field="percent" className="text-right">% Total</SortableHeader>
+                            <th className="px-4 py-3 text-right text-xs">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                         {loading ? (
-                            <tr><td colSpan={viewMode === 'stock' ? 5 : 7} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
+                            <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
                         ) : paginatedItems.length === 0 ? (
-                            <tr><td colSpan={viewMode === 'stock' ? 5 : 7} className="px-6 py-12 text-center text-muted-foreground">No products found.</td></tr>
+                            <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">No products found.</td></tr>
                         ) : (
-                            paginatedItems.map((item) => {
-                                const cost = Number(item.product.costPrice);
-                                const sell = Number(item.product.baseSellingPrice);
-                                const margin = sell > 0 ? ((sell - cost) / sell * 100).toFixed(1) : 0;
+                            paginatedItems.map((p) => {
+                                const margin = p.baseSellingPrice > 0 ? ((p.baseSellingPrice - p.costPrice) / p.baseSellingPrice * 100).toFixed(1) : '0';
+                                const isExpanded = expandedRow === p.id;
                                 return (
-                                    <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
-                                        <td className="px-6 py-4 font-semibold">{item.product.name}</td>
-                                        <td className="px-6 py-4 font-mono text-xs">{item.product.sku}</td>
-                                        <td className="px-6 py-4"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{item.product.category?.name}</span></td>
-                                        {viewMode === 'stock' ? (
-                                            <td className="px-6 py-4 text-right">
-                                                <span className={clsx("font-bold", item.quantity < 10 ? "text-red-500" : "")}>{item.quantity}</span>
-                                                {item.quantity < 10 && <span className="ml-2 text-[10px] text-red-500"><AlertCircle size={12} className="inline" /></span>}
+                                    <>
+                                        <tr key={p.id} className="hover:bg-muted/50 transition-colors group">
+                                            <td className="px-4 py-3">
+                                                {p.locationBreakdown.length > 0 && (
+                                                    <button
+                                                        onClick={() => setExpandedRow(isExpanded ? null : p.id)}
+                                                        className="p-1 rounded hover:bg-secondary transition-colors"
+                                                    >
+                                                        <ChevronDown size={14} className={clsx("transition-transform", isExpanded && "rotate-180")} />
+                                                    </button>
+                                                )}
                                             </td>
-                                        ) : (
-                                            <>
-                                                <td className="px-6 py-4 text-right font-mono">{cost.toLocaleString()}</td>
-                                                <td className="px-6 py-4 text-right font-mono font-bold">{sell.toLocaleString()}</td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <span className={clsx(
-                                                        "px-2 py-1 rounded text-xs font-bold",
-                                                        Number(margin) >= 20 ? "bg-green-100 text-green-700" : Number(margin) >= 10 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
-                                                    )}>
-                                                        {margin}%
-                                                    </span>
+                                            <td className="px-4 py-3 font-semibold">{p.name}</td>
+                                            <td className="px-4 py-3 font-mono text-xs">{p.sku}</td>
+                                            <td className="px-4 py-3"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{p.categoryName}</span></td>
+                                            <td className="px-4 py-3 text-xs capitalize text-muted-foreground">{p.unit}</td>
+                                            <td className="px-4 py-3 text-right font-mono text-xs">{p.costPrice.toLocaleString()}</td>
+                                            <td className="px-4 py-3 text-right font-mono text-xs font-bold">{p.baseSellingPrice.toLocaleString()}</td>
+                                            <td className="px-4 py-3 text-right">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[10px] font-bold",
+                                                    Number(margin) >= 20 ? "bg-green-100 text-green-700" : Number(margin) >= 10 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
+                                                )}>
+                                                    {margin}%
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <span className={clsx("font-bold", p.totalStock < 10 ? "text-red-500" : "")}>{p.totalStock}</span>
+                                                {p.totalStock < 10 && <AlertCircle size={12} className="inline ml-1 text-red-500" />}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                                        <div
+                                                            className="h-full bg-primary rounded-full transition-all"
+                                                            style={{ width: `${Math.min(p.percentOfTotal, 100)}%` }}
+                                                        />
+                                                    </div>
+                                                    <span className="text-xs font-mono w-12 text-right">{p.percentOfTotal}%</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button onClick={() => openEditModal(p)} className="p-2 hover:bg-secondary rounded-lg"><Edit size={14} /></button>
+                                            </td>
+                                        </tr>
+                                        {/* Expanded Location Breakdown */}
+                                        {isExpanded && (
+                                            <tr key={`${p.id}-expanded`} className="bg-secondary/10">
+                                                <td colSpan={11} className="px-4 py-3">
+                                                    <div className="ml-8 space-y-1">
+                                                        <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Stock by Location</div>
+                                                        {p.locationBreakdown.map((loc: any) => (
+                                                            <div key={loc.locationId} className="flex items-center gap-3 text-sm py-1.5 px-3 rounded-lg hover:bg-secondary/30">
+                                                                <MapPin size={14} className={loc.locationType === 'WAREHOUSE' ? 'text-blue-500' : 'text-orange-500'} />
+                                                                <span className="font-medium flex-1">{loc.locationName}</span>
+                                                                <span className={clsx(
+                                                                    "px-2 py-0.5 rounded text-[10px] font-bold",
+                                                                    loc.locationType === 'WAREHOUSE' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
+                                                                )}>
+                                                                    {loc.locationType}
+                                                                </span>
+                                                                <span className="font-bold font-mono w-16 text-right">{loc.quantity}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </td>
-                                            </>
+                                            </tr>
                                         )}
-                                        <td className="px-6 py-4 text-right">
-                                            <button onClick={() => openEditModal(item)} className="p-2 hover:bg-secondary rounded-lg"><Edit size={14} /></button>
-                                        </td>
-                                    </tr>
+                                    </>
                                 );
                             })
                         )}
@@ -470,6 +461,7 @@ export default function ProductsPage() {
                                         <option value="piece">Piece</option>
                                         <option value="kg">Kilogram</option>
                                         <option value="carton">Carton</option>
+                                        <option value="liter">Liter</option>
                                     </select>
                                 </div>
                             </div>

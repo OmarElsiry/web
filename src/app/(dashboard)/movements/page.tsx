@@ -18,12 +18,14 @@ export default function MovementsPage() {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [filterType, setFilterType] = useState('ALL');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await getStockMovements(page, ITEMS_PER_PAGE, { type: filterType });
+            const res = await getStockMovements(page, ITEMS_PER_PAGE, { type: filterType, startDate: startDate || undefined, endDate: endDate || undefined });
             if (res.success && res.movements) {
                 setTransactions(res.movements);
                 setPagination(res.pagination || { total: 0, pages: 1, current: 1 });
@@ -35,7 +37,7 @@ export default function MovementsPage() {
 
     useEffect(() => {
         fetchData();
-    }, [page, filterType]);
+    }, [page, filterType, startDate, endDate]);
 
     const getTypeConfig = (type: TransactionType) => {
         switch (type) {
@@ -59,7 +61,7 @@ export default function MovementsPage() {
                     <p className="text-muted-foreground">Stock Movement History</p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
@@ -71,6 +73,24 @@ export default function MovementsPage() {
                         <option value="OUT">Stock Out</option>
                         <option value="TRANSFER">Transfers</option>
                     </select>
+
+                    <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-lg">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="bg-transparent text-sm p-2 outline-none"
+                            placeholder="From"
+                        />
+                        <span className="text-muted-foreground">-</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="bg-transparent text-sm p-2 outline-none"
+                            placeholder="To"
+                        />
+                    </div>
 
                     <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
                         <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
