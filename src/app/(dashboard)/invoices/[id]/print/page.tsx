@@ -190,19 +190,19 @@ export default function InvoicePrintPage() {
                 <div className="flex-1 border border-gray-400 rounded p-1">
                     <div className="grid grid-cols-2 gap-y-1">
                         <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الرصيد السابق</div>
-                        <div className="text-left font-bold px-2">0</div>
+                        <div className="text-left font-bold px-2">{Number(invoice.previousBalance || 0).toLocaleString()}</div>
 
                         <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الصافي</div>
-                        <div className="text-left font-bold px-2">{Math.floor(invoice.totalAmount)}</div>
+                        <div className="text-left font-bold px-2">{Number(invoice.totalAmount).toLocaleString()}</div>
 
                         <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300 flex items-center justify-between">
                             <span>مستلم من العميل</span>
-                            <span className="text-xs font-normal text-gray-500">نقداً</span>
+                            <span className="text-xs font-normal text-gray-500">{invoice.paymentMethod === 'CREDIT' ? 'آجل' : 'نقداً'}</span>
                         </div>
-                        <div className="text-left font-bold px-2">0</div>
+                        <div className="text-left font-bold px-2">{Number(invoice.amountPaid || 0).toLocaleString()}</div>
 
                         <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الرصيد الحالي</div>
-                        <div className="text-left font-bold px-2">{Math.floor(invoice.totalAmount)}</div>
+                        <div className="text-left font-bold px-2">{Number(invoice.currentBalance || 0).toLocaleString()}</div>
                     </div>
                 </div>
             </div>

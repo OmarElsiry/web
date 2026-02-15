@@ -39,6 +39,9 @@ export async function getInvoices() {
         return {
             ...inv,
             totalAmount: Number(inv.totalAmount),
+            previousBalance: Number(inv.previousBalance || 0),
+            amountPaid: Number(inv.amountPaid || 0),
+            currentBalance: Number(inv.currentBalance || 0),
             items: inv.items.map(item => ({
                 ...item,
                 unitPrice: Number(item.unitPrice),
@@ -85,6 +88,9 @@ export async function getInvoiceById(id: string) {
     return {
         ...invoice,
         totalAmount: Number(invoice.totalAmount),
+        previousBalance: Number(invoice.previousBalance || 0),
+        amountPaid: Number(invoice.amountPaid || 0),
+        currentBalance: Number(invoice.currentBalance || 0),
         items: invoice.items.map(item => ({
             ...item,
             unitPrice: Number(item.unitPrice),

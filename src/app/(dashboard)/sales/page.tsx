@@ -59,6 +59,8 @@ export default function SalesPage() {
 
     // Customer Search State
     const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+    const [amountPaid, setAmountPaid] = useState<number | ''>('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -92,6 +94,7 @@ export default function SalesPage() {
             customerPhone: cust.phone || '',
             customerAddress: cust.address || ''
         });
+        setSelectedCustomerId(cust.id);
         setShowSuggestions(false);
     };
 
@@ -165,14 +168,18 @@ export default function SalesPage() {
                 cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
                 paymentMethod,
                 buyerInfo.customerName ? buyerInfo : undefined,
-                undefined, // authenticated userId handled by server if not passed, skipping it here
-                selectedStaffId // Pass selected staff ID
+                undefined,
+                selectedStaffId,
+                amountPaid === '' ? undefined : amountPaid,
+                selectedCustomerId || undefined
             );
 
             if (result.success) {
                 setShowSuccess(true);
                 setCart([]);
                 setBuyerInfo({ customerName: '', customerPhone: '', customerAddress: '' });
+                setSelectedCustomerId(null);
+                setAmountPaid('');
                 setDiscount(0);
                 setOrderNotes('');
                 // Reset staff selection? Maybe keep it for next sale.
@@ -493,9 +500,24 @@ export default function SalesPage() {
                         <span className="text-muted-foreground">Tax (0%)</span>
                         <span>EGP 0</span>
                     </div>
-                    <div className="flex justify-between font-bold text-lg border-t border-border pt-2 pb-2">
-                        <span>Total</span>
+                    <div className="flex justify-between font-bold text-lg border-t border-border pt-2">
+                        <span>Total Balance</span>
                         <span>EGP {total.toLocaleString()}</span>
+                    </div>
+
+                    {/* Amount Paid Field */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+                        <label className="text-xs font-bold uppercase text-muted-foreground whitespace-nowrap">Amount Paid</label>
+                        <div className="relative flex-1">
+                            <input
+                                type="number"
+                                placeholder={paymentMethod === 'CREDIT' ? '0' : total.toString()}
+                                value={amountPaid}
+                                onChange={e => setAmountPaid(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                className="w-full p-2 text-sm text-right font-bold rounded-lg border border-primary/30 bg-primary/5 focus:ring-2 focus:ring-primary/20 outline-none"
+                            />
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-mono">EGP</span>
+                        </div>
                     </div>
 
                     <div className="space-y-2 pt-2">

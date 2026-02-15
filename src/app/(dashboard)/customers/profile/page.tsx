@@ -14,20 +14,19 @@ import clsx from 'clsx';
 
 function ProfileContent() {
     const searchParams = useSearchParams();
-    const name = searchParams.get('name');
-    const phone = searchParams.get('phone');
+    const id = searchParams.get('id');
 
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (name) {
-            getCustomerProfile(name, phone).then(res => {
+        if (id) {
+            getCustomerProfile(id).then(res => {
                 setData(res);
                 setLoading(false);
             });
         }
-    }, [name, phone]);
+    }, [id]);
 
     if (loading) {
         return (
@@ -104,12 +103,17 @@ function ProfileContent() {
 
                         <div className="mt-8 pt-8 border-t border-border grid grid-cols-2 gap-4">
                             <div className="text-center">
-                                <div className="text-[10px] font-black uppercase text-muted-foreground mb-1">Total Purchases</div>
-                                <div className="text-2xl font-black text-primary">{invoices.length}</div>
-                            </div>
-                            <div className="text-center border-l border-border">
                                 <div className="text-[10px] font-black uppercase text-muted-foreground mb-1">Lifetime Value</div>
                                 <div className="text-2xl font-black text-green-600">EGP {totalSpent.toLocaleString()}</div>
+                            </div>
+                            <div className="text-center border-l border-border">
+                                <div className="text-[10px] font-black uppercase text-muted-foreground mb-1">Current Balance</div>
+                                <div className={clsx(
+                                    "text-2xl font-black",
+                                    profile.balance > 0 ? "text-red-600" : "text-green-600"
+                                )}>
+                                    EGP {Number(profile.balance).toLocaleString()}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -146,9 +150,16 @@ function ProfileContent() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-2xl font-black text-primary">EGP {Number(invoice.total).toLocaleString()}</div>
-                                        <div className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">Total Gross</div>
+                                    <div className="text-right flex flex-col items-end gap-1">
+                                        <div className="text-xl font-black text-primary">EGP {Number(invoice.total).toLocaleString()}</div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase">Paid: EGP {Number(invoice.paid).toLocaleString()}</span>
+                                            {invoice.currentBalance > 0 && (
+                                                <span className="px-2 py-0.5 bg-red-500/10 text-red-600 text-[9px] font-black rounded-full uppercase tracking-tighter italic">
+                                                    Due: EGP {Number(invoice.currentBalance).toLocaleString()}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="p-6 border-t border-border grid grid-cols-1 md:grid-cols-2 gap-4 bg-background">

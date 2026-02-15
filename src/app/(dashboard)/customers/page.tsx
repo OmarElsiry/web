@@ -69,14 +69,23 @@ export default function CustomersPage() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-black text-lg line-clamp-1">{customer.name}</h3>
-                                        {customer.type === 'USER' && (
-                                            <span className="bg-primary/10 text-primary text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">Member</span>
+                                        {customer.group && (
+                                            <span className="bg-primary/10 text-primary text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">{customer.group.name}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-0.5">
                                         <Phone size={14} />
                                         <span>{customer.phone}</span>
                                     </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className={clsx(
+                                        "text-lg font-black",
+                                        customer.balance > 0 ? "text-red-600" : "text-green-600"
+                                    )}>
+                                        EGP {Number(customer.balance).toLocaleString()}
+                                    </div>
+                                    <div className="text-[10px] font-black uppercase text-muted-foreground">Balance</div>
                                 </div>
                             </div>
 
@@ -91,10 +100,10 @@ export default function CustomersPage() {
                                     <span>History Available</span>
                                 </div>
                                 <Link
-                                    href={`/customers/profile?name=${encodeURIComponent(customer.name)}&phone=${encodeURIComponent(customer.phone)}`}
+                                    href={`/customers/profile?id=${customer.id}`}
                                     className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-foreground rounded-lg font-bold text-sm hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
                                 >
-                                    View Full Profile
+                                    View Full Profile Ledger
                                     <ExternalLink size={14} />
                                 </Link>
                             </div>
