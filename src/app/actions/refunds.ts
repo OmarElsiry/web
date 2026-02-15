@@ -2,6 +2,7 @@
 
 import { getPrisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { PrismaClient } from '@/generated/client';
 
 // Types
 type RefundItemInput = {
@@ -19,7 +20,7 @@ type CreateRefundInput = {
 };
 
 export async function createRefund(data: CreateRefundInput) {
-    const prisma = getPrisma();
+    const prisma: PrismaClient = getPrisma();
     const { invoiceId, userId, items, reason } = data;
 
     // Calculate total amount
@@ -153,25 +154,29 @@ export async function createRefund(data: CreateRefundInput) {
 }
 
 export async function getRefunds() {
-    const prisma = getPrisma();
-    const refunds = await prisma.refund.findMany({
-        include: {
-            user: true,
-            items: {
-                include: { product: true }
+    const prisma: PrismaClient = getPrisma();
+    try {
+        const refunds = await prisma.refund.findMany({
+            include: {
+                user: true,
+                items: {
+                    include: { product: true }
+                },
+                invoice: true
             },
-            invoice: true
-        },
-        orderBy: { createdAt: 'desc' }
-    });
+            orderBy: { createdAt: 'desc' }
+        });
 
-    return refunds.map(ref => ({
-        ...ref,
-        totalAmount: Number(ref.totalAmount),
-        items: ref.items.map(item => ({
-            ...item,
-            unitPrice: Number(item.unitPrice),
-            subtotal: Number(item.subtotal || (Number(item.unitPrice) * item.quantity))
-        }))
-    }));
+        return refunds.map((ref: any) => ({
+            ...ref,
+            totalAmount: Number(ref.totalAmount),
+            items: (ref.items || []).map((item: any) => ({
+                ...item,
+                unitPrice: Number(item.unitPrice)
+            }))
+        }));
+    } catch (error) {
+        console.error("Error fetching refunds:", error);
+        return [];
+    }
 }

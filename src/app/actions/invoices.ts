@@ -2,10 +2,11 @@
 
 import { getPrisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { PrismaClient } from '@/generated/client';
 
 // Update type definition if not global, but for now we'll imply it from usage
 export async function getInvoices() {
-    const prisma = getPrisma();
+    const prisma: PrismaClient = getPrisma();
 
     // Fetch latest 50 for now (pagination can be added later)
     const invoices = await prisma.invoice.findMany({
@@ -49,7 +50,7 @@ export async function getInvoices() {
 }
 
 export async function getInvoiceById(id: string) {
-    const prisma = getPrisma();
+    const prisma: PrismaClient = getPrisma();
     const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
