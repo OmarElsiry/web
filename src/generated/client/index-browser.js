@@ -200,7 +200,28 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   customerName: 'customerName',
   customerPhone: 'customerPhone',
   customerAddress: 'customerAddress',
+  customerId: 'customerId',
+  previousBalance: 'previousBalance',
+  amountPaid: 'amountPaid',
+  currentBalance: 'currentBalance',
   userId: 'userId'
+};
+
+exports.Prisma.CustomerScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  phone: 'phone',
+  address: 'address',
+  balance: 'balance',
+  groupId: 'groupId',
+  parentId: 'parentId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CustomerGroupScalarFieldEnum = {
+  id: 'id',
+  name: 'name'
 };
 
 exports.Prisma.InvoiceItemScalarFieldEnum = {
@@ -308,6 +329,8 @@ exports.Prisma.ModelName = {
   Supplier: 'Supplier',
   TransactionItem: 'TransactionItem',
   Invoice: 'Invoice',
+  Customer: 'Customer',
+  CustomerGroup: 'CustomerGroup',
   InvoiceItem: 'InvoiceItem',
   Refund: 'Refund',
   RefundItem: 'RefundItem',

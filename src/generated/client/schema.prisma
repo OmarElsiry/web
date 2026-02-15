@@ -147,19 +147,55 @@ model TransactionItem {
 }
 
 model Invoice {
-  id              String        @id @default(uuid())
-  date            DateTime      @default(now())
-  totalAmount     Decimal
-  paymentMethod   PaymentMethod
+  id            String        @id @default(uuid())
+  date          DateTime      @default(now())
+  totalAmount   Decimal
+  paymentMethod PaymentMethod
+
+  // Legacy fields (kept for compatibility during migration)
   customerName    String?
   customerPhone   String?
   customerAddress String?
+
+  // New AR Fields
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  previousBalance Decimal   @default(0)
+  amountPaid      Decimal   @default(0)
+  currentBalance  Decimal   @default(0)
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
 
   items   InvoiceItem[]
   refunds Refund[]
+}
+
+model Customer {
+  id      String  @id @default(uuid())
+  name    String
+  phone   String?
+  address String?
+  balance Decimal @default(0)
+
+  groupId String?
+  group   CustomerGroup? @relation(fields: [groupId], references: [id])
+
+  parentId String?
+  parent   Customer?  @relation("CustomerHierarchy", fields: [parentId], references: [id])
+  children Customer[] @relation("CustomerHierarchy")
+
+  invoices  Invoice[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([name, phone])
+}
+
+model CustomerGroup {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  customers Customer[]
 }
 
 model InvoiceItem {

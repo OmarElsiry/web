@@ -54,7 +54,9 @@ export async function processSale(
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
     buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string },
     userId?: string,
-    staffId?: string
+    staffId?: string,
+    amountPaid?: number,
+    customerId?: string
 ) {
     const prisma = getPrisma();
 
@@ -127,7 +129,48 @@ export async function processSale(
                 });
             }
 
-            // B. CREATE INVOICE with buyer/seller info
+            // B. RESOLVE CUSTOMER & BALANCE
+            let finalCustomerId = customerId;
+            let previousBalance = 0;
+
+            if (!finalCustomerId && buyerInfo?.customerName) {
+                const name = buyerInfo.customerName as string;
+                const phone = buyerInfo.customerPhone || null;
+
+                // Try to resolve customer by name/phone, or create if not found
+                const customer = await tx.customer.upsert({
+                    where: {
+                        name_phone: {
+                            name: name as any,
+                            phone: phone as any
+                        }
+                    },
+                    update: {},
+                    create: {
+                        name,
+                        phone: phone as string | null,
+                        address: buyerInfo.customerAddress || null
+                    }
+                });
+                finalCustomerId = customer.id;
+                previousBalance = Number(customer.balance);
+            } else if (finalCustomerId) {
+                const customer = await tx.customer.findUnique({ where: { id: finalCustomerId } });
+                previousBalance = customer ? Number(customer.balance) : 0;
+            }
+
+            const paid = amountPaid ?? (paymentMethod === 'CREDIT' ? 0 : totalAmount);
+            const currentBalance = previousBalance + totalAmount - paid;
+
+            // Update Customer Balance
+            if (finalCustomerId) {
+                await tx.customer.update({
+                    where: { id: finalCustomerId },
+                    data: { balance: currentBalance }
+                });
+            }
+
+            // C. CREATE INVOICE with AR metrics
             const newInvoice = await tx.invoice.create({
                 data: {
                     totalAmount,
@@ -135,7 +178,11 @@ export async function processSale(
                     customerName: buyerInfo?.customerName || null,
                     customerPhone: buyerInfo?.customerPhone || null,
                     customerAddress: buyerInfo?.customerAddress || null,
-                    userId: sellerId || null, // Attribute to Staff or User
+                    customerId: finalCustomerId || null,
+                    previousBalance,
+                    amountPaid: paid,
+                    currentBalance,
+                    userId: sellerId || null,
                     items: {
                         create: invoiceItemsData
                     }
@@ -191,10 +238,10 @@ export async function processSale(
             invoice: {
                 ...invoice,
                 totalAmount: Number(invoice.totalAmount),
-                items: invoice.items.map(item => ({
-                    ...item,
-                    unitPrice: Number(item.unitPrice),
-                    subtotal: Number(item.subtotal)
+                items: invoice.items.map(it => ({
+                    ...it,
+                    unitPrice: Number(it.unitPrice),
+                    subtotal: Number(it.subtotal)
                 }))
             }
         };

@@ -21,11 +21,15 @@ interface Invoice {
     date: Date;
     totalAmount: number;
     paymentMethod: string;
+    previousBalance?: number;
+    amountPaid?: number;
+    currentBalance?: number;
     items?: Array<{
         id: string;
         productId: string;
         product: { name: string, sku: string };
         quantity: number;
+        refundableQuantity: number;
         unitPrice: number;
         subtotal: number;
     }>;
@@ -319,6 +323,28 @@ export default function InvoicesPage() {
                                             </tr>
                                         </tfoot>
                                     </table>
+                                </div>
+
+                                {/* Premium Arabic Financial Footer */}
+                                <div className="mt-6 border-2 border-primary/20 rounded-2xl overflow-hidden bg-primary/5 shadow-inner">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x-2 divide-primary/20 rtl text-right font-bold" dir="rtl">
+                                        <div className="p-4 flex flex-col items-center justify-center gap-1">
+                                            <span className="text-[10px] text-muted-foreground">الرصيد السابق</span>
+                                            <span className="text-lg">EGP {Number(selectedInvoice.previousBalance || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="p-4 flex flex-col items-center justify-center gap-1 bg-primary/10">
+                                            <span className="text-[10px] text-primary">الصافي</span>
+                                            <span className="text-xl text-primary">EGP {Number(selectedInvoice.totalAmount).toLocaleString()}</span>
+                                        </div>
+                                        <div className="p-4 flex flex-col items-center justify-center gap-1">
+                                            <span className="text-[10px] text-green-600">مستلم</span>
+                                            <span className="text-lg text-green-600">EGP {Number(selectedInvoice.amountPaid || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="p-4 flex flex-col items-center justify-center gap-1 bg-primary/5">
+                                            <span className="text-[10px] text-red-600 font-black">الرصيد الحالي</span>
+                                            <span className="text-xl text-red-600 underline decoration-double">EGP {Number(selectedInvoice.currentBalance || 0).toLocaleString()}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
