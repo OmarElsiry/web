@@ -94,6 +94,10 @@ export async function createProduct(data: {
     categoryId: string;
     costPrice: number;
     baseSellingPrice: number;
+    retailPrice?: number;
+    lowestRetailPrice?: number;
+    wholesalePrice?: number;
+    lowestWholesalePrice?: number;
     unit?: string;
     image?: string;
     initialQuantity?: number;
@@ -118,6 +122,10 @@ export async function createProduct(data: {
                     categoryId: data.categoryId,
                     costPrice: data.costPrice,
                     baseSellingPrice: data.baseSellingPrice,
+                    retailPrice: data.retailPrice || 0,
+                    lowestRetailPrice: data.lowestRetailPrice || 0,
+                    wholesalePrice: data.wholesalePrice || 0,
+                    lowestWholesalePrice: data.lowestWholesalePrice || 0,
                     unit: data.unit || 'piece',
                     image: data.image
                 }
@@ -224,6 +232,10 @@ export async function getUnifiedProducts() {
             categoryName: p.category?.name || 'Uncategorized',
             costPrice: Number(p.costPrice),
             baseSellingPrice: Number(p.baseSellingPrice),
+            retailPrice: Number(p.retailPrice),
+            lowestRetailPrice: Number(p.lowestRetailPrice),
+            wholesalePrice: Number(p.wholesalePrice),
+            lowestWholesalePrice: Number(p.lowestWholesalePrice),
             image: p.image,
             totalStock,
             percentOfTotal,
@@ -243,6 +255,10 @@ export async function updateProduct(id: string, data: {
     categoryId: string;
     costPrice: number;
     baseSellingPrice: number;
+    retailPrice?: number;
+    lowestRetailPrice?: number;
+    wholesalePrice?: number;
+    lowestWholesalePrice?: number;
     unit?: string;
     image?: string;
 }) {
@@ -257,6 +273,10 @@ export async function updateProduct(id: string, data: {
                 categoryId: data.categoryId,
                 costPrice: data.costPrice,
                 baseSellingPrice: data.baseSellingPrice,
+                retailPrice: data.retailPrice || 0,
+                lowestRetailPrice: data.lowestRetailPrice || 0,
+                wholesalePrice: data.wholesalePrice || 0,
+                lowestWholesalePrice: data.lowestWholesalePrice || 0,
                 unit: data.unit || 'piece',
                 image: data.image
             }

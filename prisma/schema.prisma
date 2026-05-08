@@ -48,6 +48,8 @@ model User {
   address     String?
   permissions String[] @default([])  // Page access: ["dashboard", "sales", "invoices", etc.]
   branchId    String?  // Optional link to a specific location
+  baseSalary  Decimal  @default(0)
+  commissionRate Decimal @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -72,6 +74,10 @@ model Product {
   category         Category @relation(fields: [categoryId], references: [id])
   costPrice        Decimal
   baseSellingPrice Decimal
+  retailPrice      Decimal  @default(0) // قطاعي
+  lowestRetailPrice Decimal @default(0) // اقل قطاعي
+  wholesalePrice   Decimal  @default(0) // جملة
+  lowestWholesalePrice Decimal @default(0) // اقل جملة
   unit             String   @default("piece") // piece, kg, carton
   image            String?
   
@@ -131,6 +137,7 @@ model Supplier {
   name      String
   phone     String?
   address   String?
+  balance   Decimal  @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   

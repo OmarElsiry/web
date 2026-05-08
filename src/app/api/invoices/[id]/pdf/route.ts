@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
 import { createClient } from '@/lib/supabase/server';
 import getPrisma from '@/lib/prisma';
+import path from 'path';
+import fs from 'fs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -35,10 +37,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
 
+        // Load Arabic font if available
+        const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
+        if (fs.existsSync(fontPath)) {
+            doc.registerFont('ArabicFont', fontPath);
+            doc.font('ArabicFont');
+        }
+
         // -- Content Generation --
         doc.fillColor('#444444')
             .fontSize(20)
-            .text('Coffee Distribution Co.', 50, 57)
+            .text('شركة توزيع القهوة / Coffee Distribution Co.', 50, 57)
             .fontSize(10)
             .text('123 Coffee Lane', 200, 65, { align: 'right' })
             .text('Cairo, Egypt', 200, 80, { align: 'right' })
@@ -69,8 +78,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             .moveDown();
 
         const tableTop = 350;
-        doc.font('Helvetica-Bold');
-        doc.text('Item', 50, tableTop);
+        doc.font(fs.existsSync(fontPath) ? 'ArabicFont' : 'Helvetica-Bold');
+        doc.text('Item / الصنف', 50, tableTop);
         doc.text('Quantity', 280, tableTop, { width: 90, align: 'right' });
         doc.text('Unit Price', 370, tableTop, { width: 90, align: 'right' });
         doc.text('Total', 0, tableTop, { align: 'right' });
@@ -78,7 +87,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
         let i = 0;
-        doc.font('Helvetica');
+        doc.font(fs.existsSync(fontPath) ? 'ArabicFont' : 'Helvetica');
         for (const item of invoice.items) {
             const y = tableTop + 30 + (i * 30);
             doc.text(item.product.name, 50, y);
@@ -92,8 +101,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.moveTo(50, tableTop + 30 + (i * 30)).lineTo(550, tableTop + 30 + (i * 30)).stroke();
 
         const subtotalPosition = tableTop + 30 + (i * 30) + 15;
-        doc.font('Helvetica-Bold');
-        doc.text('Grand Total:', 350, subtotalPosition, { width: 90, align: 'right' });
+        doc.font(fs.existsSync(fontPath) ? 'ArabicFont' : 'Helvetica-Bold');
+        doc.text('Grand Total / الاجمالي:', 350, subtotalPosition, { width: 90, align: 'right' });
         doc.text(Number(invoice.totalAmount).toFixed(2), 0, subtotalPosition, { align: 'right' });
 
         doc.end();

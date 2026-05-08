@@ -167,3 +167,53 @@ export async function getProductReport({ startDate, endDate }: DateRange) {
 
     return Array.from(productMap.values()).sort((a, b) => b.quantitySold - a.quantitySold);
 }
+
+export async function getCustomerAnalytics() {
+    const prisma = getPrisma();
+    
+    const customers = await prisma.customer.findMany({
+        include: {
+            invoices: {
+                include: {
+                    items: {
+                        include: {
+                            product: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: { name: 'asc' }
+    });
+
+    return customers.map(c => {
+        let totalSpent = 0;
+        let lastVisit: Date | null = null;
+        const purchaseHistory = new Map<string, number>();
+
+        c.invoices.forEach(inv => {
+            totalSpent += Number(inv.totalAmount);
+            if (!lastVisit || new Date(inv.date) > new Date(lastVisit)) {
+                lastVisit = inv.date;
+            }
+            inv.items.forEach(item => {
+                const existing = purchaseHistory.get(item.product.name) || 0;
+                purchaseHistory.set(item.product.name, existing + item.quantity);
+            });
+        });
+
+        return {
+            id: c.id,
+            name: c.name,
+            phone: c.phone || 'N/A',
+            address: c.address || 'N/A',
+            balance: Number(c.balance),
+            totalSpent,
+            visitCount: c.invoices.length,
+            lastVisit,
+            purchaseHistory: Array.from(purchaseHistory.entries())
+                .map(([name, quantity]) => ({ name, quantity }))
+                .sort((a, b) => b.quantity - a.quantity)
+        };
+    }).sort((a, b) => b.totalSpent - a.totalSpent);
+}
