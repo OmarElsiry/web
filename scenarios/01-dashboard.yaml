@@ -1,0 +1,21 @@
+id: "SC-001"
+name: "Dashboard Verification"
+tags: ["dashboard"]
+steps:
+  - step: 1
+    action: navigate
+    value: "{{url}}/dashboard"
+    description: "Navigate to Dashboard"
+  - step: 2
+    action: assert
+    assert_type: text_visible
+    expected:
+      - type: text_visible
+        value: "Total Revenue"
+      - type: text_visible
+        value: "Active Inventory"
+      - type: text_visible
+        value: "Sales Today"
+      - type: text_visible
+        value: "Sales Revenue"
+    description: "Verify dashboard metric widgets exist"

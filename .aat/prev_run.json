@@ -1,0 +1,21 @@
+{
+  "scenarios_path": "scenarios/",
+  "results": [
+    {
+      "scenario": "SC-001",
+      "step": "1",
+      "action": "navigate",
+      "description": "Navigate to Dashboard",
+      "status": "passed",
+      "error": ""
+    },
+    {
+      "scenario": "SC-001",
+      "step": "2",
+      "action": "assert",
+      "description": "Verify dashboard metric widgets exist",
+      "status": "failed",
+      "error": "Step 0 (assert): Text 'Total Revenue' not visible on page"
+    }
+  ]
+}

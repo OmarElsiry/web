@@ -130,6 +130,8 @@ exports.Prisma.UserScalarFieldEnum = {
   address: 'address',
   permissions: 'permissions',
   branchId: 'branchId',
+  baseSalary: 'baseSalary',
+  commissionRate: 'commissionRate',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -146,6 +148,10 @@ exports.Prisma.ProductScalarFieldEnum = {
   categoryId: 'categoryId',
   costPrice: 'costPrice',
   baseSellingPrice: 'baseSellingPrice',
+  retailPrice: 'retailPrice',
+  lowestRetailPrice: 'lowestRetailPrice',
+  wholesalePrice: 'wholesalePrice',
+  lowestWholesalePrice: 'lowestWholesalePrice',
   unit: 'unit',
   image: 'image',
   defectiveStock: 'defectiveStock',
@@ -181,6 +187,7 @@ exports.Prisma.SupplierScalarFieldEnum = {
   name: 'name',
   phone: 'phone',
   address: 'address',
+  balance: 'balance',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

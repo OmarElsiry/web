@@ -1,0 +1,33 @@
+id: "SC-004"
+name: "Invoice Verification"
+tags: ["invoices", "pdf"]
+depends_on: ["SC-003"]
+steps:
+  - step: 1
+    action: navigate
+    value: "{{url}}/invoices"
+    description: "Navigate to Invoices page"
+    
+  - step: 2
+    action: find_and_click
+    target:
+      text: "Ali Hassan"
+    description: "Click on the newly created invoice"
+    
+  - step: 3
+    action: assert
+    assert_type: text_visible
+    expected:
+      - type: text_visible
+        value: "Invoice Details"
+      - type: text_visible
+        value: "Mango Juice"
+      - type: text_visible
+        value: "Official Invoice (فاتورة)"
+    description: "Verify invoice details modal opens correctly"
+    
+  - step: 4
+    action: find_and_click
+    target:
+      css: "button:has-text('Close')"
+    description: "Close invoice modal"

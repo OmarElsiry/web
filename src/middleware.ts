@@ -2,6 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+    // E2E testing bypass — skip auth when BYPASS_AUTH is set
+    // NEVER enable this in production deployments
+    if (process.env.BYPASS_AUTH === 'true') {
+        return NextResponse.next({
+            request: { headers: request.headers },
+        })
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,

@@ -39,17 +39,19 @@ enum PaymentMethod {
 
 // Models
 model User {
-  id          String   @id @default(uuid())
-  username    String   @unique
-  password    String
-  role        Role     @default(READ_ONLY)
-  name        String?
-  phone       String?
-  address     String?
-  permissions String[] @default([]) // Page access: ["dashboard", "sales", "invoices", etc.]
-  branchId    String? // Optional link to a specific location
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  username       String   @unique
+  password       String
+  role           Role     @default(READ_ONLY)
+  name           String?
+  phone          String?
+  address        String?
+  permissions    String[] @default([]) // Page access: ["dashboard", "sales", "invoices", etc.]
+  branchId       String? // Optional link to a specific location
+  baseSalary     Decimal  @default(0)
+  commissionRate Decimal  @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
   sales            Invoice[]
@@ -65,15 +67,19 @@ model Category {
 }
 
 model Product {
-  id               String   @id @default(uuid())
-  name             String
-  sku              String   @unique
-  categoryId       String
-  category         Category @relation(fields: [categoryId], references: [id])
-  costPrice        Decimal
-  baseSellingPrice Decimal
-  unit             String   @default("piece") // piece, kg, carton
-  image            String?
+  id                   String   @id @default(uuid())
+  name                 String
+  sku                  String   @unique
+  categoryId           String
+  category             Category @relation(fields: [categoryId], references: [id])
+  costPrice            Decimal
+  baseSellingPrice     Decimal
+  retailPrice          Decimal  @default(0) // قطاعي
+  lowestRetailPrice    Decimal  @default(0) // اقل قطاعي
+  wholesalePrice       Decimal  @default(0) // جملة
+  lowestWholesalePrice Decimal  @default(0) // اقل جملة
+  unit                 String   @default("piece") // piece, kg, carton
+  image                String?
 
   // New Fields for Refund System
   defectiveStock Int @default(0)
@@ -131,6 +137,7 @@ model Supplier {
   name      String
   phone     String?
   address   String?
+  balance   Decimal  @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
