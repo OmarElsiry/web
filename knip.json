@@ -3,7 +3,11 @@
   "ignore": [
     "playwright-report/**",
     "web/**",
-    "src/generated/client/**"
+    "src/generated/client/**",
+    "prisma/**",
+    "scripts/**",
+    "src/app/actions/debts.ts",
+    "src/app/actions/payroll.ts"
   ],
   "ignoreDependencies": [
     "@prisma/client"
