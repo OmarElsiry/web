@@ -27,7 +27,7 @@ export async function getCurrentUser() {
     return dbUser;
 }
 
-export async function getUserPermissions() {
+async function getUserPermissions() {
     const user = await getCurrentUser();
     if (!user) return [];
 

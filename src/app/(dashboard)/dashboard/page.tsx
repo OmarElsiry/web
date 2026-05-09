@@ -4,7 +4,7 @@ import { RefreshCcw, ShoppingCart, Activity, User } from 'lucide-react';
 import Link from 'next/link';
 
 // Force dynamic rendering to ensure fresh data
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export default async function DashboardPage() {
     const stats = await getDashboardStats();
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Link href="/sales" className="p-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all group">
+                <Link href="/sales" prefetch={false} className="p-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all group">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary text-primary-foreground rounded-lg group-hover:scale-110 transition-transform">
                             <ShoppingCart size={20} />
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
                     </div>
                 </Link>
 
-                <Link href="/incoming" className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-all group">
+                <Link href="/incoming" prefetch={false} className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-all group">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-500 text-white rounded-lg group-hover:scale-110 transition-transform">
                             <RefreshCcw size={20} />
@@ -130,7 +130,7 @@ export default async function DashboardPage() {
                             <Activity className="text-primary" />
                             <h3 className="font-semibold text-lg">Recent System Activity</h3>
                         </div>
-                        <Link href="/logs" className="text-sm text-primary hover:underline">View All</Link>
+                        <Link href="/logs" prefetch={false} className="text-sm text-primary hover:underline">View All</Link>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

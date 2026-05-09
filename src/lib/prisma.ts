@@ -4,7 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 let prisma: PrismaClient | null = null;
 
-export const getPrisma = () => {
+const getPrisma = () => {
     if (prisma) return prisma;
 
     const pool = new Pool({

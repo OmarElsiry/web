@@ -112,6 +112,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         headers: {
             'Content-Type': 'application/pdf',
             'Content-Disposition': `inline; filename="invoice-${id}.pdf"`,
+            'Cache-Control': 'public, max-age=86400, stale-while-revalidate=43200'
         },
     });
 }

@@ -61,11 +61,15 @@ export async function GET(req: NextRequest) {
             status: 200,
             headers: {
                 'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="sales_export_${type}_${now.toISOString().split('T')[0]}.csv"`
+                'Content-Disposition': `attachment; filename="sales_export_${type}_${now.toISOString().split('T')[0]}.csv"`,
+                'Cache-Control': 'no-store'
             }
         });
     } catch (error) {
         console.error('Export error:', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        return new NextResponse('Internal Server Error', { 
+            status: 500,
+            headers: { 'Cache-Control': 'no-store' }
+        });
     }
 }

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignore": [
+    "playwright-report/**",
+    "web/**",
+    "src/generated/client/**"
+  ],
+  "ignoreDependencies": [
+    "@prisma/client"
+  ]
+}

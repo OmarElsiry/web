@@ -204,7 +204,7 @@ export default function UsersPage() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        <Link
+                                        <Link prefetch={false}
                                             href={`/logs?user=${user.id}`}
                                             className="p-2 text-muted-foreground hover:text-blue-500 transition-colors"
                                             title="View Activity"

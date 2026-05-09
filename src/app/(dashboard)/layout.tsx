@@ -57,7 +57,7 @@ interface CurrentUser {
 }
 
 const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, icon: any, label: string, labelAr: string, active: boolean }) => (
-    <Link
+    <Link prefetch={false}
         href={to}
         className={clsx(
             "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mx-2",

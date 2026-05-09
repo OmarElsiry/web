@@ -46,7 +46,7 @@ function ProfileContent() {
         <div className="space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-20">
             {/* Nav Header */}
             <div className="flex items-center justify-between">
-                <Link href="/customers" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-bold group">
+                <Link href="/customers" prefetch={false} className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors font-bold group">
                     <div className="p-2 rounded-full group-hover:bg-primary/10 transition-colors">
                         <ArrowLeft size={20} />
                     </div>
@@ -194,7 +194,7 @@ function ProfileContent() {
                                         ))}
                                     </div>
                                     <div className="hidden md:flex flex-col justify-end items-end gap-3 opacity-30">
-                                        <Link
+                                        <Link prefetch={false}
                                             href={`/invoices?search=${invoice.id.slice(-6).toUpperCase()}`}
                                             className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:underline hover:opacity-100 transition-all"
                                         >

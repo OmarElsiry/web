@@ -57,10 +57,16 @@ export async function GET(request: Request) {
             `📦 Monthly Backup: Inventory - ${dateStr}`
         );
 
-        return NextResponse.json({ success: true, message: 'Backups sent to Telegram' });
+        return NextResponse.json(
+            { success: true, message: 'Backups sent to Telegram' },
+            { headers: { 'Cache-Control': 'no-store' } }
+        );
 
     } catch (error: any) {
         console.error('Backup failed:', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(
+            { error: error.message }, 
+            { status: 500, headers: { 'Cache-Control': 'no-store' } }
+        );
     }
 }

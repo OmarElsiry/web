@@ -99,7 +99,7 @@ export default function CustomersPage() {
                                     <History size={14} />
                                     <span>History Available</span>
                                 </div>
-                                <Link
+                                <Link prefetch={false}
                                     href={`/customers/profile?id=${customer.id}`}
                                     className="flex items-center gap-1.5 px-4 py-2 bg-secondary text-foreground rounded-lg font-bold text-sm hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
                                 >

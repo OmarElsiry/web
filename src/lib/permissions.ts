@@ -7,20 +7,6 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     READ_ONLY: ['dashboard', 'invoices'],
 };
 
-// Map route paths to permission keys
-export const ROUTE_TO_PERMISSION: Record<string, string> = {
-    '/dashboard': 'dashboard',
-    '/sales': 'sales',
-    '/stocktake': 'stocktake',
-    '/movements': 'movements',
-    '/products': 'products',
-    '/invoices': 'invoices',
-    '/profits': 'profits',
-    '/staff-sales': 'staff_sales',
-    '/logs': 'logs',
-    '/users': 'users',
-    '/expenses': 'expenses',
-};
 
 export function getDefaultPermissions(role: string): string[] {
     return DEFAULT_PERMISSIONS[role] || [];

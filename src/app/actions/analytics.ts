@@ -168,7 +168,7 @@ export async function getProductReport({ startDate, endDate }: DateRange) {
     return Array.from(productMap.values()).sort((a, b) => b.quantitySold - a.quantitySold);
 }
 
-export async function getCustomerAnalytics() {
+async function getCustomerAnalytics() {
     const prisma = getPrisma();
     
     const customers = await prisma.customer.findMany({
