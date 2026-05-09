@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getInvoiceById } from '@/app/actions/invoices';
 import { Loader2 } from 'lucide-react';
+import { tafqeet } from '@/lib/tafqeet';
 
 export default function InvoicePrintPage() {
     const { id } = useParams();
@@ -205,6 +206,16 @@ export default function InvoicePrintPage() {
                         <div className="text-left font-bold px-2">{Number(invoice.currentBalance || 0).toLocaleString()}</div>
                     </div>
                 </div>
+            </div>
+
+            {/* --- AMOUNT IN WORDS (TAFQEET) --- */}
+            <div className="mt-4 border border-gray-400 p-2 text-center font-bold">
+                ( {tafqeet(Number(invoice.totalAmount))} ) مدين
+            </div>
+
+            <div className="mt-8 flex justify-between px-10 text-lg font-bold">
+                <div className="text-center w-32 border-t border-black pt-2">توقيع المستلم</div>
+                <div className="text-center w-32 border-t border-black pt-2">المسئول</div>
             </div>
 
             <div className="mt-8 text-center hidden print:hidden">

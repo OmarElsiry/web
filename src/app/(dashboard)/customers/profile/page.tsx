@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
     User, Phone, MapPin, Calendar, ShoppingBag,
-    ArrowLeft, CreditCard, Clock, Receipt,
+    ArrowLeft, CreditCard, Clock, Receipt, Printer,
     CheckCircle2, ChevronRight, Loader2,
     CalendarDays, DollarSign, Tag
 } from 'lucide-react';
@@ -53,8 +53,24 @@ function ProfileContent() {
                     Back to Customers
                 </Link>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={() => {
+                            const printContents = document.getElementById('print-statement-content');
+                            if (printContents) {
+                                const originalContents = document.body.innerHTML;
+                                document.body.innerHTML = printContents.innerHTML;
+                                window.print();
+                                document.body.innerHTML = originalContents;
+                                window.location.reload(); // Reload to restore React state since DOM manipulation breaks it
+                            }
+                        }}
+                        className="px-4 py-2 flex items-center gap-2 bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground font-bold rounded-xl transition-all shadow-sm mr-2"
+                    >
+                        <Printer size={16} />
+                        Print Statement
+                    </button>
                     <div className={clsx(
-                        "px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest border",
+                        "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest border",
                         profile.type === 'USER' ? "bg-primary/10 text-primary border-primary/20" : "bg-orange-500/10 text-orange-600 border-orange-500/20"
                     )}>
                         {profile.type} ACCOUNT
@@ -196,6 +212,80 @@ function ProfileContent() {
                             <p className="font-bold">No purchase history found for this account.</p>
                         </div>
                     )}
+                </div>
+            </div>
+
+            {/* Hidden Print Content for Statement of Account */}
+            <div id="print-statement-content" className="hidden">
+                <style>{`
+                    @media print {
+                        body { background: white; color: black; font-family: sans-serif; }
+                        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f5f5f5; font-weight: bold; }
+                        .text-right { text-align: right; }
+                        .text-center { text-align: center; }
+                        .font-bold { font-weight: bold; }
+                        .header-box { border: 2px solid #333; padding: 15px; margin-bottom: 20px; }
+                        .total-box { border: 2px solid #333; padding: 10px; margin-top: 20px; text-align: right; }
+                        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 8rem; color: rgba(0,0,0,0.05); z-index: -1; pointer-events: none; }
+                    }
+                `}</style>
+
+                <div className="watermark">STATEMENT</div>
+
+                <div className="header-box" dir="rtl">
+                    <h1 className="text-2xl font-bold mb-4 text-center">كشف حساب عميل</h1>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <strong>اسم العميل:</strong> {profile.name}
+                        </div>
+                        <div>
+                            <strong>التاريخ:</strong> {new Date().toLocaleDateString('en-GB')}
+                        </div>
+                        <div>
+                            <strong>رقم الهاتف:</strong> {profile.phone || 'N/A'}
+                        </div>
+                        <div>
+                            <strong>العنوان:</strong> {profile.address || 'N/A'}
+                        </div>
+                    </div>
+                </div>
+
+                <table dir="rtl">
+                    <thead>
+                        <tr>
+                            <th className="text-center">م</th>
+                            <th>التاريخ</th>
+                            <th>رقم الفاتورة</th>
+                            <th className="text-right">قيمة الفاتورة</th>
+                            <th className="text-right">المدفوع</th>
+                            <th className="text-right">المتبقي (المديونية)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {invoices.map((inv: any, idx: number) => (
+                            <tr key={inv.id}>
+                                <td className="text-center">{idx + 1}</td>
+                                <td>{new Date(inv.date).toLocaleDateString('en-GB')}</td>
+                                <td className="font-mono text-sm">{inv.id.slice(0, 8).toUpperCase()}</td>
+                                <td className="text-right font-bold">{Number(inv.total).toFixed(2)}</td>
+                                <td className="text-right text-green-700">{Number(inv.paid).toFixed(2)}</td>
+                                <td className="text-right text-red-600 font-bold">{Number(inv.currentBalance || 0).toFixed(2)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                <div className="total-box" dir="rtl">
+                    <div className="text-lg">
+                        <span>إجمالي المشتريات: </span>
+                        <span className="font-bold ml-4">{totalSpent.toFixed(2)} ج.م</span>
+                    </div>
+                    <div className="text-xl mt-2 text-red-600 border-t border-gray-300 pt-2">
+                        <span>إجمالي المديونية المستحقة: </span>
+                        <span className="font-bold ml-4">{Number(profile.balance).toFixed(2)} ج.م</span>
+                    </div>
                 </div>
             </div>
         </div>
