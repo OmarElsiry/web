@@ -9,10 +9,6 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 });
 
 const nextConfig: NextConfig = {
-  // Skip linting during build (already done in dev/CI)
-  eslint: { ignoreDuringBuilds: true },
-  // Skip type checking during build (already done in dev/CI)
-  typescript: { ignoreBuildErrors: true },
   // Tree-shake large icon libraries
   experimental: {
     optimizePackageImports: ["lucide-react"],
