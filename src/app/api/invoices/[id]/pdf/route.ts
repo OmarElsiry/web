@@ -43,9 +43,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         }
 
         // -- Content Generation --
+        const logoPath = path.join(process.cwd(), 'public', 'stash-logo.png');
+        let titleX = 50;
+        if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, 50, 45, { width: 80 });
+            titleX = 140; // Shift text if logo exists
+        }
+
         doc.fillColor('#444444')
             .fontSize(20)
-            .text('شركة توزيع القهوة / Coffee Distribution Co.', 50, 57)
+            .text('STASH', titleX, 57)
             .fontSize(10)
             .text('123 Coffee Lane', 200, 65, { align: 'right' })
             .text('Cairo, Egypt', 200, 80, { align: 'right' })

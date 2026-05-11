@@ -106,11 +106,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 !isSidebarOpen ? "-translate-x-full md:translate-x-0" : "translate-x-0"
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src="/logo.webp" alt="Logo" className="w-full h-full object-cover" />
+                    <div className="w-10 h-10 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        <img src="/stash-logo.png" alt="STASH Logo" className="max-w-full max-h-full object-contain" />
                     </div>
                     <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
-                        EPIC COMPANY
+                        STASH
                     </h1>
                     <button onClick={handleToggleSidebar} className="md:hidden ml-auto">
                         <X />

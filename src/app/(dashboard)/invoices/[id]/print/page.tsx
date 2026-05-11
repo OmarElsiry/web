@@ -183,8 +183,12 @@ export default function InvoicePrintPage() {
                     {/* Header */}
                     <div className="flex justify-between items-start mb-6 border-b-2 border-gray-900 pb-6">
                         {/* Company Logo / Name Area */}
-                        <div className="flex-1">
-                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">شركة المبيعات</h1>
+                        <div className="flex-1 flex flex-col items-start">
+                            <div className="w-32 h-16 mb-2 flex items-center justify-start">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/stash-logo.png" alt="STASH Logo" className="max-w-full max-h-full object-contain" />
+                            </div>
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
                             <p className="text-gray-500 font-medium text-sm">نظام إدارة المبيعات المتكامل</p>
                             <div className="mt-4 flex items-center gap-2">
                                 <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
