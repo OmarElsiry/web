@@ -59,6 +59,7 @@ export async function getInvoiceById(id: string) {
             user: {
                 select: { id: true, name: true, username: true, phone: true, address: true } // Employee/User details
             },
+            customer: true,
             items: {
                 include: {
                     product: {

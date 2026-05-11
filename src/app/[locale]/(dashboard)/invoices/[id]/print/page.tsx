@@ -33,6 +33,15 @@ export default function InvoicePrintPage() {
     const [showDiscountPercent, setShowDiscountPercent] = useState(true);
     const [showDiscountValue, setShowDiscountValue] = useState(true);
 
+    // Field Toggles
+    const [showWarehouse, setShowWarehouse] = useState(true);
+    const [showCustomerCode, setShowCustomerCode] = useState(true);
+    const [showCity, setShowCity] = useState(true);
+    const [showCategory, setShowCategory] = useState(true);
+    const [showAddress, setShowAddress] = useState(true);
+    const [showPhone1, setShowPhone1] = useState(true);
+    const [showPhone2, setShowPhone2] = useState(true);
+
     useEffect(() => {
         if (id) {
             getInvoiceById(id as string).then(data => {
@@ -42,9 +51,12 @@ export default function InvoicePrintPage() {
                     setCustomerCode("01/1/3/" + parseInt(data.id.slice(0, 3), 16));
                     setEmployeeName(data.user?.name || data.user?.username || "غير معروف");
                     setEmployeeId(data.user?.id ? parseInt(data.user.id.slice(0, 2), 16).toString() : "0");
-                    setAddress(data.customerAddress || "");
-                    setPhone1(data.customerPhone || "");
-                    setCustomerName(data.customerName || "عميل نقدي");
+                    setAddress(data.customer?.address || data.customerAddress || "");
+                    setPhone1(data.customer?.phone || data.customerPhone || "");
+                    setCustomerName(data.customer?.name || data.customerName || "عميل نقدي");
+                    if (data.customer?.governorate) {
+                        setCity(data.customer.governorate);
+                    }
                 }
                 setLoading(false);
             });
@@ -117,44 +129,67 @@ export default function InvoicePrintPage() {
                                 <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
                                 <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
-                                <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
+                                    <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
-                                <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
+                                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
-                                <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
+                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">المدينة</label>
-                                    <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
+                                        <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">الفئة</label>
-                                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الفئة</label>
+                                        <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
+                                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف 1</label>
-                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 1</label>
+                                        <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف 2</label>
-                                    <input type="text" value={phone2} onChange={e => setPhone2(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showPhone2} onChange={(e) => setShowPhone2(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 2</label>
+                                        <input type="text" value={phone2} onChange={e => setPhone2(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -222,9 +257,11 @@ export default function InvoicePrintPage() {
                             </div>
                             <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
                             <div className="mt-4 flex items-center gap-2">
-                                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
-                                    المستودع: {warehouseName}
-                                </span>
+                                {showWarehouse && (
+                                    <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
+                                        المستودع: {warehouseName}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -263,7 +300,7 @@ export default function InvoicePrintPage() {
                     <div className="mb-6 rounded-lg border border-gray-300 overflow-hidden bg-gray-50/50">
                         <div className="bg-gray-100 border-b border-gray-300 px-4 py-2 font-bold text-gray-800 flex items-center justify-between">
                             <span>بيانات العميل</span>
-                            <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{customerCode}</span>
+                            {showCustomerCode && <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{customerCode}</span>}
                         </div>
                         <div className="p-4">
                             <div className="grid grid-cols-12 gap-y-3 gap-x-4 text-sm">
@@ -271,27 +308,37 @@ export default function InvoicePrintPage() {
                                     <span className="font-bold text-gray-600 w-20 shrink-0">اسم العميل:</span>
                                     <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{customerName}</span>
                                 </div>
-                                <div className="col-span-12 md:col-span-3 flex gap-2">
-                                    <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
-                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{city}</span>
-                                </div>
-                                <div className="col-span-12 md:col-span-3 flex gap-2">
-                                    <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
-                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{category}</span>
-                                </div>
+                                {showCity && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                        <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
+                                        <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{city}</span>
+                                    </div>
+                                )}
+                                {showCategory && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                        <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
+                                        <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{category}</span>
+                                    </div>
+                                )}
 
-                                <div className="col-span-12 md:col-span-6 flex gap-2">
-                                    <span className="font-bold text-gray-600 w-20 shrink-0">العنوان:</span>
-                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{address}</span>
-                                </div>
-                                <div className="col-span-12 md:col-span-3 flex gap-2">
-                                    <span className="font-bold text-gray-600 w-16 shrink-0">هاتف 1:</span>
-                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone1}</span>
-                                </div>
-                                <div className="col-span-12 md:col-span-3 flex gap-2">
-                                    <span className="font-bold text-gray-600 w-12 shrink-0">هاتف 2:</span>
-                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone2}</span>
-                                </div>
+                                {showAddress && (
+                                    <div className="col-span-12 md:col-span-6 flex gap-2">
+                                        <span className="font-bold text-gray-600 w-20 shrink-0">العنوان:</span>
+                                        <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{address}</span>
+                                    </div>
+                                )}
+                                {showPhone1 && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                        <span className="font-bold text-gray-600 w-16 shrink-0">هاتف 1:</span>
+                                        <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone1}</span>
+                                    </div>
+                                )}
+                                {showPhone2 && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                        <span className="font-bold text-gray-600 w-12 shrink-0">هاتف 2:</span>
+                                        <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone2}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
