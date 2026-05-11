@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, Calendar, Users, Package, Printer, DollarSign, Phone, MapPin, ChevronDown } from 'lucide-react';
 import { getBuyerReport, getProductReport } from '@/app/actions/analytics';
 import { printElement } from '@/components/ui/PrintExport';
