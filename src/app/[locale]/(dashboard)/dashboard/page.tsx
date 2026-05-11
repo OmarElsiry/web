@@ -7,7 +7,8 @@ import { getTranslations } from 'next-intl/server';
 // Force dynamic rendering to ensure fresh data
 export const revalidate = 60;
 
-export default async function DashboardPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
     const stats = await getDashboardStats();
     const { logs: recentLogs } = await getAuditLogs(1, 4);
     const t = await getTranslations({ locale, namespace: 'Home' });
