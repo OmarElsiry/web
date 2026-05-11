@@ -266,6 +266,8 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   userId: 'userId',
   action: 'action',
   details: 'details',
+  status: 'status',
+  reason: 'reason',
   timestamp: 'timestamp'
 };
 

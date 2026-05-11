@@ -259,6 +259,8 @@ model AuditLog {
   user      User     @relation(fields: [userId], references: [id])
   action    String
   details   String?
+  status    Boolean  @default(true)
+  reason    String?
   timestamp DateTime @default(now())
 }
 

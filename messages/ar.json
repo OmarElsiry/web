@@ -1,0 +1,846 @@
+{
+  "Navigation": {
+    "dashboard": "الرئيسية",
+    "sales": "البيع",
+    "stocktake": "الجرد",
+    "movements": "الطالع والداخل",
+    "products": "الأصناف والتسعير",
+    "invoices": "الفواتير",
+    "refunds": "المرتجعات",
+    "customers": "العملاء",
+    "analytics": "التحليلات",
+    "profits": "الأرباح",
+    "staff_sales": "مبيعات الاشخاص",
+    "logs": "سجل النظام",
+    "users": "الفريق",
+    "expenses": "المصروفات",
+    "logout": "تسجيل الخروج"
+  },
+  "Login": {
+    "title": "مرحباً بعودتك",
+    "description": "سجل الدخول للوصول إلى لوحة التحكم الخاصة بك",
+    "emailLabel": "البريد الإلكتروني",
+    "passwordLabel": "كلمة المرور",
+    "emailPlaceholder": "admin@coffee.dist",
+    "passwordPlaceholder": "••••••••",
+    "submit": "تسجيل الدخول",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "noAccount": "ليس لديك حساب؟",
+    "contactAdmin": "اتصل بالمسؤول"
+  },
+  "Products": {
+    "title": "الأصناف والتسعير",
+    "subtitle": "الأصناف، التسعير والمخزون",
+    "categories": "الفئات",
+    "newProduct": "صنف جديد",
+    "allCategories": "كل الفئات",
+    "searchPlaceholder": "بحث عن أصناف...",
+    "productsCount": "{count} صنف",
+    "table": {
+      "product": "الصنف",
+      "sku": "SKU",
+      "category": "الفئة",
+      "unit": "الوحدة",
+      "cost": "التكلفة",
+      "sell": "البيع",
+      "margin": "الهامش",
+      "stock": "المخزون",
+      "percentTotal": "% من الإجمالي",
+      "actions": "إجراءات"
+    },
+    "noProducts": "لم يتم العثور على أصناف.",
+    "stockByLocation": "المخزون حسب الموقع",
+    "modal": {
+      "addTitle": "إضافة صنف جديد",
+      "editTitle": "تعديل الصنف",
+      "nameLabel": "اسم الصنف",
+      "skuLabel": "SKU",
+      "categoryLabel": "الفئة",
+      "unitLabel": "الوحدة",
+      "costLabel": "سعر التكلفة (ج.م)",
+      "sellLabel": "سعر البيع (ج.م)",
+      "openingStock": "رصيد أول المدة",
+      "cancel": "إلغاء",
+      "update": "تحديث",
+      "create": "إنشاء",
+      "selectCategory": "اختر الفئة"
+    },
+    "units": {
+      "piece": "قطعة",
+      "kg": "كيلوجرام",
+      "carton": "كرتونة",
+      "liter": "لتر"
+    },
+    "manageCategories": {
+      "title": "إدارة الفئات",
+      "newPlaceholder": "اسم الفئة الجديدة...",
+      "add": "إضافة",
+      "noCategories": "لا توجد فئات بعد.",
+      "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذه الفئة؟ إذا كان بها أصناف، فسيتم حذفها أيضاً!"
+    }
+  },
+  "Sales": {
+    "title": "نقطة البيع",
+    "searchPlaceholder": "بحث عن أصناف بالاسم أو SKU...",
+    "allItems": "كل الأصناف",
+    "loading": "جاري تحميل المخزون...",
+    "soldOut": "نفذت الكمية",
+    "lowStock": "متبقي {count}",
+    "priceLabel": "السعر",
+    "currency": "ج.م",
+    "sidebar": {
+      "title": "الطلب الحالي",
+      "cashier": "الكاشير",
+      "selectStaff": "اختر الموظف",
+      "customerPlaceholder": "إضافة عميل (بحث بالاسم أو الهاتف)",
+      "member": "عضو",
+      "newCustomer": "إدخال عميل جديد",
+      "phoneOptional": "الهاتف (اختياري)",
+      "addressOptional": "العنوان (اختياري)",
+      "emptyCart": "قم بمسح أو إضافة أصناف للسلة",
+      "addNote": "إضافة ملاحظة...",
+      "discountPercent": "خصم %",
+      "subtotal": "الإجمالي الفرعي",
+      "discount": "خصم ({percent}%)",
+      "totalDue": "الإجمالي المطلوب",
+      "paymentMethods": {
+        "CASH": "كاش",
+        "CREDIT": "فيزا",
+        "INSTAPAY": "إنستا باي"
+      },
+      "amountTendered": "المبلغ المدفوع",
+      "change": "الباقي: {currency} {amount}",
+      "exact": "المبلغ بالضبط",
+      "completeSale": "إتمام البيع"
+    },
+    "confirm": {
+      "title": "تأكيد البيع",
+      "subtitle": "راجع تفاصيل المعاملة قبل الإتمام.",
+      "items": "الأصناف",
+      "paymentMethod": "طريقة الدفع",
+      "customer": "العميل",
+      "cancel": "إلغاء",
+      "confirm": "تأكيد البيع"
+    },
+    "errors": {
+      "stockLimit": "لا يمكن إضافة المزيد من {name}. المتاح {stock} فقط.",
+      "customerRequired": "يرجى إدخال اسم عميل أو اختيار عميل موجود.",
+      "walkInDebt": "يجب على العملاء غير المسجلين دفع المبلغ بالكامل. لا يسمح بالدين.",
+      "processFailed": "فشل معالجة عملية البيع.",
+      "connectionError": "خطأ في الاتصال. يرجى التحقق من الإنترنت والمحاولة مرة أخرى."
+    },
+    "success": {
+      "title": "اكتمل البيع!",
+      "subtitle": "تم تسجيل الفاتورة بنجاح."
+    }
+  },
+  "Stocktake": {
+    "title": "جرد المخزون",
+    "subtitle": "تسوية المخزون الفعلي",
+    "refresh": "تحديث",
+    "saving": "جاري الحفظ...",
+    "submit": "تقديم {count} تعديل",
+    "searchPlaceholder": "البحث عن المنتجات...",
+    "filterAll": "جميع الفئات",
+    "table": {
+      "product": "المنتج",
+      "category": "الفئة",
+      "systemStock": "مخزون النظام",
+      "actualCount": "العد الفعلي",
+      "diff": "الفرق",
+      "modified": "معدل",
+      "loading": "جاري تحميل المخزون...",
+      "noResults": "لم يتم العثور على منتجات."
+    },
+    "confirmMessage": "أنت على وشك تسوية {count} عنصر. سيؤدي هذا إلى تحديث مستويات المخزون. هل تريد الاستمرار؟",
+    "success": "تم تسوية المخزون بنجاح!",
+    "error": "فشل تسوية المخزون"
+  },
+  "Expenses": {
+    "title": "المصروفات",
+    "subtitle": "تتبع المصروفات والرواتب",
+    "metrics": {
+      "totalSpend": "إجمالي الإنفاق",
+      "salaryTotal": "إجمالي الرواتب",
+      "otherExpenses": "مصروفات أخرى",
+      "salaryPercent": "% الرواتب"
+    },
+    "categories": {
+      "ALL": "جميع الفئات",
+      "SALARY": "الرواتب فقط",
+      "OTHER": "غير الرواتب فقط"
+    },
+    "buttons": {
+      "salaryPdf": "ملف رواتب PDF",
+      "newExpense": "مصروف جديد"
+    },
+    "form": {
+      "title": "إضافة مصروف جديد",
+      "description": "الوصف",
+      "descriptionPlaceholder": "قهوة، كهرباء...",
+      "amount": "المبلغ ({currency})",
+      "whoSpent": "من قام بالصرف؟",
+      "selectStaff": "اختر الموظف...",
+      "category": "الفئة",
+      "selectCategory": "اختر الفئة...",
+      "date": "التاريخ",
+      "save": "حفظ المصروف",
+      "saving": "جاري الحفظ..."
+    },
+    "table": {
+      "date": "التاريخ",
+      "description": "الوصف",
+      "category": "الفئة",
+      "spentBy": "بواسطة",
+      "amount": "المبلغ",
+      "actions": "إجراءات",
+      "loading": "جاري تحميل المصروفات...",
+      "noResults": "لم يتم العثور على مصروفات لهذه الفترة."
+    },
+    "categoriesList": {
+      "SALARY": "راتب",
+      "Utilities": "مرافق",
+      "Supplies": "مستلزمات",
+      "Maintenance": "صيانة",
+      "Other": "أخرى"
+    },
+    "alerts": {
+      "createFailed": "فشل إنشاء المصروف",
+      "deleteConfirm": "هل أنت متأكد أنك تريد حذف هذا المصروف؟",
+      "selectDateRange": "يرجى اختيار نطاق زمني أولاً لإنشاء تقرير الرواتب.",
+      "reportFailed": "فشل إنشاء التقرير"
+    },
+    "report": {
+      "title": "تقرير مصروفات الرواتب",
+      "period": "الفترة: من {start} إلى {end}",
+      "totalSalaries": "إجمالي الرواتب",
+      "employees": "الموظفون"
+    }
+  },
+  "Invoices": {
+    "title": "الفواتير",
+    "dateRange": "نطاق التاريخ",
+    "exportReport": "تصدير تقرير",
+    "searchPlaceholder": "البحث برقم الفاتورة أو العميل...",
+    "from": "من:",
+    "to": "إلى:",
+    "clearFilter": "مسح الفلتر",
+    "loading": "جاري تحميل الفواتير...",
+    "noResults": "لا توجد فواتير.",
+    "walkInCustomer": "عميل نقدي",
+    "paid": "تم الدفع",
+    "printTooltip": "طباعة / تحميل PDF",
+    "details": {
+      "title": "تفاصيل الفاتورة",
+      "date": "التاريخ والوقت",
+      "payment": "الدفع",
+      "status": "الحالة",
+      "id": "رقم الفاتورة #",
+      "salesperson": "البائع (سجل بواسطة)",
+      "buyerInfo": "معلومات المشتري",
+      "name": "الاسم",
+      "username": "اسم المستخدم",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "orderItems": "عناصر الطلب",
+      "item": "الصنف",
+      "qty": "الكمية",
+      "price": "السعر",
+      "subtotal": "الإجمالي الفرعي",
+      "grandTotal": "الإجمالي النهائي",
+      "previousBalance": "الرصيد السابق",
+      "net": "الصافي",
+      "received": "مستلم",
+      "currentBalance": "الرصيد الحالي",
+      "actions": "إجراءات",
+      "quickPrint": "طباعة سريعة",
+      "officialInvoice": "فاتورة رسمية",
+      "close": "إغلاق",
+      "refund": "بدء عملية استرجاع"
+    },
+    "report": {
+      "title": "تقرير الفواتير",
+      "generatedOn": "تم الإنشاء في {date}",
+      "period": "الفترة: من {start} إلى {end}",
+      "total": "الإجمالي"
+    }
+  },
+  "Common": {
+    "loading": "جاري التحميل...",
+    "user": "مستخدم"
+  },
+  "Customers": {
+    "title": "العملاء",
+    "subtitle": "إدارة وتحليل قاعدة عملائك",
+    "searchPlaceholder": "البحث بالاسم أو الهاتف...",
+    "addCustomer": "إضافة عميل",
+    "stats": {
+      "totalCustomers": "إجمالي العملاء",
+      "withDebt": "عملاء مديونون",
+      "totalOwed": "إجمالي المديونية"
+    },
+    "loading": "جاري جلب بيانات العملاء...",
+    "card": {
+      "owes": "مديون بـ {amount} {currency}",
+      "settled": "خالص",
+      "noPhone": "لا يوجد هاتف",
+      "noAddress": "لا يوجد عنوان مسجل",
+      "historyAvailable": "السجل متاح",
+      "viewProfile": "عرض كشف الحساب الكامل"
+    },
+    "empty": {
+      "title": "لم يتم العثور على عملاء",
+      "description": "حاول البحث باسم أو رقم هاتف آخر"
+    },
+    "modal": {
+      "title": "عميل جديد",
+      "description": "إضافة عميل جديد إلى قاعدة البيانات الخاصة بك",
+      "nameLabel": "اسم العميل *",
+      "namePlaceholder": "مثال: أحمد محمد",
+      "phoneLabel": "الهاتف (اختياري)",
+      "phonePlaceholder": "مثال: 01012345678",
+      "addressLabel": "العنوان (اختياري)",
+      "addressPlaceholder": "مثال: القاهرة، مصر",
+      "cancel": "إلغاء",
+      "create": "إنشاء عميل",
+      "creating": "جاري الإنشاء..."
+    },
+    "errors": {
+      "nameRequired": "اسم العميل مطلوب.",
+      "createFailed": "فشل إنشاء العميل."
+    }
+  },
+  "Analytics": {
+    "title": "التحليلات",
+    "subtitle": "تقارير ورؤى مفصلة",
+    "exportReport": "تصدير التقرير",
+    "tabs": {
+      "topBuyers": "أفضل المشترين",
+      "topProducts": "أفضل المنتجات"
+    },
+    "loading": "جاري تحميل البيانات...",
+    "buyers": {
+      "totalCustomers": "إجمالي العملاء",
+      "totalSalesValue": "إجمالي قيمة المبيعات",
+      "table": {
+        "rank": "الترتيب",
+        "customer": "تفاصيل العميل",
+        "address": "العنوان",
+        "frequency": "التكرار",
+        "contribution": "المساهمة",
+        "visits": "زيارات",
+        "history": "سجل الشراء",
+        "units": "وحدات"
+      },
+      "empty": "لم يتم العثور على بيانات تاريخية للفترة المختارة."
+    },
+    "products": {
+      "uniqueProducts": "منتجات فريدة مباعة",
+      "totalUnits": "إجمالي الوحدات المباعة",
+      "items": "أصناف",
+      "table": {
+        "rank": "الترتيب",
+        "product": "معلومات المنتج",
+        "quantity": "الكمية المباعة",
+        "revenue": "الإيرادات المقدرة",
+        "units": "وحدة"
+      },
+      "empty": "لم يتم بيع أي منتجات في النطاق الزمني المختار."
+    },
+    "report": {
+      "buyersTitle": "تقرير كبار المشترين",
+      "productsTitle": "تقرير المنتجات الأكثر مبيعاً",
+      "period": "الفترة: من {start} إلى {end}"
+    }
+  },
+  "Profits": {
+    "title": "الأرباح",
+    "subtitle": "نظرة عامة على الربح والخسارة",
+    "dateRange": "نطاق التاريخ",
+    "clearFilter": "مسح التصفية",
+    "from": "من:",
+    "to": "إلى:",
+    "stats": {
+      "totalRevenue": "إجمالي الإيرادات",
+      "estimatedCost": "التكلفة التقديرية",
+      "netProfit": "صافي الربح ({margin}%)"
+    },
+    "recentSales": "المبيعات الأخيرة",
+    "customer": "عميل",
+    "loading": "جاري التحميل..."
+  },
+  "Movements": {
+    "title": "حركات المخزون",
+    "subtitle": "سجل حركات المخزون",
+    "refresh": "تحديث",
+    "filters": {
+      "all": "جميع الأنواع",
+      "sale": "المبيعات",
+      "in": "توريد مخزون",
+      "out": "صرف مخزون",
+      "transfer": "تحويلات"
+    },
+    "labels": {
+      "by": "بواسطة:",
+      "from": "من",
+      "to": "إلى",
+      "unknown": "غير معروف"
+    },
+    "types": {
+      "SALE": "بيع",
+      "IN": "توريد",
+      "OUT": "صرف",
+      "TRANSFER": "تحويل",
+      "RETURN": "إرجاع"
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي",
+      "status": "صفحة {page} من {total}"
+    },
+    "empty": "لم يتم العثور على حركات تطابق الفلاتر الخاصة بك."
+  },
+  "StaffSales": {
+    "title": "مبيعات الموظفين",
+    "subtitle": "تتبع الأداء",
+    "table": {
+      "rank": "الترتيب",
+      "staff": "الموظف",
+      "phone": "الهاتف",
+      "transactions": "المعاملات",
+      "totalSales": "إجمالي المبيعات ({currency})",
+      "actions": "الإجراءات"
+    },
+    "periods": {
+      "day": "اليوم",
+      "week": "هذا الأسبوع",
+      "month": "هذا الشهر",
+      "2months": "شهرين",
+      "6months": "6 أشهر",
+      "all": "كل الوقت"
+    },
+    "buttons": {
+      "exportPDF": "تصدير PDF",
+      "viewDetails": "عرض التفاصيل"
+    },
+    "modal": {
+      "transactions": "المعاملات",
+      "totalSales": "إجمالي المبيعات",
+      "date": "التاريخ",
+      "customer": "العميل",
+      "amount": "المبلغ",
+      "noSales": "لا توجد مبيعات في هذه الفترة."
+    },
+    "loading": "جاري تحميل بيانات الموظفين...",
+    "empty": "لم يتم العثور على موظفين.",
+    "report": {
+      "title": "تقرير مبيعات الموظف",
+      "generated": "تم الإنشاء:",
+      "phone": "الهاتف:",
+      "period": "الفترة:"
+    }
+  },
+  "Logs": {
+    "title": "سجل النظام",
+    "subtitle": "سجل التدقيق وسجل النشاط",
+    "refresh": "تحديث",
+    "filters": {
+      "user": "تصفية حسب المستخدم:",
+      "allUsers": "جميع المستخدمين",
+      "clear": "مسح التصفية"
+    },
+    "table": {
+      "action": "الإجراء",
+      "status": "الحالة",
+      "details": "التفاصيل",
+      "reason": "السبب",
+      "user": "المستخدم",
+      "email": "البريد الإلكتروني",
+      "time": "الوقت"
+    },
+    "status": {
+      "failed": "فشل",
+      "success": "نجاح"
+    },
+    "pagination": {
+      "status": "صفحة {page} من {total} ({count} مدخلات)"
+    },
+    "empty": "لم يتم العثور على سجلات."
+  },
+  "Refunds": {
+    "title": "سجل المرتجعات",
+    "subtitle": "تتبع جميع مرتجعات المنتجات والعكوسات المالية",
+    "buttons": {
+      "filterDate": "تصفية التاريخ",
+      "refresh": "تحديث البيانات",
+      "reset": "إعادة تعيين الفلاتر",
+      "viewInvoice": "عرض الفاتورة الأصلية",
+      "closeMemo": "إغلاق المذكرة"
+    },
+    "filters": {
+      "search": "البحث برقم الفاتورة، العميل، أو الموظف...",
+      "from": "من:",
+      "to": "إلى:"
+    },
+    "list": {
+      "loading": "جاري تحميل سجل المرتجعات...",
+      "empty": "لم يتم العثور على سجلات مرتجعات تطابق بحثك.",
+      "walkIn": "عميل نقدي",
+      "withReason": "مع سبب",
+      "invoice": "فاتورة رقم #",
+      "itemsRefunded": "تم إرجاع {count} {count, plural, one {صنف} other {أصناف}}"
+    },
+    "modal": {
+      "title": "مذكرة مرتجع",
+      "staff": "الموظف",
+      "customer": "العميل",
+      "date": "التاريخ",
+      "reasonTitle": "سبب المرتجع",
+      "noReason": "لم يتم تقديم سبب محدد لهذه المعاملة.",
+      "returnedItems": "الأصناف المرجعة",
+      "financialReversal": "عكس مالي",
+      "itemDetails": "تفاصيل الصنف",
+      "condition": "الحالة",
+      "quantity": "الكمية",
+      "price": "السعر",
+      "total": "الإجمالي",
+      "grandTotal": "إجمالي المبلغ المعكوس",
+      "conditions": {
+        "NEW": "جديد",
+        "DAMAGED": "تالف"
+      }
+    }
+  },
+  "Incoming": {
+    "title": "المخزون الوارد",
+    "newOrder": "أمر شراء جديد",
+    "metrics": {
+      "totalShipments": "إجمالي الشحنات",
+      "records": "{count} سجل"
+    },
+    "table": {
+      "product": "الصنف",
+      "quantity": "الكمية",
+      "supplier": "المورد / ملاحظات",
+      "totalCost": "إجمالي التكلفة",
+      "date": "التاريخ",
+      "status": "الحالة",
+      "loading": "جاري تحميل الشحنات...",
+      "empty": "لا يوجد تاريخ للمخزون الوارد.",
+      "emptyDescription": "قم بإنشاء أمر شراء لملء هذه القائمة."
+    },
+    "modal": {
+      "title": "أمر شراء جديد",
+      "product": "اختر الصنف",
+      "chooseItem": "اختر صنف...",
+      "quantity": "الكمية",
+      "location": "الموقع المستهدف",
+      "selectBranch": "اختر الفرع...",
+      "notes": "المورد / ملاحظات",
+      "notesPlaceholder": "أدخل اسم المورد أو ملاحظات التسليم...",
+      "cancel": "إلغاء",
+      "add": "إضافة المشتريات"
+    },
+    "alerts": {
+      "failed": "فشل في إضافة المشتريات. يرجى التحقق من الاتصال."
+    }
+  },
+  "Pricing": {
+    "title": "التسعير",
+    "subtitle": "إدارة الأسعار والهوامش",
+    "bulkUpdate": "تحديث جماعي",
+    "table": {
+      "product": "الصنف",
+      "cost": "التكلفة ({currency})",
+      "selling": "البيع ({currency})",
+      "margin": "الهامش",
+      "actions": "إجراءات",
+      "loading": "جاري تحميل بيانات التسعير...",
+      "noResults": "لم يتم العثور على أصناف."
+    }
+  },
+  "Users": {
+    "title": "إدارة الفريق والصلاحيات",
+    "subtitle": "إدارة وصول الفريق ومستويات الأمان.",
+    "addMember": "إضافة موظف",
+    "table": {
+      "employee": "الموظف",
+      "contact": "بيانات الاتصال",
+      "role": "مستوى الوصول",
+      "joined": "تاريخ الانضمام",
+      "actions": "التحكم",
+      "anonymous": "موظف مجهول",
+      "loading": "جاري استرداد دليل الفريق...",
+      "viewActivity": "تدقيق النشاط",
+      "edit": "تعديل الملف",
+      "delete": "سحب الصلاحية"
+    },
+    "modal": {
+      "createTitle": "إضافة موظف جديد",
+      "editTitle": "تعديل صلاحيات الموظف",
+      "fullName": "الاسم الكامل",
+      "username": "معرف النظام",
+      "email": "البريد الإلكتروني",
+      "password": "كلمة المرور",
+      "phone": "رقم الهاتف",
+      "address": "عنوان الإقامة",
+      "role": "دور النظام",
+      "customPermissions": "تفعيل التجاوز المخصص",
+      "pagePermissions": "صلاحيات الموديولات",
+      "defaultPermissions": "استخدام مجموعة صلاحيات {role} الافتراضية.",
+      "cancel": "تجاهل",
+      "create": "تأكيد الإضافة",
+      "update": "حفظ التغييرات",
+      "rootWarning": "صلاحيات الجذر محجوزة لمالكي النظام فقط."
+    },
+    "roles": {
+      "SALESPERSON": "مندوب مبيعات",
+      "ACCOUNTANT": "محاسب مالي",
+      "ADMIN": "مدير نظام",
+      "READ_ONLY": "مشاهد فقط",
+      "ROOT": "مالك النظام"
+    },
+    "permissions": {
+      "dashboard": "الوصول للوحة التحكم",
+      "sales": "نقطة البيع (POS)",
+      "stocktake": "جرد المخزون",
+      "movements": "تدقيق حركات المخزن",
+      "products": "إدارة المنتجات",
+      "invoices": "الفواتير المالية",
+      "profits": "تحليل الأرباح",
+      "staff_sales": "تتبع الأداء",
+      "logs": "سجلات التدقيق الأمني",
+      "users": "إدارة المستخدمين",
+      "expenses": "التحكم في المصروفات",
+      "customers": "إدارة العملاء (CRM)"
+    },
+    "alerts": {
+      "deleteConfirm": "هل أنت متأكد تماماً؟ سيؤدي هذا لسحب كل الصلاحيات نهائياً عن هذا المستخدم.",
+      "updateFailed": "خطأ في النظام: فشل مزامنة تغييرات الوصول.",
+      "createFailed": "خطأ في النظام: تعذر إكمال عملية إضافة الموظف."
+    }
+  },
+  "Home": {
+    "title": "مركز التحكم",
+    "subtitle": "المقاييس الفورية وصحة النظام",
+    "metrics": {
+      "totalRevenue": "إجمالي الإيرادات",
+      "salesCount": "عدد المبيعات",
+      "inventoryValue": "قيمة المخزون",
+      "activeCustomers": "العملاء النشطون",
+      "salesToday": "مبيعات اليوم",
+      "activeVehicles": "المركبات النشطة",
+      "lifetime": "سجل مدي الحياة",
+      "totalStock": "المخزون الحالي",
+      "fromMidnight": "منذ منتصف الليل",
+      "onTheRoad": "الأسطول النشط"
+    },
+    "actions": {
+      "newSale": "بيع جديد",
+      "openPos": "فتح نقطة البيع",
+      "addStock": "إضافة مخزون",
+      "purchaseOrder": "تسجيل توريد"
+    },
+    "sections": {
+      "salesRevenue": "أداء المبيعات",
+      "recentSales": "آخر نشاط للمبيعات",
+      "lowStock": "تنبيهات انخفاض المخزون",
+      "systemActivity": "موجز النشاط والأمان",
+      "viewAll": "عرض السجل",
+      "noRecentSales": "لم يتم العثور على مبيعات أخيرة.",
+      "noActivity": "لم يتم تسجيل نشاط نظام مؤخراً.",
+      "salesLegend": "الإيرادات"
+    }
+  },
+  "CustomerProfile": {
+    "loading": "جاري جلب تفاصيل الحساب...",
+    "notFound": "لم يتم العثور على ملف العميل.",
+    "backButton": "العودة للعملاء",
+    "printStatement": "طباعة كشف الحساب",
+    "accountType": {
+      "USER": "عميل",
+      "ROOT": "مسؤول النظام"
+    },
+    "profile": {
+      "noPhone": "لا يوجد هاتف مسجل",
+      "noAddress": "لا يوجد عنوان مسجل",
+      "joinedLabel": "عميل منذ",
+      "na": "غير متاح",
+      "lifetimeValue": "إجمالي الإنفاق",
+      "currentBalance": "الرصيد الحالي"
+    },
+    "history": {
+      "title": "سجل المشتريات",
+      "invoiceNumber": "فاتورة رقم {number}",
+      "status": {
+        "completed": "مكتملة"
+      },
+      "seller": "بواسطة {name}",
+      "paid": "مدفوع {amount} {currency}",
+      "due": "متبقي {amount} {currency}",
+      "itemsTitle": "الأصناف المشتراة",
+      "viewOriginal": "عرض الفاتورة الأصلية",
+      "empty": "لا يوجد سجل مشتريات لهذا العميل."
+    },
+    "report": {
+      "watermark": "STASH",
+      "title": "كشف حساب عميل",
+      "customerName": "اسم العميل",
+      "date": "التاريخ",
+      "phone": "رقم الهاتف",
+      "address": "العنوان",
+      "na": "غير متوفر",
+      "table": {
+        "index": "#",
+        "date": "التاريخ",
+        "invoice": "رقم الفاتورة",
+        "total": "الإجمالي",
+        "paid": "المدفوع",
+        "balance": "الرصيد المتبقي"
+      },
+      "totalPurchases": "إجمالي المشتريات",
+      "totalDue": "إجمالي الرصيد المستحق"
+    }
+  },
+  "Refunds": {
+    "title": "المرتجعات والمبالغ المستردة",
+    "subtitle": "تتبع وإدارة المنتجات المرتجعة.",
+    "buttons": {
+      "filterDate": "تصفية حسب التاريخ",
+      "refresh": "تحديث السجل",
+      "reset": "إعادة تعيين",
+      "viewInvoice": "عرض الفاتورة الأصلية",
+      "closeMemo": "إغلاق التفاصيل"
+    },
+    "filters": {
+      "search": "بحث برقم الفاتورة، العميل، أو السبب...",
+      "from": "من تاريخ",
+      "to": "إلى تاريخ"
+    },
+    "list": {
+      "loading": "جاري تحميل سجل المرتجعات...",
+      "empty": "لا توجد مرتجعات تطابق معايير البحث.",
+      "walkIn": "عميل نقدي",
+      "withReason": "يوجد سبب",
+      "invoice": "فاتورة",
+      "itemsRefunded": "تم إرجاع {count} صنف"
+    },
+    "modal": {
+      "title": "تفاصيل إيصال المرتجع",
+      "staff": "بواسطة",
+      "customer": "العميل",
+      "date": "تاريخ المرتجع",
+      "reasonTitle": "سبب الإرجاع",
+      "noReason": "لم يتم ذكر سبب لهذا المرتجع.",
+      "returnedItems": "الأصناف المرتجعة للمخزن",
+      "financialReversal": "تسوية مالية",
+      "itemDetails": "تفاصيل الصنف",
+      "condition": "الحالة",
+      "quantity": "الكمية",
+      "price": "سعر الوحدة",
+      "total": "الإجمالي الفرعي",
+      "conditions": {
+        "NEW": "إعادة عرض",
+        "DAMAGED": "تالف"
+      },
+      "grandTotal": "إجمالي المبلغ المسترد"
+    }
+  },
+  "Movements": {
+    "title": "حركات المخزن",
+    "subtitle": "تتبع سجل تدفق المخزون.",
+    "refresh": "تحديث السجل",
+    "empty": "لا توجد حركات مخزنية مسجلة.",
+    "filters": {
+      "all": "كل الأنواع",
+      "sale": "مبيعات",
+      "in": "توريد مخزني",
+      "out": "صرف مخزني",
+      "transfer": "تحويلات"
+    },
+    "types": {
+      "SALE": "بيع منتج",
+      "IN": "إضافة للمخزون",
+      "OUT": "سحب من المخزون",
+      "TRANSFER": "تحويل بين المستودعات",
+      "RETURN": "مرتجع عميل"
+    },
+    "labels": {
+      "by": "بواسطة",
+      "from": "من",
+      "to": "إلى",
+      "unknown": "النظام / المورد"
+    },
+    "pagination": {
+      "prev": "السابق",
+      "next": "التالي",
+      "status": "صفحة {page} من {total}"
+    }
+  },
+  "Logs": {
+    "title": "سجلات التدقيق",
+    "subtitle": "تتبع النشاط والأمان.",
+    "refresh": "تحديث السجلات",
+    "empty": "لا توجد سجلات تدقيق.",
+    "filters": {
+      "user": "تصفية حسب المستخدم:",
+      "allUsers": "كل الموظفين",
+      "clear": "مسح التصفية"
+    },
+    "table": {
+      "action": "الإجراء",
+      "status": "الحالة",
+      "details": "تفاصيل النشاط",
+      "reason": "السبب/الخطأ",
+      "user": "اسم الموظف",
+      "email": "اسم المستخدم",
+      "time": "الطابع الزمني"
+    },
+    "status": {
+      "success": "ناجح",
+      "failed": "فاشل"
+    },
+    "pagination": {
+      "status": "عرض صفحة {page} من {total} ({count} سجل إجمالي)"
+    }
+  },
+  "Incoming": {
+    "title": "توريدات المخزون",
+    "newOrder": "سجل توريد جديد",
+    "metrics": {
+      "totalShipments": "إجمالي الشحنات",
+      "records": "{count} سجلات"
+    },
+    "table": {
+      "product": "اسم المنتج",
+      "quantity": "الكمية",
+      "supplier": "المورد / المصدر",
+      "totalCost": "التكلفة الإجمالية",
+      "date": "تاريخ الاستلام",
+      "status": "الحالة",
+      "loading": "جاري تحميل بيانات التوريد...",
+      "empty": "لا توجد توريدات مسجلة.",
+      "emptyDescription": "ابدأ بإضافة أول سجل توريد للمخزون.",
+      "statuses": {
+        "pending": "قيد الانتظار",
+        "received": "تم الاستلام",
+        "rejected": "مرفوض"
+      }
+    },
+    "modal": {
+      "title": "تسجيل توريد مخزني",
+      "product": "اختر المنتج",
+      "chooseItem": "اختر صنفاً...",
+      "quantity": "الكمية المستلمة",
+      "location": "موقع الوجهة",
+      "selectBranch": "اختر الفرع...",
+      "notes": "ملاحظات العملية",
+      "notesPlaceholder": "أضف تفاصيل حول المورد أو الشحنة...",
+      "cancel": "إلغاء",
+      "add": "تأكيد الاستلام"
+    },
+    "alerts": {
+      "failed": "فشل إضافة سجل التوريد. يرجى المحاولة مرة أخرى."
+    }
+  }
+}

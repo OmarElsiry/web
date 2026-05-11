@@ -1,20 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+const handleI18nRouting = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
+    // 1. Handle i18n routing first
+    const i18nResponse = handleI18nRouting(request);
+
     // E2E testing bypass — skip auth when BYPASS_AUTH is set
     // NEVER enable this in production deployments
     if (process.env.BYPASS_AUTH === 'true') {
-        return NextResponse.next({
-            request: { headers: request.headers },
-        })
+        return i18nResponse;
     }
 
-    let response = NextResponse.next({
-        request: {
-            headers: request.headers,
-        },
-    })
+    // 2. Prepare Supabase client
+    let supabaseResponse = i18nResponse;
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,11 +28,14 @@ export async function middleware(request: NextRequest) {
                 },
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-                    response = NextResponse.next({
+                    supabaseResponse = NextResponse.next({
                         request,
                     })
+                    // Copy i18n headers/cookies if any
+                    i18nResponse.headers.forEach((v, k) => supabaseResponse.headers.set(k, v));
+                    
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, options)
+                        supabaseResponse.cookies.set(name, value, options)
                     )
                 },
             },
@@ -41,28 +46,37 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protected routes: everything under /dashboard
-    const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname === '/' ||
-        request.nextUrl.pathname.startsWith('/inventory') ||
-        request.nextUrl.pathname.startsWith('/sales') ||
-        request.nextUrl.pathname.startsWith('/invoices') ||
-        request.nextUrl.pathname.startsWith('/profits') ||
-        request.nextUrl.pathname.startsWith('/staff-sales') ||
-        request.nextUrl.pathname.startsWith('/logs') ||
-        request.nextUrl.pathname.startsWith('/users') ||
-        request.nextUrl.pathname.startsWith('/expenses');
+    const pathname = request.nextUrl.pathname;
+    
+    // Helper to check if pathname matches protected routes (with or without locale)
+    const isProtectedPath = (path: string) => {
+        const unprotectedPaths = ['/login', '/api', '/_next', '/favicon.ico'];
+        // Remove locale prefix for checking
+        const pathWithoutLocale = path.replace(/^\/(en|ar)(\/|$)/, '/');
+        
+        if (unprotectedPaths.some(p => pathWithoutLocale.startsWith(p))) return false;
+        
+        const protectedRoots = ['/dashboard', '/inventory', '/sales', '/invoices', '/profits', '/staff-sales', '/logs', '/users', '/expenses', '/refunds'];
+        return pathWithoutLocale === '/' || protectedRoots.some(p => pathWithoutLocale.startsWith(p));
+    };
+
+    const isProtectedRoute = isProtectedPath(pathname);
+    const isLoginPage = pathname.replace(/^\/(en|ar)(\/|$)/, '/') === '/login';
 
     if (isProtectedRoute && !user) {
-        return NextResponse.redirect(new URL('/login', request.url))
+        // Redirect to login with current locale if possible
+        const localeMatch = pathname.match(/^\/(en|ar)/);
+        const locale = localeMatch ? localeMatch[0] : '';
+        return NextResponse.redirect(new URL(`${locale}/login`, request.url))
     }
 
-    // Auth routes: redirect to dashboard if already logged in
-    if (request.nextUrl.pathname === '/login' && user) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (isLoginPage && user) {
+        const localeMatch = pathname.match(/^\/(en|ar)/);
+        const locale = localeMatch ? localeMatch[0] : '';
+        return NextResponse.redirect(new URL(`${locale}/dashboard`, request.url))
     }
 
-    return response
+    return supabaseResponse;
 }
 
 export const config = {
@@ -75,6 +89,6 @@ export const config = {
          * - logo.webp, logo.jpg (public assets)
          * Feel free to modify this pattern to include more paths.
          */
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

@@ -49,20 +49,20 @@ export async function getMenuItemsForUser() {
     const permissions = await getUserPermissions();
 
     const allMenuItems = [
-        { to: '/dashboard', permission: 'dashboard', label: 'Home', labelAr: 'الرئيسية' },
-        { to: '/sales', permission: 'sales', label: 'POS', labelAr: 'البيع' },
-        { to: '/stocktake', permission: 'stocktake', label: 'Stock Count', labelAr: 'الجرد' },
-        { to: '/movements', permission: 'movements', label: 'Stock In/Out', labelAr: 'الطالع والداخل' },
-        { to: '/products', permission: 'products', label: 'Products & Pricing', labelAr: 'الأصناف والتسعير' },
-        { to: '/invoices', permission: 'invoices', label: 'Invoices', labelAr: 'الفواتير' },
-        { to: '/refunds', permission: 'invoices', label: 'Refunds', labelAr: 'المرتجعات' },
-        { to: '/customers', permission: 'customers', label: 'Customers', labelAr: 'العملاء' },
-        { to: '/analytics', permission: 'dashboard', label: 'Analytics', labelAr: 'التحليلات' },
-        { to: '/profits', permission: 'profits', label: 'Profits', labelAr: 'الأرباح' },
-        { to: '/staff-sales', permission: 'staff_sales', label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },
-        { to: '/logs', permission: 'logs', label: 'Audit Logs', labelAr: 'سجل النظام' },
-        { to: '/users', permission: 'users', label: 'Team', labelAr: 'الفريق' },
-        { to: '/expenses', permission: 'expenses', label: 'Expenses', labelAr: 'المصروفات' },
+        { to: '/dashboard', permission: 'dashboard', translationKey: 'dashboard' },
+        { to: '/sales', permission: 'sales', translationKey: 'sales' },
+        { to: '/stocktake', permission: 'stocktake', translationKey: 'stocktake' },
+        { to: '/movements', permission: 'movements', translationKey: 'movements' },
+        { to: '/products', permission: 'products', translationKey: 'products' },
+        { to: '/invoices', permission: 'invoices', translationKey: 'invoices' },
+        { to: '/refunds', permission: 'invoices', translationKey: 'refunds' },
+        { to: '/customers', permission: 'customers', translationKey: 'customers' },
+        { to: '/analytics', permission: 'dashboard', translationKey: 'analytics' },
+        { to: '/profits', permission: 'profits', translationKey: 'profits' },
+        { to: '/staff-sales', permission: 'staff_sales', translationKey: 'staff_sales' },
+        { to: '/logs', permission: 'logs', translationKey: 'logs' },
+        { to: '/users', permission: 'users', translationKey: 'users' },
+        { to: '/expenses', permission: 'expenses', translationKey: 'expenses' },
     ];
 
     return allMenuItems.filter(item => permissions.includes(item.permission));

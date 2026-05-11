@@ -674,7 +674,7 @@ export namespace Prisma {
   ? False
   : T extends Uint8Array
   ? False
-  : T extends bigint
+  : T extends BigInt
   ? False
   : T extends object
   ? True
@@ -19014,6 +19014,8 @@ export namespace Prisma {
     userId: string | null
     action: string | null
     details: string | null
+    status: boolean | null
+    reason: string | null
     timestamp: Date | null
   }
 
@@ -19022,6 +19024,8 @@ export namespace Prisma {
     userId: string | null
     action: string | null
     details: string | null
+    status: boolean | null
+    reason: string | null
     timestamp: Date | null
   }
 
@@ -19030,6 +19034,8 @@ export namespace Prisma {
     userId: number
     action: number
     details: number
+    status: number
+    reason: number
     timestamp: number
     _all: number
   }
@@ -19040,6 +19046,8 @@ export namespace Prisma {
     userId?: true
     action?: true
     details?: true
+    status?: true
+    reason?: true
     timestamp?: true
   }
 
@@ -19048,6 +19056,8 @@ export namespace Prisma {
     userId?: true
     action?: true
     details?: true
+    status?: true
+    reason?: true
     timestamp?: true
   }
 
@@ -19056,6 +19066,8 @@ export namespace Prisma {
     userId?: true
     action?: true
     details?: true
+    status?: true
+    reason?: true
     timestamp?: true
     _all?: true
   }
@@ -19137,6 +19149,8 @@ export namespace Prisma {
     userId: string
     action: string
     details: string | null
+    status: boolean
+    reason: string | null
     timestamp: Date
     _count: AuditLogCountAggregateOutputType | null
     _min: AuditLogMinAggregateOutputType | null
@@ -19162,6 +19176,8 @@ export namespace Prisma {
     userId?: boolean
     action?: boolean
     details?: boolean
+    status?: boolean
+    reason?: boolean
     timestamp?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["auditLog"]>
@@ -19171,6 +19187,8 @@ export namespace Prisma {
     userId?: boolean
     action?: boolean
     details?: boolean
+    status?: boolean
+    reason?: boolean
     timestamp?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["auditLog"]>
@@ -19180,6 +19198,8 @@ export namespace Prisma {
     userId?: boolean
     action?: boolean
     details?: boolean
+    status?: boolean
+    reason?: boolean
     timestamp?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["auditLog"]>
@@ -19189,10 +19209,12 @@ export namespace Prisma {
     userId?: boolean
     action?: boolean
     details?: boolean
+    status?: boolean
+    reason?: boolean
     timestamp?: boolean
   }
 
-  export type AuditLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "action" | "details" | "timestamp", ExtArgs["result"]["auditLog"]>
+  export type AuditLogOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "action" | "details" | "status" | "reason" | "timestamp", ExtArgs["result"]["auditLog"]>
   export type AuditLogInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -19213,6 +19235,8 @@ export namespace Prisma {
       userId: string
       action: string
       details: string | null
+      status: boolean
+      reason: string | null
       timestamp: Date
     }, ExtArgs["result"]["auditLog"]>
     composites: {}
@@ -19642,6 +19666,8 @@ export namespace Prisma {
     readonly userId: FieldRef<"AuditLog", 'String'>
     readonly action: FieldRef<"AuditLog", 'String'>
     readonly details: FieldRef<"AuditLog", 'String'>
+    readonly status: FieldRef<"AuditLog", 'Boolean'>
+    readonly reason: FieldRef<"AuditLog", 'String'>
     readonly timestamp: FieldRef<"AuditLog", 'DateTime'>
   }
     
@@ -21403,6 +21429,8 @@ export namespace Prisma {
     userId: 'userId',
     action: 'action',
     details: 'details',
+    status: 'status',
+    reason: 'reason',
     timestamp: 'timestamp'
   };
 
@@ -21576,6 +21604,13 @@ export namespace Prisma {
    * Reference to a field of type 'RefundCondition[]'
    */
   export type ListEnumRefundConditionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'RefundCondition[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -22613,6 +22648,8 @@ export namespace Prisma {
     userId?: StringFilter<"AuditLog"> | string
     action?: StringFilter<"AuditLog"> | string
     details?: StringNullableFilter<"AuditLog"> | string | null
+    status?: BoolFilter<"AuditLog"> | boolean
+    reason?: StringNullableFilter<"AuditLog"> | string | null
     timestamp?: DateTimeFilter<"AuditLog"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }
@@ -22622,6 +22659,8 @@ export namespace Prisma {
     userId?: SortOrder
     action?: SortOrder
     details?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reason?: SortOrderInput | SortOrder
     timestamp?: SortOrder
     user?: UserOrderByWithRelationInput
   }
@@ -22634,6 +22673,8 @@ export namespace Prisma {
     userId?: StringFilter<"AuditLog"> | string
     action?: StringFilter<"AuditLog"> | string
     details?: StringNullableFilter<"AuditLog"> | string | null
+    status?: BoolFilter<"AuditLog"> | boolean
+    reason?: StringNullableFilter<"AuditLog"> | string | null
     timestamp?: DateTimeFilter<"AuditLog"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
   }, "id">
@@ -22643,6 +22684,8 @@ export namespace Prisma {
     userId?: SortOrder
     action?: SortOrder
     details?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reason?: SortOrderInput | SortOrder
     timestamp?: SortOrder
     _count?: AuditLogCountOrderByAggregateInput
     _max?: AuditLogMaxOrderByAggregateInput
@@ -22657,6 +22700,8 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"AuditLog"> | string
     action?: StringWithAggregatesFilter<"AuditLog"> | string
     details?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
+    status?: BoolWithAggregatesFilter<"AuditLog"> | boolean
+    reason?: StringNullableWithAggregatesFilter<"AuditLog"> | string | null
     timestamp?: DateTimeWithAggregatesFilter<"AuditLog"> | Date | string
   }
 
@@ -23790,6 +23835,8 @@ export namespace Prisma {
     id?: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
     user: UserCreateNestedOneWithoutInventoryLogsInput
   }
@@ -23799,6 +23846,8 @@ export namespace Prisma {
     userId: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
   }
 
@@ -23806,6 +23855,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutInventoryLogsNestedInput
   }
@@ -23815,6 +23866,8 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23823,6 +23876,8 @@ export namespace Prisma {
     userId: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
   }
 
@@ -23830,6 +23885,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -23838,6 +23895,8 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -24883,11 +24942,18 @@ export namespace Prisma {
     _max?: NestedEnumRefundConditionFilter<$PrismaModel>
   }
 
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
   export type AuditLogCountOrderByAggregateInput = {
     id?: SortOrder
     userId?: SortOrder
     action?: SortOrder
     details?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
     timestamp?: SortOrder
   }
 
@@ -24896,6 +24962,8 @@ export namespace Prisma {
     userId?: SortOrder
     action?: SortOrder
     details?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
     timestamp?: SortOrder
   }
 
@@ -24904,7 +24972,17 @@ export namespace Prisma {
     userId?: SortOrder
     action?: SortOrder
     details?: SortOrder
+    status?: SortOrder
+    reason?: SortOrder
     timestamp?: SortOrder
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type ExpenseCountOrderByAggregateInput = {
@@ -26122,6 +26200,10 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
   export type UserUpdateOneRequiredWithoutInventoryLogsNestedInput = {
     create?: XOR<UserCreateWithoutInventoryLogsInput, UserUncheckedCreateWithoutInventoryLogsInput>
     connectOrCreate?: UserCreateOrConnectWithoutInventoryLogsInput
@@ -26392,6 +26474,19 @@ export namespace Prisma {
     _max?: NestedEnumRefundConditionFilter<$PrismaModel>
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
   export type InvoiceCreateWithoutUserInput = {
     id?: string
     date?: Date | string
@@ -26442,6 +26537,8 @@ export namespace Prisma {
     id?: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
   }
 
@@ -26449,6 +26546,8 @@ export namespace Prisma {
     id?: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
   }
 
@@ -26582,6 +26681,8 @@ export namespace Prisma {
     userId?: StringFilter<"AuditLog"> | string
     action?: StringFilter<"AuditLog"> | string
     details?: StringNullableFilter<"AuditLog"> | string | null
+    status?: BoolFilter<"AuditLog"> | boolean
+    reason?: StringNullableFilter<"AuditLog"> | string | null
     timestamp?: DateTimeFilter<"AuditLog"> | Date | string
   }
 
@@ -28958,6 +29059,8 @@ export namespace Prisma {
     id?: string
     action: string
     details?: string | null
+    status?: boolean
+    reason?: string | null
     timestamp?: Date | string
   }
 
@@ -29036,6 +29139,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29043,6 +29148,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29050,6 +29157,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     action?: StringFieldUpdateOperationsInput | string
     details?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: BoolFieldUpdateOperationsInput | boolean
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
     timestamp?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

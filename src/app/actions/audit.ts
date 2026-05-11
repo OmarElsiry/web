@@ -6,7 +6,9 @@ import { createClient } from '@/lib/supabase/server';
 export async function logActivity(
     action: string,
     details?: string,
-    explicitUserId?: string
+    explicitUserId?: string,
+    status: boolean = true,
+    reason?: string
 ) {
     const prisma = getPrisma();
     let userId = explicitUserId;
@@ -39,7 +41,9 @@ export async function logActivity(
             data: {
                 action,
                 details,
-                userId
+                userId,
+                status,
+                reason
             }
         });
         return { success: true };
