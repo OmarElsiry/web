@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import getPrisma from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
@@ -10,7 +11,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
     if (key !== process.env.CRON_SECRET && process.env.NODE_ENV === 'production') {
-        // return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {

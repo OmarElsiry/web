@@ -1,7 +1,6 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 
 // Get all staff members with their basic info
 export async function getStaffList() {

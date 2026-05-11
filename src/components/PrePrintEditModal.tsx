@@ -1,40 +1,56 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import { X, Calculator, Printer } from "lucide-react";
 
+interface CustomerData {
+  balance?: number | string;
+  name?: string;
+  governorate?: string | null;
+}
+
 interface PrePrintEditModalProps {
-  customer: any;
+  customer: CustomerData;
   onClose: () => void;
   onPrint: () => void;
 }
 
-export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePrintEditModalProps) {
+export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: PrePrintEditModalProps) {
   const [balance, setBalance] = useState<number>(Number(customer.balance || 0));
   const [discountType, setDiscountType] = useState<"PERCENTAGE" | "FIXED">("FIXED");
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [finalTotal, setFinalTotal] = useState<number>(0);
   const [isSaving, setIsSaving] = useState(false);
 
+  const handleBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setBalance(Number(e.target.value));
+  }, []);
+
+  const handleDiscountTypeFixed = useCallback(() => {
+    setDiscountType("FIXED");
+  }, []);
+
+  const handleDiscountTypePercentage = useCallback(() => {
+    setDiscountType("PERCENTAGE");
+  }, []);
+
+  const handleDiscountValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setDiscountValue(Number(e.target.value));
+  }, []);
+
   useEffect(() => {
-    let total = balance;
-    if (discountType === "PERCENTAGE") {
-      total = balance - (balance * (discountValue / 100));
-    } else {
-      total = balance - discountValue;
-    }
-    setFinalTotal(Math.max(0, total));
+    const computed =
+      discountType === 'PERCENTAGE'
+        ? balance - balance * (discountValue / 100)
+        : balance - discountValue;
+    setFinalTotal(Math.max(0, computed));
   }, [balance, discountType, discountValue]);
 
-  const handlePrint = async () => {
+  const handlePrint = useCallback(async () => {
     // Optionally save to DB if we want this to be permanent before printing
     // For now we will assume it's just updating the view and we could trigger a save API here
     setIsSaving(true);
     try {
-      // If there's an invoice, we'd update it here. Since this is a simple debt print, 
-      // we'll update the customer balance directly or create an adjustment transaction.
-      // (Simplified for this plan: we just proceed to print)
-      
       // Execute the print callback which will trigger the print dialog
       onPrint();
     } catch (e) {
@@ -43,7 +59,7 @@ export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePri
       setIsSaving(false);
       onClose();
     }
-  };
+  }, [onPrint, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -69,7 +85,7 @@ export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePri
               <input 
                 type="number" 
                 value={balance}
-                onChange={(e) => setBalance(Number(e.target.value))}
+                onChange={handleBalanceChange}
                 className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white/50"
               />
               <span className="absolute right-4 top-3 text-gray-400">EGP</span>
@@ -85,13 +101,13 @@ export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePri
             <div className="flex gap-2 p-1 bg-white rounded-lg border border-gray-200 mb-4">
               <button 
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${discountType === 'FIXED' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
-                onClick={() => setDiscountType('FIXED')}
+                onClick={handleDiscountTypeFixed}
               >
                 مبلغ ثابت ($)
               </button>
               <button 
                 className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${discountType === 'PERCENTAGE' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
-                onClick={() => setDiscountType('PERCENTAGE')}
+                onClick={handleDiscountTypePercentage}
               >
                 نسبة مئوية (%)
               </button>
@@ -101,7 +117,7 @@ export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePri
               <input 
                 type="number" 
                 value={discountValue}
-                onChange={(e) => setDiscountValue(Number(e.target.value))}
+                onChange={handleDiscountValueChange}
                 className="w-full pl-4 pr-10 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               />
               <span className="absolute right-4 top-2.5 text-gray-400 font-medium">
@@ -139,4 +155,4 @@ export default function PrePrintEditModal({ customer, onClose, onPrint }: PrePri
       </div>
     </div>
   );
-}
+});

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { FileText, Download, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw } from 'lucide-react';
 import { getInvoices } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
 import RefundModal from '@/components/RefundModal';
@@ -51,14 +51,12 @@ export default function InvoicesPage() {
         getInvoices().then(data => {
             // Map Prisma result to UI interface if needed, currently straightforward
             // But we need to handle the types correctly
-            setInvoices(data as any); // Casting for now as getInvoices returns mapped objects
+            setInvoices(data as unknown as Invoice[]);
             setLoading(false);
         });
     }, []);
 
-    const handleDownload = (invoice: Invoice) => {
-        // We defer the print call slightly to ensure the modal content is rendered if we are opening it just for print
-        // But here we assume modal is open or we print the currently selected one
+    const handleDownload = useCallback((invoice: Invoice) => {
         setTimeout(() => {
             printElement(
                 `Invoice #${invoice.id.slice(0, 8).toUpperCase()}`,
@@ -66,12 +64,54 @@ export default function InvoicesPage() {
                 `<p>Customer: ${invoice.customerName || 'Walk-in'}</p>`
             );
         }, 100);
-    }
+    }, []);
 
-    const handlePrintReport = () => {
+    const handlePrintReport = useCallback(() => {
         const dateRangeStr = startDate || endDate ? `<p>Period: ${startDate || 'Start'} to ${endDate || 'Now'}</p>` : '';
         printElement('Invoices Report', 'print-invoice-list', dateRangeStr);
-    };
+    }, [startDate, endDate]);
+
+    const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
+    const handleClearDateFilter = useCallback(() => {
+        setStartDate('');
+        setEndDate('');
+    }, []);
+
+    const handleSelectInvoice = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (!id) return;
+        const inv = invoices.find(i => i.id === id);
+        if (inv) setSelectedInvoice(inv);
+    }, [invoices]);
+
+    const handlePrintIconClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        if (!id) return;
+        const inv = invoices.find(i => i.id === id);
+        if (inv) {
+            setSelectedInvoice(inv);
+            handleDownload(inv);
+        }
+    }, [invoices, handleDownload]);
+
+    const handleCloseModal = useCallback(() => setSelectedInvoice(null), []);
+    const handleDownloadSelected = useCallback(() => {
+        if (selectedInvoice) handleDownload(selectedInvoice);
+    }, [selectedInvoice, handleDownload]);
+    const handleOpenPrintTab = useCallback(() => {
+        if (selectedInvoice) window.open(`/invoices/${selectedInvoice.id}/print`, '_blank');
+    }, [selectedInvoice]);
+    const handleOpenRefundModal = useCallback(() => setShowRefundModal(true), []);
+    const handleCloseRefundModal = useCallback(() => setShowRefundModal(false), []);
+    const handleRefundSuccess = useCallback(() => {
+        setShowRefundModal(false);
+        setSelectedInvoice(null);
+        getInvoices().then(data => setInvoices(data as unknown as Invoice[]));
+    }, []);
 
     const filteredInvoices = invoices.filter(inv => {
         const query = searchQuery.toLowerCase();
@@ -97,7 +137,7 @@ export default function InvoicesPage() {
                 <h2 className="text-3xl font-bold tracking-tight">Invoices</h2>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => setShowDateFilter(!showDateFilter)}
+                        onClick={handleToggleDateFilter}
                         className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showDateFilter ? 'bg-secondary border-primary' : 'border-border hover:bg-secondary'}`}
                     >
                         <Calendar size={16} />
@@ -120,7 +160,7 @@ export default function InvoicesPage() {
                     placeholder="Search invoice # or customer..."
                     className="flex-1 bg-transparent outline-none"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                 />
                 <button className="p-2 hover:bg-secondary rounded">
                     <Filter size={18} />
@@ -135,7 +175,7 @@ export default function InvoicesPage() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={handleStartDateChange}
                             className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
                         />
                     </div>
@@ -144,12 +184,12 @@ export default function InvoicesPage() {
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={handleEndDateChange}
                             className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
                         />
                     </div>
                     <button
-                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        onClick={handleClearDateFilter}
                         className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
                     >
                         Clear Filter
@@ -169,7 +209,8 @@ export default function InvoicesPage() {
                     filteredInvoices.map(inv => (
                         <div
                             key={inv.id}
-                            onClick={() => setSelectedInvoice(inv)}
+                            data-id={inv.id}
+                            onClick={handleSelectInvoice}
                             className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-card border border-border rounded-xl hover:shadow-md transition-shadow cursor-pointer group gap-4"
                         >
                             <div className="flex items-center gap-4">
@@ -199,7 +240,8 @@ export default function InvoicesPage() {
                                 </div>
 
                                 <button
-                                    onClick={(e) => { e.stopPropagation(); setSelectedInvoice(inv); handleDownload(inv); }}
+                                    data-id={inv.id}
+                                    onClick={handlePrintIconClick}
                                     className="p-2 hover:bg-secondary rounded-full text-muted-foreground hover:text-foreground transition-colors"
                                     title="Print / Download PDF"
                                 >
@@ -222,7 +264,7 @@ export default function InvoicesPage() {
                                 </h3>
                                 <p className="text-xs text-muted-foreground font-mono mt-1">ID: {selectedInvoice.id}</p>
                             </div>
-                            <button onClick={() => setSelectedInvoice(null)} className="p-2 hover:bg-secondary rounded-full transition-colors">
+                            <button onClick={handleCloseModal} className="p-2 hover:bg-secondary rounded-full transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -351,7 +393,7 @@ export default function InvoicesPage() {
 
                         <div className="p-4 border-t border-border bg-secondary/5 flex gap-3">
                             <button
-                                onClick={() => handleDownload(selectedInvoice)}
+                                onClick={handleDownloadSelected}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all"
                             >
                                 <span className="flex items-center gap-2">
@@ -360,14 +402,14 @@ export default function InvoicesPage() {
                                 </span>
                             </button>
                             <button
-                                onClick={() => window.open(`/invoices/${selectedInvoice.id}/print`, '_blank')}
+                                onClick={handleOpenPrintTab}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all hover:bg-blue-700"
                             >
                                 <FileText size={18} />
                                 Official Invoice (فاتورة)
                             </button>
                             <button
-                                onClick={() => setSelectedInvoice(null)}
+                                onClick={handleCloseModal}
                                 className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
                             >
                                 Close
@@ -377,7 +419,7 @@ export default function InvoicesPage() {
                         <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-red-50/20 dark:bg-red-950/5 flex flex-col gap-2">
                             <h4 className="text-[10px] font-bold uppercase text-red-500 tracking-widest pl-1">Actions</h4>
                             <button
-                                onClick={() => setShowRefundModal(true)}
+                                onClick={handleOpenRefundModal}
                                 className="flex items-center justify-center gap-2 py-3 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-xl font-bold transition-all hover:bg-red-200 dark:hover:bg-red-900/40"
                             >
                                 <RefreshCcw size={18} />
@@ -393,12 +435,8 @@ export default function InvoicesPage() {
             {showRefundModal && selectedInvoice && (
                 <RefundModal
                     invoice={selectedInvoice}
-                    onClose={() => setShowRefundModal(false)}
-                    onSuccess={() => {
-                        setShowRefundModal(false);
-                        setSelectedInvoice(null);
-                        getInvoices().then(data => setInvoices(data as any));
-                    }}
+                    onClose={handleCloseRefundModal}
+                    onSuccess={handleRefundSuccess}
                 />
             )}
 

@@ -69,7 +69,7 @@ export async function reconcileStock(adjustments: StockAdjustment[]) {
             const quantity = Math.abs(diff);
 
             // Determine target location: use specific location if provided, else default
-            let locationId = adj.locationId || fallbackLocation?.id;
+            const locationId = adj.locationId || fallbackLocation?.id;
 
             if (!locationId) continue;
 

@@ -1,18 +1,45 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, Tag, Boxes, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin, Percent } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
 import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory } from '@/app/actions/inventory';
 import clsx from 'clsx';
 
 type SortField = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'sell' | 'margin' | 'percent';
 type SortOrder = 'asc' | 'desc';
 
+interface LocationBreakdown {
+    locationId: string;
+    locationName: string;
+    locationType: string;
+    quantity: number;
+}
+
+interface Product {
+    id: string;
+    name: string;
+    sku: string;
+    categoryId: string;
+    categoryName: string;
+    costPrice: number;
+    baseSellingPrice: number;
+    unit: string;
+    totalStock: number;
+    percentOfTotal: number;
+    locationBreakdown: LocationBreakdown[];
+}
+
+interface Category {
+    id: string;
+    name: string;
+    _count?: { products: number };
+}
+
 const ITEMS_PER_PAGE = 15;
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +73,7 @@ export default function ProductsPage() {
         initialQuantity: 0
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const [prods, cats] = await Promise.all([getUnifiedProducts(), getCategories()]);
@@ -55,24 +82,24 @@ export default function ProductsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { void fetchData(); }, [fetchData]);
 
     // Reset to page 1 when filters change
     useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, categoryFilter, sortField, sortOrder]);
 
-    const openAddModal = () => {
+    const openAddModal = useCallback(() => {
         setIsEditMode(false);
         setEditingId(null);
         setFormData({ name: '', sku: '', categoryId: '', costPrice: 0, baseSellingPrice: 0, unit: 'piece', initialQuantity: 0 });
         setError(null);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const openEditModal = (product: any) => {
+    const openEditModal = useCallback((product: Product) => {
         setIsEditMode(true);
         setEditingId(product.id);
         setFormData({
@@ -86,9 +113,9 @@ export default function ProductsPage() {
         });
         setError(null);
         setIsModalOpen(true);
-    };
+    }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name || !formData.sku || !formData.categoryId) return;
         setSubmitting(true);
@@ -96,8 +123,8 @@ export default function ProductsPage() {
         try {
             let result;
             if (isEditMode && editingId) {
-                const { initialQuantity, ...updateData } = formData;
-                result = await updateProduct(editingId, updateData);
+                const { name, sku, categoryId, costPrice, baseSellingPrice, unit } = formData;
+                result = await updateProduct(editingId, { name, sku, categoryId, costPrice, baseSellingPrice, unit });
             } else {
                 result = await createProduct(formData);
             }
@@ -107,14 +134,14 @@ export default function ProductsPage() {
             }
             await fetchData();
             setIsModalOpen(false);
-        } catch (err: any) {
+        } catch {
             setError("Connection error. Please try again.");
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [formData, isEditMode, editingId, fetchData]);
 
-    const handleAddCategory = async (e: React.FormEvent) => {
+    const handleAddCategory = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newCategoryName.trim()) return;
         setCategorySubmitting(true);
@@ -132,9 +159,9 @@ export default function ProductsPage() {
         } finally {
             setCategorySubmitting(false);
         }
-    };
+    }, [newCategoryName, fetchData]);
 
-    const handleDeleteCategory = async (id: string) => {
+    const handleDeleteCategory = useCallback(async (id: string) => {
         setCategorySubmitting(true);
         setCategoryError(null);
         try {
@@ -149,16 +176,65 @@ export default function ProductsPage() {
         } finally {
             setCategorySubmitting(false);
         }
-    };
+    }, [fetchData]);
 
-    const handleSort = (field: SortField) => {
+    const handleSort = useCallback((field: SortField) => {
         if (sortField === field) {
             setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
         } else {
             setSortField(field);
             setSortOrder('asc');
         }
-    };
+    }, [sortField, sortOrder]);
+
+    const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+    const handleCloseCategoryModal = useCallback(() => setIsCategoryModalOpen(false), []);
+    const handleOpenCategoryModal = useCallback(() => setIsCategoryModalOpen(true), []);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+    const handleCategoryFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setCategoryFilter(e.target.value), []);
+    const handleFormNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value })), []);
+    const handleFormSkuChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, sku: e.target.value })), []);
+    const handleFormCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, categoryId: e.target.value })), []);
+    const handleFormCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, costPrice: Number(e.target.value) })), []);
+    const handleFormPriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, baseSellingPrice: Number(e.target.value) })), []);
+    const handleFormUnitChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, unit: e.target.value })), []);
+    const handleFormQtyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, initialQuantity: Number(e.target.value) })), []);
+    const handleNewCategoryNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value), []);
+
+    const handleToggleExpandRow = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            setExpandedRow(prev => prev === id ? null : id);
+        }
+    }, []);
+
+    const handleEditProductClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const product = products.find(p => p.id === id);
+            if (product) openEditModal(product);
+        }
+    }, [products, openEditModal]);
+
+    const handlePageChange = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const pageStr = e.currentTarget.dataset.page;
+        if (pageStr) {
+            setCurrentPage(parseInt(pageStr, 10));
+        }
+    }, []);
+
+    const handlePrevPage = useCallback(() => setCurrentPage(prev => Math.max(1, prev - 1)), []);
+    const handleNextPage = useCallback(() => setCurrentPage(prev => prev + 1), []);
+
+    const handleSortClick = useCallback((e: React.MouseEvent<HTMLTableCellElement>) => {
+        const field = e.currentTarget.dataset.field as SortField;
+        if (field) handleSort(field);
+    }, [handleSort]);
+
+    const handleDeleteCategoryClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) void handleDeleteCategory(id);
+    }, [handleDeleteCategory]);
 
     const getSortIcon = (field: SortField) => {
         if (sortField !== field) return <ArrowUpDown size={14} className="opacity-30" />;
@@ -167,7 +243,7 @@ export default function ProductsPage() {
 
     // Filter and sort products
     const filteredAndSortedItems = useMemo(() => {
-        let result = (products || []).filter(p => {
+        const result = (products || []).filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 p.sku.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
@@ -175,7 +251,8 @@ export default function ProductsPage() {
         });
 
         result.sort((a, b) => {
-            let aVal: any, bVal: any;
+            let aVal: string | number = 0;
+            let bVal: string | number = 0;
             switch (sortField) {
                 case 'name': aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); break;
                 case 'sku': aVal = a.sku.toLowerCase(); bVal = b.sku.toLowerCase(); break;
@@ -205,10 +282,11 @@ export default function ProductsPage() {
         currentPage * ITEMS_PER_PAGE
     );
 
-    const SortableHeader = ({ field, children, className = "" }: { field: SortField, children: React.ReactNode, className?: string }) => (
+    const renderSortableHeader = (field: SortField, children: React.ReactNode, className = "") => (
         <th
             className={clsx("px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors select-none text-xs", className)}
-            onClick={() => handleSort(field)}
+            data-field={field}
+            onClick={handleSortClick}
         >
             <div className="flex items-center gap-1">
                 {children}
@@ -231,7 +309,7 @@ export default function ProductsPage() {
                     <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
                         <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
                     </button>
-                    <button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors">
+                    <button onClick={handleOpenCategoryModal} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors">
                         <Settings size={16} />
                         Categories
                     </button>
@@ -247,7 +325,7 @@ export default function ProductsPage() {
                 {/* Category Filter */}
                 <select
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    onChange={handleCategoryFilterChange}
                     className="px-3 py-2 bg-background border border-input rounded-lg text-sm"
                 >
                     <option value="all">All Categories</option>
@@ -261,7 +339,7 @@ export default function ProductsPage() {
                         type="text"
                         placeholder="Search products..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                 </div>
@@ -278,15 +356,15 @@ export default function ProductsPage() {
                     <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                         <tr>
                             <th className="px-4 py-3 w-8"></th>
-                            <SortableHeader field="name">Product</SortableHeader>
-                            <SortableHeader field="sku">SKU</SortableHeader>
-                            <SortableHeader field="category">Category</SortableHeader>
+                            {renderSortableHeader('name', 'Product')}
+                            {renderSortableHeader('sku', 'SKU')}
+                            {renderSortableHeader('category', 'Category')}
                             <th className="px-4 py-3 text-xs">Unit</th>
-                            <SortableHeader field="cost" className="text-right">Cost</SortableHeader>
-                            <SortableHeader field="sell" className="text-right">Sell</SortableHeader>
-                            <SortableHeader field="margin" className="text-right">Margin</SortableHeader>
-                            <SortableHeader field="stock" className="text-right">Stock</SortableHeader>
-                            <SortableHeader field="percent" className="text-right">% Total</SortableHeader>
+                            {renderSortableHeader('cost', 'Cost', 'text-right')}
+                            {renderSortableHeader('sell', 'Sell', 'text-right')}
+                            {renderSortableHeader('margin', 'Margin', 'text-right')}
+                            {renderSortableHeader('stock', 'Stock', 'text-right')}
+                            {renderSortableHeader('percent', '% Total', 'text-right')}
                             <th className="px-4 py-3 text-right text-xs">Actions</th>
                         </tr>
                     </thead>
@@ -305,7 +383,8 @@ export default function ProductsPage() {
                                             <td className="px-4 py-3">
                                                 {p.locationBreakdown.length > 0 && (
                                                     <button
-                                                        onClick={() => setExpandedRow(isExpanded ? null : p.id)}
+                                                        data-id={p.id}
+                                                        onClick={handleToggleExpandRow}
                                                         className="p-1 rounded hover:bg-secondary transition-colors"
                                                     >
                                                         <ChevronDown size={14} className={clsx("transition-transform", isExpanded && "rotate-180")} />
@@ -335,14 +414,14 @@ export default function ProductsPage() {
                                                     <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
                                                         <div
                                                             className="h-full bg-primary rounded-full transition-all"
-                                                            style={{ width: `${Math.min(p.percentOfTotal, 100)}%` }}
+                                                            style={{ width: `${Math.min(p.percentOfTotal, 100)}%` } as React.CSSProperties}
                                                         />
                                                     </div>
                                                     <span className="text-xs font-mono w-12 text-right">{p.percentOfTotal}%</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button onClick={() => openEditModal(p)} className="p-2 hover:bg-secondary rounded-lg"><Edit size={14} /></button>
+                                                <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg" aria-label="Edit product"><Edit size={14} /></button>
                                             </td>
                                         </tr>
                                         {/* Expanded Location Breakdown */}
@@ -351,7 +430,7 @@ export default function ProductsPage() {
                                                 <td colSpan={11} className="px-4 py-3">
                                                     <div className="ml-8 space-y-1">
                                                         <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Stock by Location</div>
-                                                        {p.locationBreakdown.map((loc: any) => (
+                                                        {p.locationBreakdown.map((loc: LocationBreakdown) => (
                                                             <div key={loc.locationId} className="flex items-center gap-3 text-sm py-1.5 px-3 rounded-lg hover:bg-secondary/30">
                                                                 <MapPin size={14} className={loc.locationType === 'WAREHOUSE' ? 'text-blue-500' : 'text-orange-500'} />
                                                                 <span className="font-medium flex-1">{loc.locationName}</span>
@@ -383,7 +462,7 @@ export default function ProductsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                onClick={handlePrevPage}
                                 disabled={currentPage === 1}
                                 className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
                             >
@@ -404,7 +483,8 @@ export default function ProductsPage() {
                                     return (
                                         <button
                                             key={page}
-                                            onClick={() => setCurrentPage(page)}
+                                            data-page={page}
+                                            onClick={handlePageChange}
                                             className={clsx(
                                                 "w-8 h-8 rounded-lg text-sm font-medium",
                                                 currentPage === page ? "bg-primary text-primary-foreground" : "hover:bg-secondary"
@@ -416,8 +496,8 @@ export default function ProductsPage() {
                                 })}
                             </div>
                             <button
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
+                                onClick={handleNextPage}
+                                disabled={currentPage >= totalPages}
                                 className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 <ChevronRight size={16} />
@@ -433,31 +513,31 @@ export default function ProductsPage() {
                     <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden">
                         <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5">
                             <h3 className="text-xl font-bold">{isEditMode ? 'Edit Product' : 'Add New Product'}</h3>
-                            <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
+                            <button onClick={handleCloseModal} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2"><AlertCircle size={16} />{error}</div>}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5 col-span-2 sm:col-span-1">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">Product Name</label>
-                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.name} onChange={handleFormNameChange} />
                                 </div>
                                 <div className="space-y-1.5 col-span-2 sm:col-span-1">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">SKU</label>
-                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} />
+                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.sku} onChange={handleFormSkuChange} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">Category</label>
-                                    <select className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.categoryId} onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}>
+                                    <select className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.categoryId} onChange={handleFormCategoryChange}>
                                         <option value="">Select Category</option>
                                         {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">Unit</label>
-                                    <select className="w-full p-3 rounded-xl border border-border bg-background" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })}>
+                                    <select className="w-full p-3 rounded-xl border border-border bg-background" value={formData.unit} onChange={handleFormUnitChange}>
                                         <option value="piece">Piece</option>
                                         <option value="kg">Kilogram</option>
                                         <option value="carton">Carton</option>
@@ -468,21 +548,21 @@ export default function ProductsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">Cost Price (EGP)</label>
-                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.costPrice} onChange={(e) => setFormData({ ...formData, costPrice: parseFloat(e.target.value) })} />
+                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.costPrice} onChange={handleFormCostChange} />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold uppercase text-muted-foreground">Selling Price (EGP)</label>
-                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.baseSellingPrice} onChange={(e) => setFormData({ ...formData, baseSellingPrice: parseFloat(e.target.value) })} />
+                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.baseSellingPrice} onChange={handleFormPriceChange} />
                                 </div>
                             </div>
                             {!isEditMode && (
                                 <div className="space-y-1.5 p-4 bg-primary/5 rounded-xl border border-primary/20">
                                     <label className="text-xs font-bold uppercase text-primary">Opening Stock</label>
-                                    <input type="number" className="w-full p-3 rounded-lg border border-border bg-background" required min="0" value={formData.initialQuantity} onChange={(e) => setFormData({ ...formData, initialQuantity: parseInt(e.target.value) || 0 })} />
+                                    <input type="number" className="w-full p-3 rounded-lg border border-border bg-background" required min="0" value={formData.initialQuantity} onChange={handleFormQtyChange} />
                                 </div>
                             )}
                             <div className="pt-6 flex gap-3">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-secondary font-semibold">Cancel</button>
+                                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-secondary font-semibold">Cancel</button>
                                 <button type="submit" disabled={submitting} className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
                                     {submitting ? <Loader2 className="animate-spin" size={18} /> : (isEditMode ? <Check size={18} /> : <Plus size={18} />)}
                                     {isEditMode ? 'Update' : 'Create'}
@@ -503,7 +583,7 @@ export default function ProductsPage() {
                                 إدارة الفئات
                                 <span className="text-xs font-normal text-muted-foreground">Manage Categories</span>
                             </h3>
-                            <button onClick={() => setIsCategoryModalOpen(false)} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
+                            <button onClick={handleCloseCategoryModal} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
                         </div>
                         <div className="p-6 space-y-4">
                             {categoryError && (
@@ -516,7 +596,7 @@ export default function ProductsPage() {
                                     type="text"
                                     placeholder="New category name..."
                                     value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onChange={handleNewCategoryNameChange}
                                     className="flex-1 p-3 rounded-xl border border-border bg-background"
                                 />
                                 <button
@@ -543,7 +623,8 @@ export default function ProductsPage() {
                                                 </span>
                                             </div>
                                             <button
-                                                onClick={() => handleDeleteCategory(cat.id)}
+                                                data-id={cat.id}
+                                                onClick={handleDeleteCategoryClick}
                                                 disabled={categorySubmitting || (cat._count?.products || 0) > 0}
                                                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
                                                 title={(cat._count?.products || 0) > 0 ? "Cannot delete: has products" : "Delete category"}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ClipboardCheck, Search, RefreshCcw, Save, Filter } from 'lucide-react';
 import { getStocktakeItems, reconcileStock, StockAdjustment } from '@/app/actions/stocktake';
 import clsx from 'clsx';
@@ -28,7 +28,7 @@ export default function StocktakePage() {
         loadData();
     }, []);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const data = await getStocktakeItems();
@@ -40,14 +40,23 @@ export default function StocktakePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const handleCountChange = (id: string, value: string) => {
+    const handleCountChange = useCallback((id: string, value: string) => {
         const num = parseInt(value);
         if (!isNaN(num)) {
             setCounts(prev => ({ ...prev, [id]: num }));
         }
-    };
+    }, []);
+
+    const handleCountChangeCb = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const id = e.target.dataset.id;
+        if (id) {
+            handleCountChange(id, e.target.value);
+        }
+    }, [handleCountChange]);
+
+    const handleFocusSelect = useCallback((e: React.FocusEvent<HTMLInputElement>) => e.target.select(), []);
 
     const getAdjustments = (): StockAdjustment[] => {
         const adjustments: StockAdjustment[] = [];
@@ -69,7 +78,7 @@ export default function StocktakePage() {
     const adjustments = getAdjustments();
     const hasAdjustments = adjustments.length > 0;
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!hasAdjustments) return;
 
         const confirmed = window.confirm(
@@ -89,7 +98,10 @@ export default function StocktakePage() {
         } finally {
             setSaving(false);
         }
-    };
+    }, [hasAdjustments, adjustments, loadData]);
+
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
+    const handleCategoryFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setCategoryFilter(e.target.value), []);
 
     const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
 
@@ -147,7 +159,7 @@ export default function StocktakePage() {
                         type="text"
                         placeholder="Search products..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={handleSearchChange}
                         className="w-full pl-10 pr-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                     />
                 </div>
@@ -155,7 +167,7 @@ export default function StocktakePage() {
                     <Filter size={18} className="text-muted-foreground" />
                     <select
                         value={categoryFilter}
-                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        onChange={handleCategoryFilterChange}
                         className="px-4 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
                     >
                         <option value="all">All Categories</option>
@@ -221,14 +233,15 @@ export default function StocktakePage() {
                                                     <input
                                                         type="number"
                                                         value={actual}
-                                                        onChange={(e) => handleCountChange(product.id, e.target.value)}
+                                                        data-id={product.id}
+                                                        onChange={handleCountChangeCb}
                                                         className={clsx(
                                                             "w-20 px-2 py-1 text-center font-bold rounded border outline-none focus:ring-2 transition-all",
                                                             hasDiff
                                                                 ? "border-yellow-500 text-yellow-600 bg-background focus:ring-yellow-500/20"
                                                                 : "border-input bg-muted/30 focus:bg-background focus:ring-primary/20 focus:border-primary"
                                                         )}
-                                                        onFocus={(e) => e.target.select()}
+                                                        onFocus={handleFocusSelect}
                                                     />
                                                 </div>
                                             </td>

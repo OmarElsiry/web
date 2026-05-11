@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import getPrisma from "@/lib/prisma";
 
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
       customers,
       governorates: governoratesList
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to fetch debts report:", error);
     return NextResponse.json(
       { error: "Failed to fetch debts report" },

@@ -19,11 +19,10 @@ export default defineConfig({
             use: { ...devices['Desktop Chrome'] },
         },
     ],
-    // webServer is handled externally — run `npm run dev` before tests
-    // webServer: {
-    //     command: 'npm run dev',
-    //     url: 'http://localhost:3000',
-    //     reuseExistingServer: true,
-    //     timeout: 120000,
-    // },
+    webServer: {
+        command: 'bun run start',
+        url: 'http://localhost:3000',
+        reuseExistingServer: true,
+        timeout: 120000,
+    },
 });

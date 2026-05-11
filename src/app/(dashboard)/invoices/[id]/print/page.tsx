@@ -1,13 +1,15 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getInvoiceById } from '@/app/actions/invoices';
-import { Loader2, Printer, Settings2, Edit3, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Printer, Settings2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { tafqeet } from '@/lib/tafqeet';
 
 export default function InvoicePrintPage() {
     const { id } = useParams();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [invoice, setInvoice] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showSettings, setShowSettings] = useState(true);
@@ -200,6 +202,7 @@ export default function InvoicePrintPage() {
 
                         {/* Invoice Meta */}
                         <div className="flex-1 flex justify-end">
+                            {/* eslint-disable-next-line sonarjs/table-header */}
                             <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
                                 <tbody>
                                     <tr>
@@ -275,6 +278,7 @@ export default function InvoicePrintPage() {
                                 </tr>
                             </thead>
                             <tbody>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {invoice.items.map((item: any, idx: number) => (
                                     <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
                                         <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
@@ -301,6 +305,7 @@ export default function InvoicePrintPage() {
                                 <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
                                     <span className="font-bold text-gray-700">إجمالي الكمية</span>
                                     <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                         {invoice.items.reduce((acc: number, item: any) => acc + item.quantity, 0)}
                                     </span>
                                 </div>

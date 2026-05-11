@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Truck, Plus, Loader2, X, Check } from 'lucide-react';
 import { getIncomingTransactions, getLocations, createIncomingStock } from '@/app/actions/incoming';
 import { getProducts } from '@/app/actions/sales';
@@ -15,6 +15,17 @@ interface IncomingItem {
     date?: Date;
 }
 
+interface Product {
+    id: string;
+    name: string;
+    sku: string;
+}
+
+interface Location {
+    id: string;
+    name: string;
+}
+
 export default function IncomingStockPage() {
     const [items, setItems] = useState<IncomingItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,8 +33,8 @@ export default function IncomingStockPage() {
     const [submitting, setSubmitting] = useState(false);
 
     // Form State
-    const [products, setProducts] = useState<any[]>([]);
-    const [locations, setLocations] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [locations, setLocations] = useState<Location[]>([]);
     const [formData, setFormData] = useState({
         productId: '',
         quantity: 1,
@@ -63,12 +74,31 @@ export default function IncomingStockPage() {
         }
     };
 
+    const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
+    const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
+    
+    const handleProductIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFormData(prev => ({ ...prev, productId: e.target.value }));
+    }, []);
+    
+    const handleQuantityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }));
+    }, []);
+    
+    const handleLocationIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        setFormData(prev => ({ ...prev, locationId: e.target.value }));
+    }, []);
+    
+    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setFormData(prev => ({ ...prev, notes: e.target.value }));
+    }, []);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight">Incoming Stock</h2>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={handleOpenModal}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-all shadow-sm active:scale-95"
                 >
                     <Plus size={16} />
@@ -154,7 +184,7 @@ export default function IncomingStockPage() {
                                 <Plus className="text-primary" size={20} />
                                 New Purchase Order
                             </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-secondary rounded-full transition-colors">
+                            <button onClick={handleCloseModal} className="p-1 hover:bg-secondary rounded-full transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -166,7 +196,7 @@ export default function IncomingStockPage() {
                                     className="w-full p-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                     required
                                     value={formData.productId}
-                                    onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
+                                    onChange={handleProductIdChange}
                                 >
                                     <option value="">Choose item...</option>
                                     {products.map(p => (
@@ -184,7 +214,7 @@ export default function IncomingStockPage() {
                                         className="w-full p-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                         required
                                         value={formData.quantity}
-                                        onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
+                                        onChange={handleQuantityChange}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -193,7 +223,7 @@ export default function IncomingStockPage() {
                                         className="w-full p-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
                                         required
                                         value={formData.locationId}
-                                        onChange={(e) => setFormData({ ...formData, locationId: e.target.value })}
+                                        onChange={handleLocationIdChange}
                                     >
                                         <option value="">Select branch...</option>
                                         {locations.map(l => (
@@ -209,14 +239,14 @@ export default function IncomingStockPage() {
                                     className="w-full p-3 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-none h-24"
                                     placeholder="Enter supplier name or delivery notes..."
                                     value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                    onChange={handleNotesChange}
                                 />
                             </div>
 
                             <div className="pt-4 flex gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={handleCloseModal}
                                     className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-secondary font-semibold transition-colors"
                                 >
                                     Cancel

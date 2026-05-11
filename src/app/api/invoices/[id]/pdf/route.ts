@@ -27,8 +27,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Generate PDF
-    const validParams = await params; // Ensure await if needed by Next.js types
-
     const buffer = await new Promise<Buffer>((resolve, reject) => {
         const doc = new PDFDocument({ margin: 50 });
         const buffers: Buffer[] = [];
@@ -108,6 +106,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.end();
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return new NextResponse(buffer as any, {
         headers: {
             'Content-Type': 'application/pdf',

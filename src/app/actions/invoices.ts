@@ -1,7 +1,6 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { PrismaClient } from '@/generated/client';
 
 // Update type definition if not global, but for now we'll imply it from usage

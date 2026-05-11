@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
 import getPrisma from '@/lib/prisma';
@@ -66,20 +67,6 @@ export async function processSale(
     // 1. Calculate Total & Validate Stock
     let totalAmount = 0;
     const invoiceItemsData: { productId: string, quantity: number, unitPrice: number, subtotal: number }[] = [];
-
-    // We need a location for stock deduction. 
-    // Ideally this comes from the user's session/branch.
-    // Self-healing: If no location exists, create a default one.
-    let location = await prisma.location.findFirst();
-
-    if (!location) {
-        location = await prisma.location.create({
-            data: {
-                name: "Main Warehouse",
-                type: "WAREHOUSE"
-            }
-        });
-    }
 
     for (const item of items) {
         const product = await prisma.product.findUnique({
@@ -216,7 +203,9 @@ export async function processSale(
         // 3. Audit Log (Async, non-blocking)
         try {
             const { logActivity } = await import('./audit');
-            const actionDetails = `Processed sale #${invoice.id} - ${items.reduce((acc, i) => acc + i.quantity, 0)} items. Total: ${invoice.totalAmount}${staffId ? ` (Attributed to Staff: ${staffId})` : ''}`;
+            const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
+            const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
+            const actionDetails = `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`;
 
             await logActivity(
                 'SALE',

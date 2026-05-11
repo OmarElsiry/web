@@ -1,10 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { BarChart3, Calendar, Download, Users, Package, Printer, FileText, DollarSign, Phone, MapPin, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { BarChart3, Calendar, Users, Package, Printer, DollarSign, Phone, MapPin, ChevronDown } from 'lucide-react';
 import { getBuyerReport, getProductReport } from '@/app/actions/analytics';
 import { printElement } from '@/components/ui/PrintExport';
 import clsx from 'clsx';
+
+interface PurchaseHistory {
+    name: string;
+    quantity: number;
+}
+
+interface BuyerData {
+    name: string;
+    phone: string | null;
+    address: string | null;
+    visitCount: number;
+    totalSpent: number;
+    purchaseHistory: PurchaseHistory[];
+}
+
+interface ProductData {
+    name: string;
+    sku: string;
+    quantitySold: number;
+    revenue: number;
+}
 
 export default function AnalyticsPage() {
     const [activeTab, setActiveTab] = useState<'buyers' | 'products'>('buyers');
@@ -12,8 +33,8 @@ export default function AnalyticsPage() {
     const [endDate, setEndDate] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const [buyerData, setBuyerData] = useState<any[]>([]);
-    const [productData, setProductData] = useState<any[]>([]);
+    const [buyerData, setBuyerData] = useState<BuyerData[]>([]);
+    const [productData, setProductData] = useState<ProductData[]>([]);
     const [expandedBuyer, setExpandedBuyer] = useState<number | null>(null);
 
     const fetchData = async () => {
@@ -36,13 +57,25 @@ export default function AnalyticsPage() {
         fetchData();
     }, [startDate, endDate]);
 
-    const handlePrint = () => {
+    const handlePrint = useCallback(() => {
         const title = activeTab === 'buyers' ? 'Top Buyers Report' : 'Top Selling Products';
         const contentId = activeTab === 'buyers' ? 'print-buyers' : 'print-products';
         const dateRangeStr = startDate || endDate ? `<p>Period: ${startDate || 'Start'} to ${endDate || 'Now'}</p>` : '';
 
         printElement(title, contentId, dateRangeStr);
-    };
+    }, [activeTab, startDate, endDate]);
+
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
+    const handleTabBuyersClick = useCallback(() => setActiveTab('buyers'), []);
+    const handleTabProductsClick = useCallback(() => setActiveTab('products'), []);
+    
+    const handleExpandBuyerClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const idx = Number(e.currentTarget.dataset.idx);
+        if (!isNaN(idx)) {
+            setExpandedBuyer(prev => prev === idx ? null : idx);
+        }
+    }, []);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
@@ -62,14 +95,14 @@ export default function AnalyticsPage() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={handleStartDateChange}
                             className="bg-transparent text-sm p-2 outline-none"
                         />
                         <span className="text-muted-foreground">-</span>
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={handleEndDateChange}
                             className="bg-transparent text-sm p-2 outline-none"
                         />
                     </div>
@@ -87,7 +120,7 @@ export default function AnalyticsPage() {
             {/* Tabs */}
             <div className="flex gap-4 border-b border-border">
                 <button
-                    onClick={() => setActiveTab('buyers')}
+                    onClick={handleTabBuyersClick}
                     className={`pb-3 px-1 font-medium text-sm transition-all relative ${activeTab === 'buyers' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                     <span className="flex items-center gap-2">
@@ -96,7 +129,7 @@ export default function AnalyticsPage() {
                     {activeTab === 'buyers' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />}
                 </button>
                 <button
-                    onClick={() => setActiveTab('products')}
+                    onClick={handleTabProductsClick}
                     className={`pb-3 px-1 font-medium text-sm transition-all relative ${activeTab === 'products' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                     <span className="flex items-center gap-2">
@@ -136,7 +169,7 @@ export default function AnalyticsPage() {
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Sales Value</div>
                                         </div>
                                         <div className="text-3xl font-black text-green-600">
-                                            EGP {buyerData.reduce((sum: number, b: any) => sum + b.totalSpent, 0).toLocaleString()}
+                                            EGP {buyerData.reduce((sum: number, b: BuyerData) => sum + b.totalSpent, 0).toLocaleString()}
                                         </div>
                                     </div>
                                 </div>
@@ -193,7 +226,8 @@ export default function AnalyticsPage() {
                                                         <td className="p-4">
                                                             {buyer.purchaseHistory?.length > 0 && (
                                                                 <button
-                                                                    onClick={() => setExpandedBuyer(expandedBuyer === idx ? null : idx)}
+                                                                    data-idx={idx}
+                                                                    onClick={handleExpandBuyerClick}
                                                                     className="p-1 rounded hover:bg-secondary"
                                                                 >
                                                                     <ChevronDown size={14} className={clsx("transition-transform", expandedBuyer === idx && "rotate-180")} />
@@ -206,7 +240,7 @@ export default function AnalyticsPage() {
                                                             <td colSpan={6} className="px-4 py-3">
                                                                 <div className="ml-12 space-y-1">
                                                                     <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">Purchase History</div>
-                                                                    {buyer.purchaseHistory.map((ph: any, i: number) => (
+                                                                    {buyer.purchaseHistory.map((ph: PurchaseHistory, i: number) => (
                                                                         <div key={i} className="flex items-center gap-3 text-sm py-1 px-3 rounded hover:bg-secondary/30">
                                                                             <Package size={14} className="text-primary" />
                                                                             <span className="flex-1 font-medium">{ph.name}</span>
@@ -252,7 +286,7 @@ export default function AnalyticsPage() {
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Total Units Sold</div>
                                         </div>
                                         <div className="text-3xl font-black text-orange-600">
-                                            {productData.reduce((sum: number, p: any) => sum + p.quantitySold, 0)} Items
+                                            {productData.reduce((sum: number, p: ProductData) => sum + p.quantitySold, 0)} Items
                                         </div>
                                     </div>
                                 </div>

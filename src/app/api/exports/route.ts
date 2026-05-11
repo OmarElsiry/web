@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     
     let startDate: Date;
-    let endDate = new Date(now);
+    const endDate = new Date(now);
     endDate.setHours(23, 59, 59, 999);
 
     if (type === 'monthly') {

@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "analyze": "next experimental-analyze",
+    "knip": "knip",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -31,6 +33,7 @@
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.6",
     "@playwright/test": "^1.58.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
@@ -41,6 +44,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "eslint-plugin-react-perf": "^3.3.3",
+    "eslint-plugin-sonarjs": "^4.0.3",
+    "knip": "^6.12.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

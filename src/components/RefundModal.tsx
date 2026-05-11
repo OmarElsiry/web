@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { X, AlertCircle, Loader2, RefreshCcw, ShieldAlert, Check } from 'lucide-react';
 import { createRefund } from '@/app/actions/refunds';
 import { getCurrentUser } from '@/app/actions/auth';
@@ -52,24 +52,41 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleQuantityChange = (productId: string, val: number) => {
+    const handleQuantityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const productId = e.target.dataset.id;
+        const val = parseInt(e.target.value) || 0;
+        if (!productId) return;
         setRefundItems(prev => prev.map(item =>
             item.productId === productId
                 ? { ...item, refundQuantity: Math.min(item.maxQuantity, Math.max(0, val)) }
                 : item
         ));
-    };
+    }, []);
 
-    const handleConditionChange = (productId: string, condition: 'NEW' | 'DEFECTIVE') => {
+    const handleConditionNew = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const productId = e.currentTarget.dataset.id;
+        if (!productId) return;
         setRefundItems(prev => prev.map(item =>
-            item.productId === productId ? { ...item, condition } : item
+            item.productId === productId ? { ...item, condition: 'NEW' } : item
         ));
-    };
+    }, []);
+
+    const handleConditionDefective = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const productId = e.currentTarget.dataset.id;
+        if (!productId) return;
+        setRefundItems(prev => prev.map(item =>
+            item.productId === productId ? { ...item, condition: 'DEFECTIVE' } : item
+        ));
+    }, []);
+
+    const handleReasonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setReason(e.target.value);
+    }, []);
 
     const totalRefundAmount = refundItems.reduce((sum, item) => sum + (item.refundQuantity * item.unitPrice), 0);
     const hasItemsToRefund = refundItems.some(item => item.refundQuantity > 0);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         if (!hasItemsToRefund) {
             setError('Please select at least one item to refund.');
             return;
@@ -103,12 +120,12 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
             } else {
                 setError(result.error || 'Failed to process refund.');
             }
-        } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [hasItemsToRefund, refundItems, invoice.id, reason, onSuccess]);
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -163,10 +180,11 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                                                 <div className="flex items-center justify-center gap-2">
                                                     <input
                                                         type="number"
+                                                        data-id={item.productId}
                                                         min="0"
                                                         max={item.maxQuantity}
                                                         value={item.refundQuantity}
-                                                        onChange={e => handleQuantityChange(item.productId, parseInt(e.target.value) || 0)}
+                                                        onChange={handleQuantityChange}
                                                         className="w-16 p-1.5 text-center border border-border rounded-lg bg-background font-bold focus:ring-2 focus:ring-primary/20 outline-none"
                                                     />
                                                 </div>
@@ -174,7 +192,8 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                                             <td className="px-4 py-3">
                                                 <div className="flex justify-center gap-1">
                                                     <button
-                                                        onClick={() => handleConditionChange(item.productId, 'NEW')}
+                                                        data-id={item.productId}
+                                                        onClick={handleConditionNew}
                                                         className={clsx(
                                                             "px-2 py-1 text-[10px] font-bold rounded border transition-all",
                                                             item.condition === 'NEW' ? "bg-green-100 text-green-700 border-green-200" : "bg-secondary text-muted-foreground border-transparent opacity-50"
@@ -183,7 +202,8 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                                                         NEW
                                                     </button>
                                                     <button
-                                                        onClick={() => handleConditionChange(item.productId, 'DEFECTIVE')}
+                                                        data-id={item.productId}
+                                                        onClick={handleConditionDefective}
                                                         className={clsx(
                                                             "px-2 py-1 text-[10px] font-bold rounded border transition-all",
                                                             item.condition === 'DEFECTIVE' ? "bg-red-100 text-red-700 border-red-200" : "bg-secondary text-muted-foreground border-transparent opacity-50"
@@ -216,7 +236,7 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                         <textarea
                             placeholder="Customer returning item because..."
                             value={reason}
-                            onChange={e => setReason(e.target.value)}
+                            onChange={handleReasonChange}
                             className="w-full p-4 rounded-xl border border-border bg-background resize-none h-24 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                         />
                     </div>
@@ -224,7 +244,7 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                     <div className="p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-3">
                         <ShieldAlert className="text-amber-500 shrink-0 mt-0.5" size={18} />
                         <div className="text-xs text-amber-800 dark:text-amber-300">
-                            <strong>Inventory Alert:</strong> 'New' items will be restocked to the main warehouse. 'Defective' items will only update the defective stock counter and will not be available for sale.
+                            <strong>Inventory Alert:</strong> &apos;New&apos; items will be restocked to the main warehouse. &apos;Defective&apos; items will only update the defective stock counter and will not be available for sale.
                         </div>
                     </div>
                 </div>

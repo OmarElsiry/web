@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -25,7 +25,7 @@ import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
 import { getMenuItemsForUser, getCurrentUser } from '@/app/actions/permissions';
 
-const iconMap: Record<string, any> = {
+const iconMap: Record<string, React.ElementType> = {
     '/dashboard': LayoutDashboard,
     '/sales': ShoppingCart,
     '/stocktake': ClipboardCheck,
@@ -56,7 +56,7 @@ interface CurrentUser {
     role: string;
 }
 
-const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, icon: any, label: string, labelAr: string, active: boolean }) => (
+const SidebarItem = ({ to, icon: Icon, label, labelAr, active }: { to: string, icon: React.ElementType, label: string, labelAr: string, active: boolean }) => (
     <Link prefetch={false}
         href={to}
         className={clsx(
@@ -84,13 +84,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         getCurrentUser().then(setCurrentUser);
     }, []);
 
+    const handleCloseSidebar = useCallback(() => setSidebarOpen(false), []);
+    const handleToggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
+    const handleSignOut = useCallback(async () => {
+        await signOut();
+    }, []);
+
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-20 md:hidden"
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={handleCloseSidebar}
                 />
             )}
 
@@ -106,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
                         EPIC COMPANY
                     </h1>
-                    <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="md:hidden ml-auto">
+                    <button onClick={handleToggleSidebar} className="md:hidden ml-auto">
                         <X />
                     </button>
                 </div>
@@ -126,9 +132,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                 <div className="p-4 border-t border-border">
                     <button
-                        onClick={async () => {
-                            await signOut();
-                        }}
+                        onClick={handleSignOut}
                         className="flex items-center gap-3 px-4 py-3 w-full text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                         <LogOut size={20} />
@@ -140,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Main Content */}
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <header className="h-16 border-b border-border bg-card/50 backdrop-blur px-6 flex items-center justify-between">
-                    <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-secondary rounded-lg md:hidden">
+                    <button onClick={handleToggleSidebar} className="p-2 hover:bg-secondary rounded-lg md:hidden">
                         <Menu />
                     </button>
                     <div className="flex items-center gap-4">

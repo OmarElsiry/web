@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import getPrisma from "@/lib/prisma";
 
@@ -11,35 +12,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid data format. Expected an array." }, { status: 400 });
     }
 
-    let createdCount = 0;
-    const errors = [];
+    const validData = data
+      .filter((item: any) => item.name)
+      .map((item: any) => ({
+        name: item.name,
+        phone: item.phone || null,
+        address: item.address || null,
+        governorate: item.governorate || null,
+        balance: item.balance ? parseFloat(item.balance) : 0,
+      }));
 
-    for (const item of data) {
-      try {
-        if (!item.name) continue;
-
-        await prisma.customer.create({
-          data: {
-            name: item.name,
-            phone: item.phone || null,
-            address: item.address || null,
-            governorate: item.governorate || null,
-            balance: item.balance ? parseFloat(item.balance) : 0,
-          }
-        });
-        createdCount++;
-      } catch (err: any) {
-        errors.push(`Failed to import customer ${item.name}: ${err.message}`);
-      }
+    if (validData.length === 0) {
+      return NextResponse.json({ message: "No valid customers to import.", createdCount: 0 });
     }
 
-    return NextResponse.json({
-      message: `Successfully imported ${createdCount} customers.`,
-      createdCount,
-      errors: errors.length > 0 ? errors : undefined
+    const result = await prisma.customer.createMany({
+      data: validData,
+      skipDuplicates: true,
     });
 
-  } catch (error: any) {
+    return NextResponse.json({
+      message: `Successfully imported ${result.count} customers.`,
+      createdCount: result.count,
+    });
+
+  } catch (error) {
     console.error("Bulk import error:", error);
     return NextResponse.json(
       { error: "Failed to process bulk import" },

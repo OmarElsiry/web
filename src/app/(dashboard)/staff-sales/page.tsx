@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, Fragment } from 'react';
-import { UserCheck, Trophy, TrendingUp, Phone, Eye, X, FileDown, Calendar, DollarSign } from 'lucide-react';
+import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
+import { UserCheck, Trophy, Phone, Eye, X, FileDown, Calendar, DollarSign } from 'lucide-react';
 import { getStaffList, getStaffSalesDetail } from '@/app/actions/staff';
 import clsx from 'clsx';
 
@@ -14,11 +14,19 @@ interface StaffMember {
     phone?: string | null;
 }
 
+interface InvoiceItem {
+    id: string;
+    quantity: number;
+    subtotal: number | string | { toNumber: () => number };
+    product?: { name: string; unit?: string | null };
+}
+
 interface Invoice {
     id: string;
     date: Date | string;
     customerName: string | null;
     totalAmount: number | string | { toNumber: () => number };
+    items?: InvoiceItem[];
 }
 
 interface StaffSalesDetail {
@@ -53,7 +61,7 @@ export default function StaffSalesPage() {
         loadData();
     }, []);
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         setLoading(true);
         try {
             const staffList = await getStaffList();
@@ -69,27 +77,42 @@ export default function StaffSalesPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    const openModal = async (staffMember: any) => {
+    const openModal = useCallback(async (staffMember: StaffMember) => {
         setSelectedStaff(staffMember);
         setModalPeriod('month');
         setModalLoading(true);
         const data = await getStaffSalesDetail(staffMember.id, 'month');
-        setModalData(data);
+        setModalData(data as StaffSalesDetail);
         setModalLoading(false);
-    };
+    }, []);
 
-    const changePeriod = async (period: Period) => {
+    const changePeriod = useCallback(async (period: Period) => {
         if (!selectedStaff) return;
         setModalPeriod(period);
         setModalLoading(true);
         const data = await getStaffSalesDetail(selectedStaff.id, period);
-        setModalData(data);
+        setModalData(data as StaffSalesDetail);
         setModalLoading(false);
-    };
+    }, [selectedStaff]);
 
-    const exportPDF = () => {
+    const handleOpenModal = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const found = staff.find(s => s.id === id);
+            if (found) openModal(found);
+        }
+    }, [staff, openModal]);
+
+    const handleChangePeriod = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const p = e.currentTarget.dataset.period as Period;
+        if (p) changePeriod(p);
+    }, [changePeriod]);
+
+    const handleCloseModal = useCallback(() => setSelectedStaff(null), []);
+
+    const exportPDF = useCallback(() => {
         if (!printRef.current || !selectedStaff) return;
 
         // Use window.print() for simple PDF export
@@ -127,7 +150,7 @@ export default function StaffSalesPage() {
             printWindow.document.close();
             printWindow.print();
         }
-    };
+    }, [selectedStaff, modalPeriod]);
 
     // Sort staff by total sales
     const sortedStaff = [...staff].sort((a, b) => {
@@ -187,7 +210,8 @@ export default function StaffSalesPage() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <button
-                                            onClick={() => openModal(s)}
+                                            data-id={s.id}
+                                            onClick={handleOpenModal}
                                             className="p-2 hover:bg-secondary rounded-lg text-primary"
                                             title="View Details"
                                         >
@@ -222,7 +246,7 @@ export default function StaffSalesPage() {
                                     <FileDown size={16} />
                                     Export PDF
                                 </button>
-                                <button onClick={() => setSelectedStaff(null)} className="p-2 hover:bg-secondary rounded-full">
+                                <button onClick={handleCloseModal} className="p-2 hover:bg-secondary rounded-full">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -233,7 +257,8 @@ export default function StaffSalesPage() {
                             {(Object.keys(periodLabels) as Period[]).map(p => (
                                 <button
                                     key={p}
-                                    onClick={() => changePeriod(p)}
+                                    data-period={p}
+                                    onClick={handleChangePeriod}
                                     className={clsx(
                                         "px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all",
                                         modalPeriod === p
@@ -284,7 +309,7 @@ export default function StaffSalesPage() {
                                     ) : !modalData?.invoices?.length ? (
                                         <tr><td colSpan={3} className="py-8 text-center text-muted-foreground">No sales in this period.</td></tr>
                                     ) : (
-                                        modalData.invoices.map((inv: any) => (
+                                        modalData.invoices.map((inv: Invoice) => (
                                             <Fragment key={inv.id}>
                                                 <tr className="hover:bg-muted/30">
                                                     <td className="py-2 font-medium">{new Date(inv.date).toLocaleDateString()}</td>
@@ -297,7 +322,7 @@ export default function StaffSalesPage() {
                                                 <tr className="bg-secondary/10">
                                                     <td colSpan={3} className="pl-4 pr-2 pb-4 pt-1">
                                                         <div className="text-xs text-muted-foreground ml-2 border-l-2 border-primary/20 pl-3">
-                                                            {inv.items?.map((item: any) => (
+                                                            {inv.items?.map((item: InvoiceItem) => (
                                                                 <div key={item.id} className="flex justify-between py-1 border-b border-border/50 last:border-0">
                                                                     <span>
                                                                         <span className="font-semibold text-foreground">{item.product?.name || 'Unknown'}</span>

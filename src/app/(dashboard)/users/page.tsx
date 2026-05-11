@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getUsers, deleteUser, createUser, updateUser } from '@/app/actions/users';
 import { getDefaultPermissions, ALL_PERMISSIONS } from '@/lib/permissions';
-import { UserPlus, Trash2, Shield, User as UserIcon, Eye, Phone, MapPin, Settings } from 'lucide-react';
+import { UserPlus, Trash2, Shield, Eye, Phone, MapPin, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 interface User {
@@ -35,43 +35,44 @@ export default function UsersPage() {
     const [useCustomPermissions, setUseCustomPermissions] = useState(false);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    useEffect(() => {
-        // Update default permissions when role changes
-        if (!useCustomPermissions) {
-            setSelectedPermissions(getDefaultPermissions(selectedRole));
-        }
-    }, [selectedRole, useCustomPermissions]);
-
-    const fetchUsers = async () => {
-        setIsLoading(true);
+    const fetchUsers = useCallback(async (showLoading = false) => {
+        if (showLoading) setIsLoading(true);
         const data = await getUsers();
         setUsers(data as User[]);
         setIsLoading(false);
-    };
+    }, []);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void fetchUsers(false);
+    }, [fetchUsers]);
+
+    // permissions derived directly when needed
 
     const handleDelete = async (id: string) => {
         if (confirm('Are you sure you want to delete this user?')) {
             const res = await deleteUser(id);
             if (res.success) {
-                fetchUsers();
+                fetchUsers(true);
             } else {
                 alert(res.error);
             }
         }
     };
 
-    const openCreateModal = () => {
+    const handleDeleteClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) handleDelete(id);
+    }, [fetchUsers]);
+
+    const openCreateModal = useCallback(() => {
         setEditingUser(null);
         setSelectedRole('SALESPERSON');
         setSelectedPermissions(getDefaultPermissions('SALESPERSON'));
         setUseCustomPermissions(false);
         setError('');
         setIsModalOpen(true);
-    };
+    }, []);
 
     const openEditModal = (user: User) => {
         setEditingUser(user);
@@ -82,7 +83,15 @@ export default function UsersPage() {
         setIsModalOpen(true);
     };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const handleEditClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const found = users.find(u => u.id === id);
+            if (found) openEditModal(found);
+        }
+    }, [users]);
+
+    const handleSubmit = useCallback(async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError('');
         const formData = new FormData(e.currentTarget);
@@ -107,7 +116,7 @@ export default function UsersPage() {
                 setError(res.error || 'Failed to create user');
             }
         }
-    };
+    }, [editingUser, fetchUsers, useCustomPermissions, selectedPermissions]);
 
     const togglePermission = (key: string) => {
         setSelectedPermissions(prev =>
@@ -116,6 +125,14 @@ export default function UsersPage() {
                 : [...prev, key]
         );
     };
+
+    const handleRoleChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedRole(e.target.value), []);
+    const handleCustomPermissionsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setUseCustomPermissions(e.target.checked), []);
+    const handleTogglePermissionClick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const key = e.target.dataset.key;
+        if (key) togglePermission(key);
+    }, []);
+    const handleCloseModalClick = useCallback(() => setIsModalOpen(false), []);
 
     return (
         <div className="space-y-6">
@@ -214,14 +231,16 @@ export default function UsersPage() {
                                         {user.role !== 'ROOT' && (
                                             <>
                                                 <button
-                                                    onClick={() => openEditModal(user)}
+                                                    data-id={user.id}
+                                                    onClick={handleEditClick}
                                                     className="p-2 text-muted-foreground hover:text-primary transition-colors"
                                                     title="Edit"
                                                 >
                                                     <Settings size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(user.id)}
+                                                    data-id={user.id}
+                                                    onClick={handleDeleteClick}
                                                     className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
                                                     title="Delete"
                                                 >
@@ -317,7 +336,7 @@ export default function UsersPage() {
                                 <select
                                     name="role"
                                     value={selectedRole}
-                                    onChange={(e) => setSelectedRole(e.target.value)}
+                                    onChange={handleRoleChange}
                                     className="w-full bg-secondary/50 border border-border rounded-lg p-2.5 outline-none focus:ring-2 ring-primary/20"
                                 >
                                     <option value="SALESPERSON">Salesperson (Carrier)</option>
@@ -336,7 +355,7 @@ export default function UsersPage() {
                                         <input
                                             type="checkbox"
                                             checked={useCustomPermissions}
-                                            onChange={(e) => setUseCustomPermissions(e.target.checked)}
+                                            onChange={handleCustomPermissionsChange}
                                             className="rounded"
                                         />
                                         Custom permissions
@@ -354,7 +373,8 @@ export default function UsersPage() {
                                             <input
                                                 type="checkbox"
                                                 checked={selectedPermissions.includes(perm.key)}
-                                                onChange={() => togglePermission(perm.key)}
+                                                data-key={perm.key}
+                                                onChange={handleTogglePermissionClick}
                                                 disabled={!useCustomPermissions}
                                                 className="rounded"
                                             />
@@ -368,7 +388,7 @@ export default function UsersPage() {
                             </div>
 
                             <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-secondary transition-colors">Cancel</button>
+                                <button type="button" onClick={handleCloseModalClick} className="flex-1 px-4 py-2.5 rounded-lg border border-border hover:bg-secondary transition-colors">Cancel</button>
                                 <button type="submit" className="flex-1 bg-primary text-primary-foreground px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
                                     {editingUser ? 'Update' : 'Create'} User
                                 </button>

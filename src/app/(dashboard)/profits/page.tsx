@@ -1,13 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
 import { getInvoices } from '@/app/actions/invoices';
 import { getInventory } from '@/app/actions/inventory';
 
+interface Invoice {
+    id: string;
+    date: string | Date;
+    customerName?: string | null;
+    totalAmount: number | string;
+    items?: { productId: string; quantity: number }[];
+}
+
+interface InventoryProduct {
+    product?: {
+        id: string;
+        costPrice?: number | string;
+    };
+}
+
 export default function ProfitsPage() {
-    const [invoices, setInvoices] = useState<any[]>([]);
-    const [inventory, setInventory] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [inventory, setInventory] = useState<InventoryProduct[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Date Filter
@@ -32,7 +47,7 @@ export default function ProfitsPage() {
     const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
     const estimatedCost = filteredInvoices.reduce((sum, inv) => {
         const invItems = inv.items || [];
-        return sum + invItems.reduce((itemSum: number, item: any) => {
+        return sum + invItems.reduce((itemSum: number, item: { productId: string; quantity: number }) => {
             const prod = inventory.find(i => i.product?.id === item.productId);
             const cost = prod ? Number(prod.product?.costPrice || 0) : 0;
             return itemSum + (cost * item.quantity);
@@ -40,6 +55,11 @@ export default function ProfitsPage() {
     }, 0);
     const profit = totalRevenue - estimatedCost;
     const margin = totalRevenue > 0 ? (profit / totalRevenue * 100).toFixed(1) : 0;
+
+    const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
+    const handleClearDates = useCallback(() => { setStartDate(''); setEndDate(''); }, []);
 
     return (
         <div className="space-y-6">
@@ -52,7 +72,7 @@ export default function ProfitsPage() {
                     <p className="text-muted-foreground">Profit & Loss Overview</p>
                 </div>
                 <button
-                    onClick={() => setShowDateFilter(!showDateFilter)}
+                    onClick={handleToggleDateFilter}
                     className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showDateFilter ? 'bg-secondary border-primary' : 'border-border hover:bg-secondary'}`}
                 >
                     <Calendar size={16} />
@@ -68,7 +88,7 @@ export default function ProfitsPage() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={handleStartDateChange}
                             className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
                         />
                     </div>
@@ -77,12 +97,12 @@ export default function ProfitsPage() {
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={handleEndDateChange}
                             className="bg-card border border-border rounded-lg px-3 py-2 text-sm"
                         />
                     </div>
                     <button
-                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        onClick={handleClearDates}
                         className="text-xs text-muted-foreground hover:text-primary transition-colors underline"
                     >
                         Clear Filter

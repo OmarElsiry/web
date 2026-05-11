@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Papa from "papaparse";
+import { useState, useCallback, memo } from "react";
 import { UploadCloud, CheckCircle, AlertCircle, X } from "lucide-react";
 
 interface ParsedCustomer {
@@ -17,13 +16,13 @@ interface BulkImportDropzoneProps {
   onClose: () => void;
 }
 
-export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDropzoneProps) {
+export default memo(function BulkImportDropzone({ onSuccess, onClose }: BulkImportDropzoneProps) {
   const [dragActive, setDragActive] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedCustomer[] | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleDrag = (e: React.DragEvent) => {
+  const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (e.type === "dragenter" || e.type === "dragover") {
@@ -31,9 +30,10 @@ export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDro
     } else if (e.type === "dragleave") {
       setDragActive(false);
     }
-  };
+  }, []);
 
-  const processFile = (file: File) => {
+  const processFile = useCallback(async (file: File) => {
+    const Papa = (await import("papaparse")).default;
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
@@ -52,25 +52,25 @@ export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDro
         setError("Error parsing CSV: " + error.message);
       }
     });
-  };
+  }, []);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       processFile(e.dataTransfer.files[0]);
     }
-  };
+  }, [processFile]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       processFile(e.target.files[0]);
     }
-  };
+  }, [processFile]);
 
-  const handleUpload = async () => {
+  const handleUpload = useCallback(async () => {
     if (!parsedData) return;
     setIsUploading(true);
     try {
@@ -83,12 +83,16 @@ export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDro
       if (!res.ok) throw new Error(result.error || "Upload failed");
       
       onSuccess();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [parsedData, onSuccess]);
+
+  const handleCancelParse = useCallback(() => {
+    setParsedData(null);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-300">
@@ -161,7 +165,7 @@ export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDro
 
               <div className="flex justify-end gap-3">
                 <button 
-                  onClick={() => setParsedData(null)}
+                  onClick={handleCancelParse}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   disabled={isUploading}
                 >
@@ -191,4 +195,4 @@ export default function BulkImportDropzone({ onSuccess, onClose }: BulkImportDro
       </div>
     </div>
   );
-}
+});

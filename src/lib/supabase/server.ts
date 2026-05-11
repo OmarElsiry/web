@@ -36,7 +36,7 @@ export async function createAdminClient() {
         {
             cookies: {
                 getAll() { return [] },
-                setAll(cookiesToSet) { }
+                setAll() { }
             }
         }
     )

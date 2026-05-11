@@ -1,22 +1,54 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-    User, Phone, MapPin, Calendar, ShoppingBag,
+    User, Phone, MapPin, ShoppingBag,
     ArrowLeft, CreditCard, Clock, Receipt, Printer,
-    CheckCircle2, ChevronRight, Loader2,
-    CalendarDays, DollarSign, Tag
+    ChevronRight, Loader2,
+    CalendarDays, Tag
 } from 'lucide-react';
 import { getCustomerProfile } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 
+interface InvoiceItem {
+    quantity: number;
+    product: string;
+    price: number;
+    subtotal: number;
+}
+
+interface Invoice {
+    id: string;
+    date: string | Date;
+    method: string;
+    seller: string;
+    total: number | string;
+    paid: number | string;
+    currentBalance: number;
+    items: InvoiceItem[];
+}
+
+interface CustomerProfile {
+    name: string;
+    phone: string;
+    address: string;
+    type: string;
+    balance: number;
+    joinedAt: string | Date | null;
+}
+
+interface ProfileData {
+    profile: CustomerProfile;
+    invoices: Invoice[];
+}
+
 function ProfileContent() {
     const searchParams = useSearchParams();
     const id = searchParams.get('id');
 
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<ProfileData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -27,6 +59,17 @@ function ProfileContent() {
             });
         }
     }, [id]);
+
+    const handlePrintStatement = useCallback(() => {
+        const printContents = document.getElementById('print-statement-content');
+        if (printContents) {
+            const originalContents = document.body.innerHTML;
+            document.body.innerHTML = printContents.innerHTML;
+            window.print();
+            document.body.innerHTML = originalContents;
+            window.location.reload(); // Reload to restore React state since DOM manipulation breaks it
+        }
+    }, []);
 
     if (loading) {
         return (
@@ -40,7 +83,8 @@ function ProfileContent() {
     if (!data) return <div>Customer not found</div>;
 
     const { profile, invoices } = data;
-    const totalSpent = invoices.reduce((sum: number, inv: any) => sum + Number(inv.total), 0);
+    const totalSpent = invoices.reduce((sum: number, inv: Invoice) => sum + Number(inv.total), 0);
+
 
     return (
         <div className="space-y-8 animate-in fade-in duration-700 max-w-7xl mx-auto pb-20">
@@ -54,16 +98,7 @@ function ProfileContent() {
                 </Link>
                 <div className="flex items-center gap-2">
                     <button 
-                        onClick={() => {
-                            const printContents = document.getElementById('print-statement-content');
-                            if (printContents) {
-                                const originalContents = document.body.innerHTML;
-                                document.body.innerHTML = printContents.innerHTML;
-                                window.print();
-                                document.body.innerHTML = originalContents;
-                                window.location.reload(); // Reload to restore React state since DOM manipulation breaks it
-                            }
-                        }}
+                        onClick={handlePrintStatement}
                         className="px-4 py-2 flex items-center gap-2 bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground font-bold rounded-xl transition-all shadow-sm mr-2"
                     >
                         <Printer size={16} />
@@ -145,7 +180,7 @@ function ProfileContent() {
                     </div>
 
                     <div className="space-y-4">
-                        {invoices.map((invoice: any, idx: number) => (
+                        {invoices.map((invoice: Invoice) => (
                             <div key={invoice.id} className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
                                 <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-secondary/10">
                                     <div className="flex items-center gap-4">
@@ -183,13 +218,13 @@ function ProfileContent() {
                                         <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-2">
                                             <Tag size={12} /> Items Purchased
                                         </div>
-                                        {invoice.items.map((item: any, i: number) => (
+                                        {invoice.items.map((item: InvoiceItem, i: number) => (
                                             <div key={i} className="flex justify-between items-center text-sm p-2 rounded-lg bg-secondary/20 border border-border/30">
                                                 <div className="font-bold flex items-center gap-2">
                                                     <span className="w-6 h-6 flex items-center justify-center bg-primary/10 text-primary rounded-md text-[10px] font-black">{item.quantity}</span>
                                                     {item.product}
                                                 </div>
-                                                <div className="font-bold text-muted-foreground">EGP {Number(item.total).toLocaleString()}</div>
+                                                <div className="font-bold text-muted-foreground">EGP {Number(item.subtotal).toLocaleString()}</div>
                                             </div>
                                         ))}
                                     </div>

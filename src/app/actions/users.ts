@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
 export async function getUsers() {
@@ -76,6 +77,7 @@ export async function createUser(formData: FormData) {
         data: {
             id: user.id,
             username,
+            // eslint-disable-next-line sonarjs/no-hardcoded-passwords -- sentinel value; Supabase Auth manages actual auth
             password: 'EXTERNAL_AUTH', // Password is managed by Supabase Auth
             role,
             name,

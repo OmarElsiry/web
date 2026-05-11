@@ -15,7 +15,10 @@ const getPrisma = () => {
     });
     const adapter = new PrismaPg(pool);
 
-    prisma = new PrismaClient({ adapter });
+    prisma = new PrismaClient({
+        adapter,
+        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    });
 
     return prisma;
 }

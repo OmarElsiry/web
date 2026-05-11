@@ -1,0 +1,547 @@
+﻿bun : $ eslint
+At line:1 char:1
++ bun run lint 2>&1 | Out-File -FilePath "C:\Users\PotterParker\Desktop ...
++ ~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ eslint:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+C:\Users\PotterParker\Desktop\web\next.config.ts
+  3:28  error  A `require()` style import is forbidden  @typescript-eslint/no-require-imports
+
+C:\Users\PotterParker\Desktop\web\src\app\(auth)\login\page.tsx
+   7:8   warning  'clsx' is defined but never used                                 @typescript-eslint/no-unused-vars
+   7:8   error    Remove this unused import of 'clsx'                              sonarjs/unused-import
+  83:24  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\analytics\page.tsx
+    4:31   warning  'Download' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+    4:31   error    Remove this unused import of 'Download'                                                                       sonarjs/unused-import
+    4:66   warning  'FileText' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+    4:66   error    Remove this unused import of 'FileText'                                                                       sonarjs/unused-import
+   15:48   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   16:52   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   37:8    warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   39:25   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   65:39   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   72:39   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   90:30   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   99:30   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  139:84   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  164:69   error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+  165:73   error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+  196:78   error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  209:101  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  255:82   error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  277:65   error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+  278:69   error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\customers\page.tsx
+    4:90  warning  'X' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+    4:90  error    Remove this unused import of 'X'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      sonarjs/unused-import
+   10:48  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+   29:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\customers\page.tsx:29:9
+  27 |
+  28 |     useEffect(() => {
+> 29 |         loadCustomers();
+     |         ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  30 |     }, []);
+  31 |
+  32 |     const handleCreateCustomer = async () => {  react-hooks/set-state-in-effect
+   32:34  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+   82:39  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+   87:34  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+  217:47  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+  229:47  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+  240:47  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+  248:42  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\customers\profile\page.tsx
+    6:26  warning  'Calendar' is defined but never used                                         @typescript-eslint/no-unused-vars
+    6:26  error    Remove this unused import of 'Calendar'                                      sonarjs/unused-import
+    8:5   warning  'CheckCircle2' is defined but never used                                     @typescript-eslint/no-unused-vars
+    8:5   error    Remove this unused import of 'CheckCircle2'                                  sonarjs/unused-import
+    9:19  warning  'DollarSign' is defined but never used                                       @typescript-eslint/no-unused-vars
+    9:19  error    Remove this unused import of 'DollarSign'                                    sonarjs/unused-import
+   19:38  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   43:59  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   57:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  148:49  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  148:54  warning  'idx' is defined but never used                                              @typescript-eslint/no-unused-vars
+  186:67  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  267:45  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\dashboard\page.tsx
+  89:48  error  JSX attribute values should not contain objects created in the same scope  react-perf/jsx-no-new-object-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\expenses\page.tsx
+   10:46   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   11:40   error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+   33:8    warning  React Hook useEffect has a missing dependency: 'loadData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   65:8    warning  React Hook useEffect has a missing dependency: 'loading'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+   67:26   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  104:35   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  167:11   error    Extract this nested ternary operation into an independent statement                                          sonarjs/no-nested-conditional
+  217:102  error    JSX attribute values should not contain objects created in the same scope                                    react-perf/jsx-no-new-object-as-prop
+  229:35   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  236:35   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  243:31   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  261:34   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  283:47   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  300:47   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  313:47   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  330:47   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  351:47   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+  390:33   error    Extract this nested ternary operation into an independent statement                                          sonarjs/no-nested-conditional
+  413:58   error    JSX attribute values should not contain functions created in the same scope                                  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\incoming\page.tsx
+   25:46  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   26:48  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   48:26  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   71:30  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  116:33  error  Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  157:46  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  169:47  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  187:51  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  196:51  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  212:47  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  219:46  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\invoices\[id]\print\page.tsx
+    6:39  warning  'Edit3' is defined but never used                                            @typescript-eslint/no-unused-vars
+    6:39  error    Remove this unused import of 'Edit3'                                         sonarjs/unused-import
+   11:44  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   88:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  106:81  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  110:84  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  118:83  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  122:83  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  127:79  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  131:83  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  136:78  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  141:81  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  145:81  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  155:85  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  159:87  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  166:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  203:29  error    Add a valid header row or column to this "<table>"                           sonarjs/table-header
+  278:59  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  304:83  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\invoices\page.tsx
+    3:31  warning  'useRef' is defined but never used                                           @typescript-eslint/no-unused-vars
+    3:31  error    Remove this unused import of 'useRef'                                        sonarjs/unused-import
+    4:20  warning  'Download' is defined but never used                                         @typescript-eslint/no-unused-vars
+    4:20  error    Remove this unused import of 'Download'                                      sonarjs/unused-import
+   54:33  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   71:31  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  100:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  123:31  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  138:39  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  147:39  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  152:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  166:21  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  172:38  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  202:46  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  225:46  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  354:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  363:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  370:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  380:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  396:30  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  397:32  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  400:72  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\layout.tsx
+   28:31  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   59:86  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   93:30  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                              react-perf/jsx-no-new-function-as-prop
+  104:25  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  109:38  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                              react-perf/jsx-no-new-function-as-prop
+  129:34  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                              react-perf/jsx-no-new-function-as-prop
+  143:38  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                              react-perf/jsx-no-new-function-as-prop
+  154:33  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                      sonarjs/no-nested-conditional
+  155:37  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                      sonarjs/no-nested-conditional
+  156:41  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                      sonarjs/no-nested-conditional
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\logs\page.tsx
+   14:38  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   15:40  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   21:23  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   40:8   warning  React Hook useEffect has a missing dependency: 'fetchLogs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   76:31  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   88:34  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  109:29  error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+  144:42  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  151:42  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\movements\page.tsx
+   17:54  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+   25:23  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   40:8   warning  React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   67:35  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   81:39  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+   89:39  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  105:21  error    Extract this nested ternary operation into an independent statement                                           sonarjs/no-nested-conditional
+  132:62  error    Unexpected any. Specify a different type                                                                      @typescript-eslint/no-explicit-any
+  173:38  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+  183:38  error    JSX attribute values should not contain functions created in the same scope                                   react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\pricing\page.tsx
+   4:15  warning  'Search' is defined but never used                                   @typescript-eslint/no-unused-vars
+   4:15  error    Remove this unused import of 'Search'                                sonarjs/unused-import
+   4:23  warning  'Plus' is defined but never used                                     @typescript-eslint/no-unused-vars
+   4:23  error    Remove this unused import of 'Plus'                                  sonarjs/unused-import
+   4:35  warning  'Trash2' is defined but never used                                   @typescript-eslint/no-unused-vars
+   4:35  error    Remove this unused import of 'Trash2'                                sonarjs/unused-import
+   4:43  warning  'DollarSign' is defined but never used                               @typescript-eslint/no-unused-vars
+   4:43  error    Remove this unused import of 'DollarSign'                            sonarjs/unused-import
+   5:24  warning  'getCategories' is defined but never used                            @typescript-eslint/no-unused-vars
+   5:24  error    Remove this unused import of 'getCategories'                         sonarjs/unused-import
+   8:46  error    Unexpected any. Specify a different type                             @typescript-eslint/no-explicit-any
+  52:29  error    Extract this nested ternary operation into an independent statement  sonarjs/no-nested-conditional
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\products\page.tsx
+    4:91   warning  'Tag' is defined but never used                                              @typescript-eslint/no-unused-vars
+    4:91   error    Remove this unused import of 'Tag'                                           sonarjs/unused-import
+    4:96   warning  'Boxes' is defined but never used                                            @typescript-eslint/no-unused-vars
+    4:96   error    Remove this unused import of 'Boxes'                                         sonarjs/unused-import
+    4:206  warning  'Percent' is defined but never used                                          @typescript-eslint/no-unused-vars
+    4:206  error    Remove this unused import of 'Percent'                                       sonarjs/unused-import
+   14:46   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   15:50   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   49:23   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   67:26   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   75:37   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   91:26   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   99:25   warning  'initialQuantity' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+  110:11   error    Handle this exception or don't catch it at all                               sonarjs/no-ignored-exceptions
+  110:18   warning  'err' is defined but never used                                              @typescript-eslint/no-unused-vars
+  110:23   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  117:31   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  178:23   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  178:34   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  211:22   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  234:38   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  250:31   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  264:35   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  296:29   error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  308:66   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  324:108  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  338:68   error    JSX attribute values should not contain objects created in the same scope    react-perf/jsx-no-new-object-as-prop
+  345:66   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  354:88   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  386:42   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  407:54   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  419:42   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  436:46   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  443:166  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  447:165  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  453:161  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  460:146  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  471:185  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  475:192  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  481:187  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  485:64   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  487:101  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  506:46   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  519:47   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  546:58   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\profits\page.tsx
+   9:46  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  10:48  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  35:62  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  55:30  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  71:39  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  80:39  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  85:34  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\refunds\page.tsx
+    4:83  warning  'UserCheck' is defined but never used                                        @typescript-eslint/no-unused-vars
+    4:83  error    Remove this unused import of 'UserCheck'                                     sonarjs/unused-import
+   39:26  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   43:32  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   86:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  112:31  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  124:39  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  133:39  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  138:34  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  153:21  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  162:38  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  212:46  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  302:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  309:42  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\sales\page.tsx
+    4:75   warning  'Phone' is defined but never used                                            @typescript-eslint/no-unused-vars
+    4:75   error    Remove this unused import of 'Phone'                                         sonarjs/unused-import
+    4:82   warning  'MapPin' is defined but never used                                           @typescript-eslint/no-unused-vars
+    4:82   error    Remove this unused import of 'MapPin'                                        sonarjs/unused-import
+    4:103  warning  'ChevronUp' is defined but never used                                        @typescript-eslint/no-unused-vars
+    4:103  error    Remove this unused import of 'ChevronUp'                                     sonarjs/unused-import
+    4:142  warning  'Filter' is defined but never used                                           @typescript-eslint/no-unused-vars
+    4:142  error    Remove this unused import of 'Filter'                                        sonarjs/unused-import
+   60:56   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   90:35   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  100:27   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  138:11   warning  'removeFromCart' is assigned a value but never used                          @typescript-eslint/no-unused-vars
+  138:11   error    Remove the declaration of the unused 'removeFromCart' variable               sonarjs/no-unused-vars
+  138:11   error    Remove this useless assignment to variable "removeFromCart"                  sonarjs/no-dead-store
+  150:39   error    Refactor this code to not nest functions more than 4 levels deep             sonarjs/no-nested-functions
+  160:33   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  189:35   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  217:23   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  240:26   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  256:39   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  263:42   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  276:46   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  311:50   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  360:78   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  367:78   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  407:43   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  430:51   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  440:58   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  467:59   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  474:59   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  525:62   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  529:62   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  552:47   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  561:47   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  598:50   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  599:75   error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  625:51   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  638:54   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  639:54   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  640:54   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  718:42   error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\staff-sales\page.tsx
+    4:29  warning  'TrendingUp' is defined but never used                                       @typescript-eslint/no-unused-vars
+    4:29  error    Remove this unused import of 'TrendingUp'                                    sonarjs/unused-import
+   74:43  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   92:23  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  166:29  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  174:45  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  176:45  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  190:54  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  225:50  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  236:46  error    JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  284:41  error    Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  287:70  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  300:84  error    Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\stocktake\page.tsx
+   31:22  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   72:24  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  150:35  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  158:35  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  185:33  error  Extract this nested ternary operation into an independent statement          sonarjs/no-nested-conditional
+  224:67  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  231:66  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\users\page.tsx
+    6:44  warning  'UserIcon' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    6:44  error    Remove this unused import of 'UserIcon'                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          sonarjs/unused-import
+   39:9   error    Error: Cannot access variable before it is declared
+
+`fetchUsers` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\users\page.tsx:39:9
+  37 |
+  38 |     useEffect(() => {
+> 39 |         fetchUsers();
+     |         ^^^^^^^^^^ `fetchUsers` accessed before it is declared
+  40 |     }, []);
+  41 |
+  42 |     useEffect(() => {
+
+C:\Users\PotterParker\Desktop\web\src\app\(dashboard)\users\page.tsx:49:5
+  47 |     }, [selectedRole, useCustomPermissions]);
+  48 |
+> 49 |     const fetchUsers = async () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |         setIsLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 51 |         const data = await getUsers();
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 52 |         setUsers(data as User[]);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 53 |         setIsLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |     };
+     | ^^^^^^^ `fetchUsers` is declared here
+  55 |
+  56 |     const handleDelete = async (id: string) => {
+  57 |         if (confirm('Are you sure you want to delete this user?')) {  react-hooks/immutability
+   67:29  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+   85:26  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  166:45  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              sonarjs/no-nested-conditional
+  167:49  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              sonarjs/no-nested-conditional
+  168:53  error    Extract this nested ternary operation into an independent statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              sonarjs/no-nested-conditional
+  217:62  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  224:62  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  320:47  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  339:55  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  357:59  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+  371:64  error    JSX attribute values should not contain functions created in the same scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\analytics.ts
+   13:25  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   14:24  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   76:36  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+   97:38  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  113:25  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  114:24  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  140:32  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  160:36  error    Unexpected any. Specify a different type          @typescript-eslint/no-explicit-any
+  171:16  warning  'getCustomerAnalytics' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\customers.ts
+  125:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\expenses.ts
+  41:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\inventory.ts
+   59:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  305:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\invoices.ts
+  4:10  warning  'revalidatePath' is defined but never used     @typescript-eslint/no-unused-vars
+  4:10  error    Remove this unused import of 'revalidatePath'  sonarjs/unused-import
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\refunds.ts
+   22:44  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   31:35  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   32:32  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   39:53  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   49:46  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+   90:89  error  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+  105:91  error  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+  178:34  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  181:49  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\sales.ts
+   76:9    error  Remove this useless assignment to variable "location"   sonarjs/no-dead-store
+  144:43   error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  145:45   error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  219:165  error  Refactor this code to not use nested template literals  sonarjs/no-nested-template-literals
+  248:21   error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\staff.ts
+  4:10  warning  'revalidatePath' is defined but never used     @typescript-eslint/no-unused-vars
+  4:10  error    Remove this unused import of 'revalidatePath'  sonarjs/unused-import
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\transactions.ts
+  20:28  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  56:21  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\Users\PotterParker\Desktop\web\src\app\actions\users.ts
+    4:10  warning  'createClient' is defined but never used     @typescript-eslint/no-unused-vars
+    4:10  error    Remove this unused import of 'createClient'  sonarjs/unused-import
+   47:42  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   79:23  error    Review this potentially hard-coded password  sonarjs/no-hardcoded-passwords
+   93:42  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  122:19  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\api\cron\backup\route.ts
+  13:9    error  Remove this commented out code            sonarjs/no-commented-code
+  30:111  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  47:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:21   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\api\customers\bulk\route.ts
+  15:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\api\invoices\[id]\pdf\route.ts
+   30:11  warning  'validParams' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   30:11  error    Remove the declaration of the unused 'validParams' variable  sonarjs/no-unused-vars
+   30:11  error    Remove this useless assignment to variable "validParams"     sonarjs/no-dead-store
+  111:39  error    Unexpected any. Specify a different type                     @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\api\reports\debts\route.ts
+  12:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\src\app\reports\debts\page.tsx
+    9:46  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   17:58  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   38:6   warning  React Hook useEffect has a missing dependency: 'fetchDebts'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   44:28  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+   48:30  warning  'customer' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   48:40  error    Unexpected any. Specify a different type                                                                       @typescript-eslint/no-explicit-any
+   66:22  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+   91:23  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  100:23  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  139:19  error    Extract this nested ternary operation into an independent statement                                            sonarjs/no-nested-conditional
+  164:36  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  195:20  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  196:22  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  206:20  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+  207:20  error    JSX attribute values should not contain functions created in the same scope                                    react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\components\BulkImportDropzone.tsx
+   86:19  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  164:28  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\components\PrePrintEditModal.tsx
+    7:13  error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+   20:9   error  Remove this useless assignment to variable "total"                           sonarjs/no-dead-store
+   68:27  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   84:26  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+   90:26  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  100:27  error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+
+C:\Users\PotterParker\Desktop\web\src\components\RefundModal.tsx
+   72:26   error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  106:23   error  Unexpected any. Specify a different type                                     @typescript-eslint/no-explicit-any
+  169:67   error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  177:66   error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  186:66   error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  219:39   error  JSX attribute values should not contain functions created in the same scope  react-perf/jsx-no-new-function-as-prop
+  227:63   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`              react/no-unescaped-entities
+  227:67   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`              react/no-unescaped-entities
+  227:116  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`              react/no-unescaped-entities
+  227:126  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`              react/no-unescaped-entities
+
+C:\Users\PotterParker\Desktop\web\src\lib\supabase\server.ts
+  39:24  warning  '_cookiesToSet' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PotterParker\Desktop\web\src\lib\tafqeet.ts
+  2:7  warning  'onesFeminine' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PotterParker\Desktop\web\src\middleware.ts
+  28:58  warning  'options' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\PotterParker\Desktop\web\src\types\csv-writer.d.ts
+  2:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  3:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  3:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\PotterParker\Desktop\web\tests\pos.spec.ts
+  57:15  warning  'staffSelector' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  57:15  error    Remove the declaration of the unused 'staffSelector' variable  sonarjs/no-unused-vars
+  57:15  error    Remove this useless assignment to variable "staffSelector"     sonarjs/no-dead-store
+
+C:\Users\PotterParker\Desktop\web\tests\ui-ux.spec.ts
+  169:15  warning  'hasSidebar' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  169:15  error    Remove the declaration of the unused 'hasSidebar' variable  sonarjs/no-unused-vars
+  169:15  error    Remove this useless assignment to variable "hasSidebar"     sonarjs/no-dead-store
+
+✖ 401 problems (354 errors, 47 warnings)
+
+error: script "lint" exited with code 1

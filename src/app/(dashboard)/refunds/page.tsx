@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { RefreshCcw, Search, Calendar, Loader2, FileText, X, AlertTriangle, User, UserCheck } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { RefreshCcw, Search, Calendar, Loader2, FileText, X, AlertTriangle, User } from 'lucide-react';
 import { getRefunds } from '@/app/actions/refunds';
 import clsx from 'clsx';
 
@@ -40,7 +40,7 @@ export default function RefundHistoryPage() {
         setLoading(true);
         try {
             const data = await getRefunds();
-            setRefunds(data as any);
+            setRefunds(data as Refund[]);
         } catch (error) {
             console.error('Failed to fetch refunds:', error);
         } finally {
@@ -69,6 +69,30 @@ export default function RefundHistoryPage() {
         return matchesSearch && matchesDate;
     });
 
+    const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
+    const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
+    const handleResetFilters = useCallback(() => {
+        setStartDate('');
+        setEndDate('');
+    }, []);
+    
+    const handleSelectRefundClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const found = refunds.find(r => r.id === id);
+            if (found) setSelectedRefund(found);
+        }
+    }, [refunds]);
+    
+    const handleCloseMemoClick = useCallback(() => setSelectedRefund(null), []);
+    const handlePrintInvoiceClick = useCallback(() => {
+        if (selectedRefund?.invoiceId) {
+            window.open(`/invoices/${selectedRefund.invoiceId}/print`, '_blank');
+        }
+    }, [selectedRefund]);
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -83,7 +107,7 @@ export default function RefundHistoryPage() {
                 </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => setShowDateFilter(!showDateFilter)}
+                        onClick={handleToggleDateFilter}
                         className={clsx(
                             "flex items-center gap-2 px-4 py-2 border rounded-xl transition-all font-bold text-sm",
                             showDateFilter ? "bg-red-50 border-red-200 text-red-600 dark:bg-red-950/20 dark:border-red-800" : "bg-card border-border hover:bg-secondary"
@@ -109,7 +133,7 @@ export default function RefundHistoryPage() {
                     placeholder="Search by Invoice ID, Customer, or Staff..."
                     className="flex-1 bg-transparent outline-none text-sm"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchQueryChange}
                 />
             </div>
 
@@ -121,7 +145,7 @@ export default function RefundHistoryPage() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={handleStartDateChange}
                             className="bg-secondary/40 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                         />
                     </div>
@@ -130,12 +154,12 @@ export default function RefundHistoryPage() {
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={handleEndDateChange}
                             className="bg-secondary/40 border-none rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
                         />
                     </div>
                     <button
-                        onClick={() => { setStartDate(''); setEndDate(''); }}
+                        onClick={handleResetFilters}
                         className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors uppercase ml-auto"
                     >
                         Reset Filters
@@ -159,7 +183,8 @@ export default function RefundHistoryPage() {
                     filteredRefunds.map(ref => (
                         <div
                             key={ref.id}
-                            onClick={() => setSelectedRefund(ref)}
+                            data-id={ref.id}
+                            onClick={handleSelectRefundClick}
                             className="group flex flex-col md:flex-row md:items-center justify-between p-5 bg-card border border-border rounded-2xl hover:border-red-200 dark:hover:border-red-900 hover:shadow-lg transition-all cursor-pointer gap-4 relative overflow-hidden"
                         >
                             <div className="absolute top-0 left-0 w-1 h-full bg-red-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -209,7 +234,7 @@ export default function RefundHistoryPage() {
                                 </h3>
                                 <p className="text-[10px] text-muted-foreground font-mono mt-1">REF_ID: {selectedRefund.id}</p>
                             </div>
-                            <button onClick={() => setSelectedRefund(null)} className="p-2 hover:bg-secondary rounded-full transition-colors">
+                            <button onClick={handleCloseMemoClick} className="p-2 hover:bg-secondary rounded-full transition-colors">
                                 <X size={20} />
                             </button>
                         </div>
@@ -299,14 +324,14 @@ export default function RefundHistoryPage() {
 
                         <div className="p-6 border-t border-border bg-secondary/5 flex gap-3">
                             <button
-                                onClick={() => window.open(`/invoices/${selectedRefund.invoiceId}/print`, '_blank')}
+                                onClick={handlePrintInvoiceClick}
                                 className="flex-1 flex items-center justify-center gap-2 py-3 bg-card border border-border rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-secondary transition-all active:scale-95 shadow-sm"
                             >
                                 <FileText size={16} />
                                 View Source Invoice
                             </button>
                             <button
-                                onClick={() => setSelectedRefund(null)}
+                                onClick={handleCloseMemoClick}
                                 className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-primary/20"
                             >
                                 Close Memo

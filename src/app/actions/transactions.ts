@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
 import getPrisma from '@/lib/prisma';
@@ -53,7 +54,6 @@ export async function getStockMovements(
                             product: { select: { name: true, sku: true } }
                         }
                     },
-                    // @ts-ignore: Prisma client type generation lag
                     supplier: true
                 }
             }),

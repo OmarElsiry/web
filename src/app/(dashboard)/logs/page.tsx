@@ -1,18 +1,33 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
 import { ScrollText, RefreshCcw, Loader2, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import clsx from 'clsx';
 
+interface LogUser {
+    id?: string;
+    name: string | null;
+    username: string;
+    role: string;
+}
+
+interface LogEntry {
+    id: string;
+    action: string;
+    details: string | null;
+    timestamp: string | Date;
+    user?: LogUser;
+}
+
 const ITEMS_PER_PAGE = 50;
 
 function LogsContent() {
     const searchParams = useSearchParams();
-    const [logs, setLogs] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [users, setUsers] = useState<LogUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [selectedUserId, setSelectedUserId] = useState<string>(searchParams.get('user') || '');
@@ -47,6 +62,19 @@ function LogsContent() {
         return 'bg-secondary text-secondary-foreground border-border';
     };
 
+    const handleUserFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedUserId(e.target.value);
+        setPage(1);
+    }, []);
+
+    const handleClearFilter = useCallback(() => {
+        setSelectedUserId('');
+        setPage(1);
+    }, []);
+
+    const handlePrevPage = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
+    const handleNextPage = useCallback(() => setPage(p => Math.min(pagination.pages, p + 1)), [pagination.pages]);
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -73,7 +101,7 @@ function LogsContent() {
                 <span className="text-sm font-medium">Filter by User:</span>
                 <select
                     value={selectedUserId}
-                    onChange={(e) => { setSelectedUserId(e.target.value); setPage(1); }}
+                    onChange={handleUserFilterChange}
                     className="bg-secondary/50 border border-border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 ring-primary/20"
                 >
                     <option value="">All Users</option>
@@ -85,7 +113,7 @@ function LogsContent() {
                 </select>
                 {selectedUserId && (
                     <button
-                        onClick={() => { setSelectedUserId(''); setPage(1); }}
+                        onClick={handleClearFilter}
                         className="text-xs text-primary hover:underline"
                     >
                         Clear filter
@@ -141,14 +169,14 @@ function LogsContent() {
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                onClick={handlePrevPage}
                                 disabled={page === 1}
                                 className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
                             >
                                 <ChevronLeft size={16} />
                             </button>
                             <button
-                                onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                                onClick={handleNextPage}
                                 disabled={page === pagination.pages}
                                 className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
                             >

@@ -53,10 +53,7 @@ test.describe('POS - Point of Sale', () => {
     });
 
     test('staff selector is populated', async ({ page }) => {
-        // Find staff selector
-        const staffSelector = page.locator('select').filter({ hasText: 'Salesperson' }).first();
-
-        // If not found by text, try the selector in the sidebar
+        // Find staff selector in the sidebar
         const sidebarStaffSelect = page.locator('.bg-amber-50 select, [class*="amber"] select').first();
 
         if (await sidebarStaffSelect.isVisible()) {

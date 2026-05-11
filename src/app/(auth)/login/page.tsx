@@ -4,7 +4,7 @@ import { useState } from 'react'; // Import React hooks
 import { login } from '@/app/actions/auth';
 import { useFormStatus } from 'react-dom'; // Use standard react-dom hook
 import { Loader2 } from 'lucide-react';
-import clsx from 'clsx';
+
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -80,7 +80,7 @@ export default function LoginPage() {
                     </form>
                 </div>
                 <div className="bg-secondary/50 p-4 text-center text-sm text-muted-foreground border-t border-border">
-                    Don't have an account? <span className="text-primary font-medium hover:underline cursor-pointer">Contact Admin</span>
+                    Don&apos;t have an account? <span className="text-primary font-medium hover:underline cursor-pointer">Contact Admin</span>
                 </div>
             </div>
         </div>

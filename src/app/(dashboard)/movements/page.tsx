@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getStockMovements } from '@/app/actions/transactions';
 import {
     History, RefreshCcw, Loader2,
@@ -11,10 +11,28 @@ import clsx from 'clsx';
 
 const ITEMS_PER_PAGE = 50;
 
-type TransactionType = 'SALE' | 'IN' | 'OUT' | 'TRANSFER' | 'RETURN';
+type TransactionType = 'SALE' | 'IN' | 'OUT' | 'TRANSFER' | 'RETURN' | 'REFUND_RESTOCK' | 'REFUND_DEFECTIVE';
+
+interface TransactionItem {
+    id: string;
+    quantity: number;
+    product: { name: string; sku: string };
+}
+
+interface Transaction {
+    id: string;
+    type: TransactionType;
+    date: string | Date;
+    createdById?: string | null;
+    items: TransactionItem[];
+    fromLocation?: { name: string } | null;
+    toLocation?: { name: string } | null;
+    supplier?: { name: string } | null;
+    [key: string]: unknown;
+}
 
 export default function MovementsPage() {
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [filterType, setFilterType] = useState('ALL');
@@ -38,6 +56,12 @@ export default function MovementsPage() {
     useEffect(() => {
         fetchData();
     }, [page, filterType, startDate, endDate]);
+
+    const handleFilterTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value), []);
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
+    const handlePrevPage = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
+    const handleNextPage = useCallback(() => setPage(p => Math.min(pagination.pages, p + 1)), [pagination.pages]);
 
     const getTypeConfig = (type: TransactionType) => {
         switch (type) {
@@ -64,7 +88,7 @@ export default function MovementsPage() {
                 <div className="flex flex-wrap items-center gap-2">
                     <select
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
+                        onChange={handleFilterTypeChange}
                         className="px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary"
                     >
                         <option value="ALL">All Types</option>
@@ -78,7 +102,7 @@ export default function MovementsPage() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
+                            onChange={handleStartDateChange}
                             className="bg-transparent text-sm p-2 outline-none"
                             placeholder="From"
                         />
@@ -86,7 +110,7 @@ export default function MovementsPage() {
                         <input
                             type="date"
                             value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
+                            onChange={handleEndDateChange}
                             className="bg-transparent text-sm p-2 outline-none"
                             placeholder="To"
                         />
@@ -129,7 +153,7 @@ export default function MovementsPage() {
 
                                     {/* Items List */}
                                     <div className="flex-1 space-y-2">
-                                        {tx.items.map((item: any) => (
+                                        {tx.items.map((item: TransactionItem) => (
                                             <div key={item.id} className="flex items-center justify-between text-sm p-2 bg-secondary/20 rounded-lg">
                                                 <div className="flex items-center gap-2 font-medium">
                                                     <Package size={14} className="text-muted-foreground" />
@@ -170,7 +194,7 @@ export default function MovementsPage() {
                 {pagination.pages > 1 && (
                     <div className="flex justify-center gap-2 pt-4">
                         <button
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            onClick={handlePrevPage}
                             disabled={page === 1}
                             className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
                         >
@@ -180,7 +204,7 @@ export default function MovementsPage() {
                             Page {page} of {pagination.pages}
                         </span>
                         <button
-                            onClick={() => setPage(p => Math.min(pagination.pages, p + 1))}
+                            onClick={handleNextPage}
                             disabled={page === pagination.pages}
                             className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
                         >

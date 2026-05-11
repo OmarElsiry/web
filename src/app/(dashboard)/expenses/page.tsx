@@ -1,14 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getExpenses, createExpense, deleteExpense, getSalaryReport } from '@/app/actions/expenses';
 import { getStaffList } from '@/app/actions/sales';
 import { Plus, Trash2, Calendar, User, DollarSign, Tag, Search, Loader2, FileText, Percent, Briefcase, Receipt } from 'lucide-react';
 import clsx from 'clsx';
 
+interface Expense {
+    id: string;
+    description: string;
+    amount: number;
+    userId: string;
+    userName: string;
+    category: string | null;
+    date: string;
+}
+
+interface User {
+    id: string;
+    name: string | null;
+    username: string;
+}
+
 export default function ExpensesPage() {
-    const [expenses, setExpenses] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [salaryMetrics, setSalaryMetrics] = useState({ salaryTotal: 0, nonSalaryTotal: 0, grandTotal: 0, salaryPercent: 0 });
@@ -32,7 +48,7 @@ export default function ExpensesPage() {
         loadData();
     }, []);
 
-    async function loadData() {
+    const loadData = useCallback(async () => {
         setLoading(true);
         const [expData, staff] = await Promise.all([
             getExpenses(dateRange.start, dateRange.end),
@@ -47,7 +63,7 @@ export default function ExpensesPage() {
         });
         setUsers(staff);
         setLoading(false);
-    }
+    }, [dateRange.start, dateRange.end]);
 
     // Refresh when filters change
     useEffect(() => {
@@ -64,7 +80,7 @@ export default function ExpensesPage() {
         }
     }, [dateRange]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
         try {
@@ -93,15 +109,31 @@ export default function ExpensesPage() {
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [formData, loadData]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (!confirm('Are you sure you want to delete this expense?')) return;
         await deleteExpense(id);
-        loadData();
-    };
+        void loadData();
+    }, [loadData]);
 
-    const handleExportSalaryPdf = async () => {
+    const handleDeleteExpenseClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) void handleDelete(id);
+    }, [handleDelete]);
+
+    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, start: e.target.value })), []);
+    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, end: e.target.value })), []);
+    const handleCategoryFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setCategoryFilter(e.target.value), []);
+    const handleToggleForm = useCallback(() => setShowForm(prev => !prev), []);
+    
+    const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, description: e.target.value })), []);
+    const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, amount: e.target.value })), []);
+    const handleUserIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, userId: e.target.value })), []);
+    const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, category: e.target.value })), []);
+    const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, date: e.target.value })), []);
+
+    const handleExportSalaryPdf = useCallback(async () => {
         if (!dateRange.start || !dateRange.end) {
             alert('Please select a date range first to generate salary report.');
             return;
@@ -159,7 +191,7 @@ ${report.employees.map(emp => `
         } finally {
             setGeneratingPdf(false);
         }
-    };
+    }, [dateRange]);
 
     // Filter by category on client-side
     const filteredExpenses = categoryFilter === 'ALL'
@@ -226,21 +258,21 @@ ${report.employees.map(emp => `
                     <input
                         type="date"
                         value={dateRange.start}
-                        onChange={e => setDateRange({ ...dateRange, start: e.target.value })}
+                        onChange={handleStartDateChange}
                         className="bg-background border border-border rounded-lg p-2 text-sm"
                     />
                     <span className="text-muted-foreground">-</span>
                     <input
                         type="date"
                         value={dateRange.end}
-                        onChange={e => setDateRange({ ...dateRange, end: e.target.value })}
+                        onChange={handleEndDateChange}
                         className="bg-background border border-border rounded-lg p-2 text-sm"
                     />
                 </div>
 
                 <select
                     value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    onChange={handleCategoryFilterChange}
                     className="px-3 py-2 bg-background border border-input rounded-lg text-sm"
                 >
                     <option value="ALL">All Categories</option>
@@ -258,7 +290,7 @@ ${report.employees.map(emp => `
                         Salary PDF
                     </button>
                     <button
-                        onClick={() => setShowForm(!showForm)}
+                        onClick={handleToggleForm}
                         className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors"
                     >
                         <Plus size={18} />
@@ -280,7 +312,7 @@ ${report.employees.map(emp => `
                                     required
                                     placeholder="Make coffee, electricity..."
                                     value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                    onChange={handleDescriptionChange}
                                     className="flex-1 bg-transparent outline-none text-sm"
                                 />
                             </div>
@@ -297,7 +329,7 @@ ${report.employees.map(emp => `
                                     step="0.01"
                                     placeholder="0.00"
                                     value={formData.amount}
-                                    onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                                    onChange={handleAmountChange}
                                     className="flex-1 bg-transparent outline-none text-sm"
                                 />
                             </div>
@@ -310,7 +342,7 @@ ${report.employees.map(emp => `
                                 <select
                                     required
                                     value={formData.userId}
-                                    onChange={e => setFormData({ ...formData, userId: e.target.value })}
+                                    onChange={handleUserIdChange}
                                     className="flex-1 bg-transparent outline-none text-sm cursor-pointer"
                                 >
                                     <option value="">Select Staff...</option>
@@ -327,7 +359,7 @@ ${report.employees.map(emp => `
                                 <Search size={16} className="text-muted-foreground" />
                                 <select
                                     value={formData.category}
-                                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                                    onChange={handleCategoryChange}
                                     className="flex-1 bg-transparent outline-none text-sm cursor-pointer"
                                 >
                                     <option value="">Select Category...</option>
@@ -348,7 +380,7 @@ ${report.employees.map(emp => `
                                     required
                                     type="date"
                                     value={formData.date}
-                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    onChange={handleDateChange}
                                     className="flex-1 bg-transparent outline-none text-sm"
                                 />
                             </div>
@@ -410,7 +442,8 @@ ${report.employees.map(emp => `
                                         <td className="px-4 py-3 text-right font-bold text-red-600">-EGP {exp.amount.toLocaleString()}</td>
                                         <td className="px-4 py-3 text-right">
                                             <button
-                                                onClick={() => handleDelete(exp.id)}
+                                                data-id={exp.id}
+                                                onClick={handleDeleteExpenseClick}
                                                 className="text-muted-foreground hover:text-red-500 transition-colors"
                                             >
                                                 <Trash2 size={16} />

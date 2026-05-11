@@ -1,13 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, X, AlertCircle, UserPlus } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, AlertCircle, UserPlus } from 'lucide-react';
 import { getCustomersList, createCustomer } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 
+interface CustomerGroup {
+    name: string;
+    id: string;
+}
+
+interface CustomerParent {
+    id: string;
+    name: string;
+}
+
+interface Customer {
+    id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+    balance: number | string | { toNumber?: () => number };
+    governorate: string | null;
+    groupId: string | null;
+    parentId: string | null;
+    group: CustomerGroup | null;
+    parent: CustomerParent | null;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export default function CustomersPage() {
-    const [customers, setCustomers] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
@@ -17,19 +42,19 @@ export default function CustomersPage() {
     const [creating, setCreating] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
-    const loadCustomers = () => {
-        setLoading(true);
-        getCustomersList().then(data => {
-            setCustomers(data);
-            setLoading(false);
-        });
-    };
-
-    useEffect(() => {
-        loadCustomers();
+    const loadCustomers = useCallback(async (showLoading = false) => {
+        if (showLoading) setLoading(true);
+        const data = await getCustomersList();
+        setCustomers(data);
+        setLoading(false);
     }, []);
 
-    const handleCreateCustomer = async () => {
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadCustomers(false);
+    }, [loadCustomers]);
+
+    const handleCreateCustomer = useCallback(async () => {
         if (!newCustomer.name.trim()) {
             setFormError('Customer name is required.');
             return;
@@ -46,12 +71,23 @@ export default function CustomersPage() {
         if (result.success) {
             setShowAddModal(false);
             setNewCustomer({ name: '', phone: '', address: '' });
-            loadCustomers();
+            loadCustomers(true);
         } else {
             setFormError(result.error || 'Failed to create customer.');
         }
         setCreating(false);
-    };
+    }, [newCustomer, loadCustomers]);
+
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
+    const handleOpenAddModal = useCallback(() => setShowAddModal(true), []);
+    const handleCloseAddModal = useCallback(() => {
+        setShowAddModal(false);
+        setFormError(null);
+        setNewCustomer({ name: '', phone: '', address: '' });
+    }, []);
+    const handleNewCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, name: e.target.value })), []);
+    const handleNewCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, phone: e.target.value })), []);
+    const handleNewCustomerAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, address: e.target.value })), []);
 
     const filtered = customers.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,12 +115,12 @@ export default function CustomersPage() {
                             type="text"
                             placeholder="Search by name or phone..."
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={handleSearchChange}
                             className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                         />
                     </div>
                     <button
-                        onClick={() => setShowAddModal(true)}
+                        onClick={handleOpenAddModal}
                         className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all shadow-md whitespace-nowrap"
                     >
                         <UserPlus size={18} />
@@ -214,7 +250,7 @@ export default function CustomersPage() {
                                     type="text"
                                     placeholder="e.g. Ahmed Mohamed"
                                     value={newCustomer.name}
-                                    onChange={e => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
+                                    onChange={handleNewCustomerNameChange}
                                     className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
                                     autoFocus
                                 />
@@ -226,7 +262,7 @@ export default function CustomersPage() {
                                     type="tel"
                                     placeholder="e.g. 01012345678"
                                     value={newCustomer.phone}
-                                    onChange={e => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                                    onChange={handleNewCustomerPhoneChange}
                                     className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
                                 />
                             </div>
@@ -237,7 +273,7 @@ export default function CustomersPage() {
                                     type="text"
                                     placeholder="e.g. Cairo, Egypt"
                                     value={newCustomer.address}
-                                    onChange={e => setNewCustomer(prev => ({ ...prev, address: e.target.value }))}
+                                    onChange={handleNewCustomerAddressChange}
                                     className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
                                 />
                             </div>
@@ -245,7 +281,7 @@ export default function CustomersPage() {
 
                         <div className="p-6 bg-secondary/20 flex gap-3">
                             <button
-                                onClick={() => { setShowAddModal(false); setFormError(null); setNewCustomer({ name: '', phone: '', address: '' }); }}
+                                onClick={handleCloseAddModal}
                                 className="flex-1 py-4 bg-background border border-border/60 rounded-xl font-bold hover:bg-secondary transition-colors"
                             >
                                 Cancel

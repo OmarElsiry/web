@@ -1,13 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignore": [
-    "playwright-report/**",
-    "web/**",
     "src/generated/client/**",
     "prisma/**",
-    "scripts/**",
-    "src/app/actions/debts.ts",
-    "src/app/actions/payroll.ts"
+    "scripts/**"
   ],
   "ignoreDependencies": [
     "@prisma/client"

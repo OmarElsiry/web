@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tag, Search, Plus, Edit, Trash2, DollarSign, Percent } from 'lucide-react';
-import { getInventory, getCategories } from '@/app/actions/inventory';
+import { Tag, Edit, Percent } from 'lucide-react';
+import { getInventory } from '@/app/actions/inventory';
 
 export default function PricingPage() {
     const [products, setProducts] = useState<any[]>([]);

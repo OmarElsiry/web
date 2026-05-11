@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, Phone, MapPin, ChevronDown, ChevronUp, AlertCircle, AlertTriangle, Filter, X, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, ChevronDown, AlertCircle, AlertTriangle, X, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
@@ -28,6 +28,16 @@ interface Staff {
     username: string;
 }
 
+interface CustomerSearch {
+    id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+    type: string;
+}
+
+type PaymentMethodType = 'CASH' | 'CREDIT' | 'INSTAPAY';
+
 export default function SalesPage() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,7 +46,7 @@ export default function SalesPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CREDIT' | 'INSTAPAY'>('CASH');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
     const [showSuccess, setShowSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -57,27 +67,18 @@ export default function SalesPage() {
     });
 
     // Customer Search State
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchResults, setSearchResults] = useState<CustomerSearch[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [amountPaid, setAmountPaid] = useState<number | ''>('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    const handleBuyerInfoChange = (field: string, val: string) => {
+    const handleBuyerInfoChange = useCallback((field: string, val: string) => {
         setBuyerInfo(prev => ({ ...prev, [field]: val }));
-
-        // Only search on Name or Phone
         if (field !== 'customerName' && field !== 'customerPhone') return;
-
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-
-        if (val.length < 2) {
-            setSearchResults([]);
-            setShowSuggestions(false);
-            return;
-        }
-
+        if (val.length < 2) { setSearchResults([]); setShowSuggestions(false); return; }
         setIsSearching(true);
         searchTimeoutRef.current = setTimeout(async () => {
             const results = await searchCustomers(val);
@@ -85,22 +86,18 @@ export default function SalesPage() {
             setShowSuggestions(results.length > 0);
             setIsSearching(false);
         }, 300);
-    };
+    }, []);
 
-    const selectCustomer = (cust: any) => {
-        setBuyerInfo({
-            customerName: cust.name,
-            customerPhone: cust.phone || '',
-            customerAddress: cust.address || ''
-        });
+    const selectCustomer = useCallback((cust: CustomerSearch) => {
+        setBuyerInfo({ customerName: cust.name, customerPhone: cust.phone || '', customerAddress: cust.address || '' });
         setSelectedCustomerId(cust.id);
         setShowSuggestions(false);
-    };
+    }, []);
 
-    const clearCustomer = () => {
+    const clearCustomer = useCallback(() => {
         setBuyerInfo({ customerName: '', customerPhone: '', customerAddress: '' });
         setSelectedCustomerId(null);
-    };
+    }, []);
 
     useEffect(() => {
         Promise.all([getProducts(), getCategories(), getStaffList(), getCurrentUser()]).then(([prods, cats, staff, user]) => {
@@ -114,15 +111,14 @@ export default function SalesPage() {
         });
     }, []);
 
-    const addToCart = (product: Product) => {
-        const currentInCart = cart.find(item => item.product.id === product.id)?.quantity || 0;
-        if (currentInCart >= product.stock) {
-            setError(`Cannot add more ${product.name}. Only ${product.stock} in stock.`);
-            setTimeout(() => setError(null), 3000);
-            return;
-        }
-
+    const addToCart = useCallback((product: Product) => {
         setCart(prev => {
+            const currentInCart = prev.find(item => item.product.id === product.id)?.quantity || 0;
+            if (currentInCart >= product.stock) {
+                setError(`Cannot add more ${product.name}. Only ${product.stock} in stock.`);
+                setTimeout(() => setError(null), 3000);
+                return prev;
+            }
             const existing = prev.find(item => item.product.id === product.id);
             if (existing) {
                 return prev.map(item =>
@@ -133,13 +129,9 @@ export default function SalesPage() {
             }
             return [...prev, { product, quantity: 1 }];
         });
-    };
+    }, []);
 
-    const removeFromCart = (productId: string) => {
-        setCart(prev => prev.filter(item => item.product.id !== productId));
-    };
-
-    const updateQuantity = (productId: string, delta: number) => {
+    const updateQuantity = useCallback((productId: string, delta: number) => {
         setCart(prev => {
             return prev.map(item => {
                 if (item.product.id === productId) {
@@ -155,9 +147,14 @@ export default function SalesPage() {
                 return item;
             }).filter(Boolean) as CartItem[];
         });
-    };
+    }, []);
 
-    const handleCheckoutClick = () => {
+    const subtotal = cart.reduce((sum, item) => sum + (item.product.baseSellingPrice * item.quantity), 0);
+    const validDiscount = typeof discount === 'number' ? discount : 0;
+    const discountAmount = validDiscount > 0 ? (subtotal * validDiscount / 100) : 0;
+    const total = subtotal - discountAmount;
+
+    const handleCheckoutClick = useCallback(() => {
         if (cart.length === 0) return;
 
         // Validation: Require customer data
@@ -184,9 +181,9 @@ export default function SalesPage() {
         }
 
         setShowConfirmDialog(true);
-    };
+    }, [cart.length, selectedCustomerId, buyerInfo.customerName, paymentMethod, amountPaid, total]);
 
-    const handleConfirmCheckout = async () => {
+    const handleConfirmCheckout = useCallback(async () => {
         setShowConfirmDialog(false);
         setProcessing(true);
         setError(null);
@@ -214,18 +211,13 @@ export default function SalesPage() {
             } else {
                 setError(result.error || 'Failed to process sale.');
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
             setError('Connection error. Please check your internet and try again.');
         } finally {
             setProcessing(false);
         }
-    };
-
-    const subtotal = cart.reduce((sum, item) => sum + (item.product.baseSellingPrice * item.quantity), 0);
-    const validDiscount = typeof discount === 'number' ? discount : 0;
-    const discountAmount = validDiscount > 0 ? (subtotal * validDiscount / 100) : 0;
-    const total = subtotal - discountAmount;
+    }, [cart, paymentMethod, buyerInfo, selectedStaffId, amountPaid, selectedCustomerId]);
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
@@ -233,13 +225,66 @@ export default function SalesPage() {
         return matchesSearch && matchesCategory;
     });
 
-    const addQuickCash = (amount: number) => {
-        setAmountPaid(prev => (typeof prev === 'number' ? prev + amount : amount));
-    };
+    const addQuickCash50 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 50 : 50)), []);
+    const addQuickCash100 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 100 : 100)), []);
+    const addQuickCash200 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 200 : 200)), []);
+    const setExactCash = useCallback(() => setAmountPaid(total), [total]);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setOrderNotes(e.target.value), []);
+    const handleDiscountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDiscount(e.target.value === '' ? '' : Math.min(100, Math.max(0, parseInt(e.target.value) || 0))), []);
+    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : parseFloat(e.target.value)), []);
+    const handleStaffChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedStaffId(e.target.value), []);
+    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerName', e.target.value), [handleBuyerInfoChange]);
+    const handleCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerPhone', e.target.value), [handleBuyerInfoChange]);
+    const handleCustomerAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerAddress', e.target.value), [handleBuyerInfoChange]);
+    const handleCloseConfirmDialog = useCallback(() => setShowConfirmDialog(false), []);
+    const setCategoryAll = useCallback(() => setCategoryFilter('all'), []);
 
-    const setExactCash = () => {
-        setAmountPaid(total);
-    };
+    const handleCategorySelect = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) setCategoryFilter(id);
+    }, []);
+
+    const handleAddProductToCart = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const product = products.find(p => p.id === id);
+            if (product) {
+                if (product.stock === 0) return;
+                const quantity = cart.find(item => item.product.id === id)?.quantity || 0;
+                if (quantity === 0) addToCart(product);
+            }
+        }
+    }, [products, cart, addToCart]);
+
+    const handleDecrementQuantity = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        if (id) updateQuantity(id, -1);
+    }, [updateQuantity]);
+
+    const handleIncrementQuantity = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        const id = e.currentTarget.dataset.id;
+        if (id) updateQuantity(id, 1);
+    }, [updateQuantity]);
+
+    const handleSelectCustomerClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            const cust = searchResults.find(c => c.id === id);
+            if (cust) selectCustomer(cust);
+        }
+    }, [searchResults, selectCustomer]);
+
+    const handlePaymentMethodSelect = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const methodId = e.currentTarget.dataset.id as PaymentMethodType;
+        if (methodId) {
+            setPaymentMethod(methodId);
+            if (methodId !== 'CASH') setAmountPaid(total);
+            else setAmountPaid('');
+        }
+    }, [total]);
 
     return (
         <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6 overflow-hidden max-w-7xl mx-auto w-full pb-4">
@@ -253,14 +298,14 @@ export default function SalesPage() {
                             className="bg-transparent outline-none flex-1 text-sm font-medium placeholder:text-muted-foreground/60 w-full"
                             placeholder="Search products by name or SKU..."
                             value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
+                            onChange={handleSearchChange}
                         />
                     </div>
                     
                     <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setCategoryFilter('all')}
+                                onClick={setCategoryAll}
                                 className={clsx(
                                     "px-5 py-2.5 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
                                     categoryFilter === 'all' 
@@ -273,7 +318,8 @@ export default function SalesPage() {
                             {categories.map(c => (
                                 <button
                                     key={c.id}
-                                    onClick={() => setCategoryFilter(c.id)}
+                                    data-id={c.id}
+                                    onClick={handleCategorySelect}
                                     className={clsx(
                                         "px-5 py-2.5 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
                                         categoryFilter === c.id 
@@ -308,7 +354,8 @@ export default function SalesPage() {
                                 return (
                                     <div
                                         key={product.id}
-                                        onClick={() => !isOutOfStock && quantity === 0 && addToCart(product)}
+                                        data-id={product.id}
+                                        onClick={handleAddProductToCart}
                                         className={clsx(
                                             "group flex flex-col p-4 bg-card/40 backdrop-blur-sm border rounded-3xl relative overflow-hidden transition-all duration-300",
                                             isOutOfStock ? "border-red-200/50 bg-red-50/10 opacity-75" : "border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 cursor-pointer"
@@ -357,14 +404,16 @@ export default function SalesPage() {
                                                         {quantity > 0 ? (
                                                             <div className="flex items-center gap-1 bg-primary/10 p-1 rounded-xl border border-primary/20 backdrop-blur-md">
                                                                 <button
-                                                                    onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, -1); }}
+                                                                    data-id={product.id}
+                                                                    onClick={handleDecrementQuantity}
                                                                     className="w-8 h-8 flex items-center justify-center bg-background rounded-lg hover:bg-red-50 hover:text-red-500 shadow-sm transition-all"
                                                                 >
                                                                     {quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} strokeWidth={3} />}
                                                                 </button>
                                                                 <span className="w-8 text-center font-black text-primary">{quantity}</span>
                                                                 <button
-                                                                    onClick={(e) => { e.stopPropagation(); updateQuantity(product.id, 1); }}
+                                                                    data-id={product.id}
+                                                                    onClick={handleIncrementQuantity}
                                                                     disabled={quantity >= product.stock}
                                                                     className="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-lg shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 disabled:bg-primary"
                                                                 >
@@ -404,7 +453,7 @@ export default function SalesPage() {
                             <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Cashier</span>
                             <select
                                 value={selectedStaffId}
-                                onChange={e => setSelectedStaffId(e.target.value)}
+                                onChange={handleStaffChange}
                                 className="bg-transparent text-sm font-bold text-primary outline-none cursor-pointer text-right max-w-[120px] truncate"
                             >
                                 <option value="" disabled>Select Staff</option>
@@ -427,7 +476,7 @@ export default function SalesPage() {
                                         type="text"
                                         placeholder="Add customer (Search by name or phone)"
                                         value={buyerInfo.customerName}
-                                        onChange={e => handleBuyerInfoChange('customerName', e.target.value)}
+                                        onChange={handleCustomerNameChange}
                                         className="w-full bg-transparent p-2 text-sm outline-none font-medium placeholder:text-muted-foreground/60"
                                     />
                                 </div>
@@ -437,7 +486,8 @@ export default function SalesPage() {
                                         {searchResults.map((cust, idx) => (
                                             <button
                                                 key={idx}
-                                                onClick={() => selectCustomer(cust)}
+                                                data-id={cust.id}
+                                                onClick={handleSelectCustomerClick}
                                                 className="w-full text-left px-4 py-3 hover:bg-secondary/50 border-b border-border/20 last:border-0 transition-colors flex items-center justify-between"
                                             >
                                                 <div>
@@ -464,14 +514,14 @@ export default function SalesPage() {
                                                 type="tel"
                                                 placeholder="Phone (Optional)"
                                                 value={buyerInfo.customerPhone}
-                                                onChange={e => handleBuyerInfoChange('customerPhone', e.target.value)}
+                                                onChange={handleCustomerPhoneChange}
                                                 className="w-1/2 p-2 text-xs rounded-lg border border-border/50 bg-background outline-none focus:border-primary/50"
                                             />
                                             <input
                                                 type="text"
                                                 placeholder="Address (Optional)"
                                                 value={buyerInfo.customerAddress}
-                                                onChange={e => handleBuyerInfoChange('customerAddress', e.target.value)}
+                                                onChange={handleCustomerAddressChange}
                                                 className="w-1/2 p-2 text-xs rounded-lg border border-border/50 bg-background outline-none focus:border-primary/50"
                                             />
                                         </div>
@@ -522,11 +572,11 @@ export default function SalesPage() {
                                         </div>
                                         
                                         <div className="flex items-center gap-3 bg-secondary/50 p-1 rounded-xl">
-                                            <button onClick={() => updateQuantity(item.product.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground">
+                                            <button data-id={item.product.id} onClick={handleDecrementQuantity} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground">
                                                 <Minus size={14} strokeWidth={2.5} />
                                             </button>
                                             <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
-                                            <button onClick={() => updateQuantity(item.product.id, 1)} disabled={item.quantity >= item.product.stock} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground disabled:opacity-30">
+                                            <button data-id={item.product.id} onClick={handleIncrementQuantity} disabled={item.quantity >= item.product.stock} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground disabled:opacity-30">
                                                 <Plus size={14} strokeWidth={2.5} />
                                             </button>
                                         </div>
@@ -549,7 +599,7 @@ export default function SalesPage() {
                                     type="text"
                                     placeholder="Add note..."
                                     value={orderNotes}
-                                    onChange={e => setOrderNotes(e.target.value)}
+                                    onChange={handleNotesChange}
                                     className="w-full bg-secondary/30 border border-border/50 p-3 rounded-xl text-sm font-medium outline-none focus:border-primary/50 transition-colors"
                                 />
                             </div>
@@ -558,7 +608,7 @@ export default function SalesPage() {
                                     type="number"
                                     placeholder="Disc %"
                                     value={discount}
-                                    onChange={e => setDiscount(e.target.value === '' ? '' : Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+                                    onChange={handleDiscountChange}
                                     className="w-full bg-secondary/30 border border-border/50 p-3 pl-8 rounded-xl text-sm font-bold outline-none focus:border-primary/50 transition-colors"
                                 />
                                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary font-bold">%</div>
@@ -595,11 +645,8 @@ export default function SalesPage() {
                                 return (
                                     <button
                                         key={method.id}
-                                        onClick={() => {
-                                            setPaymentMethod(method.id as any);
-                                            if (method.id !== 'CASH') setAmountPaid(total); // Auto fill for digital payments
-                                            else setAmountPaid('');
-                                        }}
+                                        data-id={method.id}
+                                        onClick={handlePaymentMethodSelect}
                                         className={clsx(
                                             "flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl font-bold text-xs transition-all duration-300 relative z-10 gap-1",
                                             isActive ? "text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -622,7 +669,7 @@ export default function SalesPage() {
                                         type="number"
                                         placeholder="Amount Tendered"
                                         value={amountPaid}
-                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                        onChange={handleAmountPaidChange}
                                         className="w-full bg-background border-2 border-primary/20 p-4 pl-14 rounded-2xl text-xl font-black outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-right"
                                     />
                                     {typeof amountPaid === 'number' && amountPaid > total && (
@@ -635,9 +682,9 @@ export default function SalesPage() {
                                 {/* Quick Cash Buttons */}
                                 <div className="grid grid-cols-4 gap-2">
                                     <button onClick={setExactCash} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">Exact</button>
-                                    <button onClick={() => addQuickCash(50)} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+50</button>
-                                    <button onClick={() => addQuickCash(100)} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+100</button>
-                                    <button onClick={() => addQuickCash(200)} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+200</button>
+                                    <button onClick={addQuickCash50} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+50</button>
+                                    <button onClick={addQuickCash100} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+100</button>
+                                    <button onClick={addQuickCash200} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+200</button>
                                 </div>
                             </div>
                         )}
@@ -715,7 +762,7 @@ export default function SalesPage() {
                         
                         <div className="p-6 bg-secondary/20 flex gap-3">
                             <button
-                                onClick={() => setShowConfirmDialog(false)}
+                                onClick={handleCloseConfirmDialog}
                                 className="flex-1 py-4 bg-background border border-border/60 rounded-xl font-bold hover:bg-secondary transition-colors"
                             >
                                 Cancel

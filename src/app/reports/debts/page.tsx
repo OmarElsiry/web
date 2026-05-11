@@ -1,12 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Filter, Upload, Printer, Edit2, Search } from "lucide-react";
 import BulkImportDropzone from "@/components/BulkImportDropzone";
 import PrePrintEditModal from "@/components/PrePrintEditModal";
 
+interface Customer {
+  id: string;
+  name: string;
+  address?: string | null;
+  governorate?: string | null;
+  phone?: string | null;
+  balance: number;
+}
+
 export default function DebtsReportPage() {
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [governorates, setGovernorates] = useState<string[]>([]);
   const [selectedGov, setSelectedGov] = useState<string>("");
   const [searchName, setSearchName] = useState<string>("");
@@ -14,10 +23,10 @@ export default function DebtsReportPage() {
 
   // Modals state
   const [showBulkImport, setShowBulkImport] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<any | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
-  const fetchDebts = async () => {
-    setIsLoading(true);
+  const fetchDebts = useCallback(async (showLoading = false) => {
+    if (showLoading) setIsLoading(true);
     try {
       const url = new URL("/api/reports/debts", window.location.origin);
       if (selectedGov) url.searchParams.append("governorate", selectedGov);
@@ -31,11 +40,12 @@ export default function DebtsReportPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedGov]);
 
   useEffect(() => {
-    fetchDebts();
-  }, [selectedGov]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchDebts(false);
+  }, [fetchDebts]);
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(searchName.toLowerCase())
@@ -45,11 +55,32 @@ export default function DebtsReportPage() {
     window.print();
   };
 
-  const handlePrintSingle = (customer: any) => {
+  const handlePrintSingle = useCallback(() => {
     // In a real app, this might navigate to an invoice print view
     // Here we just print the current window which we could style with print CSS
     window.print();
-  };
+  }, []);
+
+  const handleShowBulkImport = useCallback(() => setShowBulkImport(true), []);
+  const handleCloseBulkImport = useCallback(() => setShowBulkImport(false), []);
+  const handleBulkImportSuccess = useCallback(() => {
+    setShowBulkImport(false);
+    void fetchDebts(true);
+  }, [fetchDebts]);
+
+  const handleSearchNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value), []);
+  const handleGovChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedGov(e.target.value), []);
+
+  const handleEditCustomerClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const id = e.currentTarget.dataset.id;
+    if (id) {
+        const cust = customers.find(c => c.id === id);
+        if (cust) setEditingCustomer(cust);
+    }
+  }, [customers]);
+
+  const handleCloseEditModal = useCallback(() => setEditingCustomer(null), []);
+  const handlePrintEditModal = useCallback(() => handlePrintSingle(), [handlePrintSingle]);
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 md:p-10 font-sans">
@@ -63,7 +94,7 @@ export default function DebtsReportPage() {
         
         <div className="flex gap-3">
           <button 
-            onClick={() => setShowBulkImport(true)}
+            onClick={handleShowBulkImport}
             className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-all shadow-sm"
           >
             <Upload className="w-4 h-4" />
@@ -88,7 +119,7 @@ export default function DebtsReportPage() {
             type="text" 
             placeholder="بحث باسم العميل..." 
             value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
+            onChange={handleSearchNameChange}
             className="w-full bg-transparent border-none focus:ring-0 px-3 py-2 text-gray-700"
           />
         </div>
@@ -97,7 +128,7 @@ export default function DebtsReportPage() {
           <div className="pl-3 text-gray-400"><Filter className="w-5 h-5" /></div>
           <select 
             value={selectedGov}
-            onChange={(e) => setSelectedGov(e.target.value)}
+            onChange={handleGovChange}
             className="w-full bg-transparent border-none focus:ring-0 px-3 py-2 text-gray-700"
           >
             <option value="">كل المحافظات</option>
@@ -161,7 +192,8 @@ export default function DebtsReportPage() {
                     <td className="px-6 py-4 text-center print:hidden">
                       <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => setEditingCustomer(customer)}
+                          data-id={customer.id}
+                          onClick={handleEditCustomerClick}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="تعديل قبل الطباعة"
                         >
@@ -192,19 +224,16 @@ export default function DebtsReportPage() {
       {/* Modals */}
       {showBulkImport && (
         <BulkImportDropzone 
-          onClose={() => setShowBulkImport(false)}
-          onSuccess={() => {
-            setShowBulkImport(false);
-            fetchDebts();
-          }}
+          onClose={handleCloseBulkImport}
+          onSuccess={handleBulkImportSuccess}
         />
       )}
 
       {editingCustomer && (
         <PrePrintEditModal 
           customer={editingCustomer}
-          onClose={() => setEditingCustomer(null)}
-          onPrint={() => handlePrintSingle(editingCustomer)}
+          onClose={handleCloseEditModal}
+          onPrint={handlePrintEditModal}
         />
       )}
 
