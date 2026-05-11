@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
 import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct } from '@/app/actions/inventory';
 import clsx from 'clsx';
