@@ -31,6 +31,11 @@ async function getUserPermissions() {
     const user = await getCurrentUser();
     if (!user) return [];
 
+    // ROOT users should always have access to all tabs
+    if (user.role === 'ROOT') {
+        return DEFAULT_PERMISSIONS['ROOT'] || [];
+    }
+
     // If user has custom permissions, use those
     if (user.permissions && user.permissions.length > 0) {
         return user.permissions;

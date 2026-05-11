@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
 import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, ChevronDown, AlertCircle, AlertTriangle, X, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
@@ -41,6 +41,7 @@ type PaymentMethodType = 'CASH' | 'CREDIT' | 'INSTAPAY';
 export default function SalesPage() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const deferredSearchQuery = useDeferredValue(searchQuery);
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -219,11 +220,25 @@ export default function SalesPage() {
         }
     }, [cart, paymentMethod, buyerInfo, selectedStaffId, amountPaid, selectedCustomerId]);
 
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
-        return matchesSearch && matchesCategory;
-    });
+    const cartQuantityMap = useMemo(() => {
+        const map = new Map<string, number>();
+        for (const item of cart) {
+            map.set(item.product.id, item.quantity);
+        }
+        return map;
+    }, [cart]);
+
+    const filteredProducts = useMemo(() => {
+        const lowerQuery = deferredSearchQuery.toLowerCase();
+        const filtered = products.filter(p => {
+            const matchesSearch = !lowerQuery || 
+                p.name.toLowerCase().includes(lowerQuery) || 
+                p.sku.toLowerCase().includes(lowerQuery);
+            const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
+            return matchesSearch && matchesCategory;
+        });
+        return filtered.slice(0, 100); // Limit to 100 to prevent DOM freezing
+    }, [products, deferredSearchQuery, categoryFilter]);
 
     const addQuickCash50 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 50 : 50)), []);
     const addQuickCash100 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 100 : 100)), []);
@@ -346,8 +361,7 @@ export default function SalesPage() {
                     ) : (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
                             {filteredProducts.map(product => {
-                                const cartItem = cart.find(item => item.product.id === product.id);
-                                const quantity = cartItem?.quantity || 0;
+                                const quantity = cartQuantityMap.get(product.id) || 0;
                                 const isOutOfStock = product.stock === 0;
                                 const isLowStock = product.stock > 0 && product.stock <= 5;
 

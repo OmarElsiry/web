@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { ClipboardCheck, Search, RefreshCcw, Save, Filter } from 'lucide-react';
 import { getStocktakeItems, reconcileStock, StockAdjustment } from '@/app/actions/stocktake';
 import clsx from 'clsx';
@@ -18,6 +18,7 @@ export default function StocktakePage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
     // Map of productId -> actualStock
@@ -103,13 +104,16 @@ export default function StocktakePage() {
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
     const handleCategoryFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setCategoryFilter(e.target.value), []);
 
-    const categories = Array.from(new Set(products.map(p => p.category))).filter(Boolean);
+    const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))).filter(Boolean), [products]);
 
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-        const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
-        return matchesSearch && matchesCategory;
-    });
+    const filteredProducts = useMemo(() => {
+        const lowerSearch = deferredSearch.toLowerCase();
+        return products.filter(p => {
+            const matchesSearch = !lowerSearch || p.name.toLowerCase().includes(lowerSearch);
+            const matchesCategory = categoryFilter === 'all' || p.category === categoryFilter;
+            return matchesSearch && matchesCategory;
+        });
+    }, [products, deferredSearch, categoryFilter]);
 
     return (
         <div className="space-y-6">
