@@ -221,7 +221,6 @@ export default function InvoicePrintPage() {
                                 <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover" />
                             </div>
                             <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
-                            <p className="text-gray-500 font-medium text-sm">نظام إدارة المبيعات المتكامل</p>
                             <div className="mt-4 flex items-center gap-2">
                                 <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
                                     المستودع: {warehouseName}
