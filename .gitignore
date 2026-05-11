@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Prisma generated client (regenerated via postinstall)
+src/generated/
+
 # Playwright
 /test-results/
 /playwright-report/
@@ -55,6 +58,14 @@ eslint-*.json
 lint*.json
 aat-help.txt
 .eslintcache
+
+# Non-build assets
+social media launching campaign/
+scenarios/
+scripts/
+
+# Duplicate lockfile (keep only package-lock.json for Vercel)
+bun.lock
 
 # OS generated files
 Thumbs.db

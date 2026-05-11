@@ -97,10 +97,92 @@ export default function InvoicePrintPage() {
             <style jsx global>{`
                 @media print {
                     @page { size: A4; margin: 10mm; }
-                    body { -webkit-print-color-adjust: exact; background: white !important; }
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                        background: white !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    /* Hide dashboard layout chrome */
                     header, footer, nav, aside { display: none !important; }
                     .print-hidden { display: none !important; }
-                    .print-shadow-none { shadow: none !important; border-color: #000 !important; }
+                    
+                    /* Reset ALL ancestor containers from root down to the invoice */
+                    body > div,
+                    #__next,
+                    #__next > div,
+                    #__next > div > div,
+                    #__next > div > div > div,
+                    main,
+                    main > div {
+                        display: block !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: none !important;
+                        min-height: auto !important;
+                        position: static !important;
+                        background: white !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    /* The print page wrapper */
+                    [data-print-invoice-wrapper] {
+                        display: block !important;
+                        min-height: auto !important;
+                        background: white !important;
+                        padding: 0 !important;
+                    }
+                    
+                    /* The scrollable area around the paper */
+                    [data-print-paper-area] {
+                        padding: 0 !important;
+                        overflow: visible !important;
+                        background: white !important;
+                    }
+                    
+                    /* The A4 paper itself */
+                    [data-print-paper] {
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        margin: 0 !important;
+                        padding: 10mm !important;
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        min-height: auto !important;
+                    }
+                    
+                    /* Force footer totals to display side by side */
+                    [data-print-footer] {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        gap: 1.5rem !important;
+                    }
+                    
+                    /* Force financial box width */
+                    [data-print-financials] {
+                        width: 18rem !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    /* Force customer info grid to be multi-column */
+                    [data-print-customer-grid] {
+                        display: grid !important;
+                        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+                    }
+                    [data-print-col-6] { grid-column: span 6 / span 6 !important; }
+                    [data-print-col-3] { grid-column: span 3 / span 3 !important; }
+                    
+                    /* Preserve background colors */
+                    [data-print-paper] * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
                 }
             `}</style>
 
