@@ -92,7 +92,7 @@ export default function InvoicePrintPage() {
     });
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl">
+        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
             {/* Print Styles Injection */}
             <style jsx global>{`
                 @media print {
@@ -326,8 +326,8 @@ export default function InvoicePrintPage() {
             </div>
 
             {/* --- INVOICE PAPER --- */}
-            <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-                <div className="max-w-[210mm] mx-auto bg-white print-shadow-none shadow-2xl rounded-sm p-[10mm] min-h-[297mm] border border-gray-200 text-black">
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto" data-print-paper-area>
+                <div className="max-w-[210mm] mx-auto bg-white print-shadow-none shadow-2xl rounded-sm p-[10mm] min-h-[297mm] border border-gray-200 text-black" data-print-paper>
                     
                     {/* Header */}
                     <div className="flex justify-between items-start mb-6 border-b-2 border-gray-900 pb-6">
@@ -385,38 +385,38 @@ export default function InvoicePrintPage() {
                             {showCustomerCode && <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{customerCode}</span>}
                         </div>
                         <div className="p-4">
-                            <div className="grid grid-cols-12 gap-y-3 gap-x-4 text-sm">
-                                <div className="col-span-12 md:col-span-6 flex gap-2">
+                            <div className="grid grid-cols-12 gap-y-3 gap-x-4 text-sm" data-print-customer-grid>
+                                <div className="col-span-12 md:col-span-6 flex gap-2" data-print-col-6>
                                     <span className="font-bold text-gray-600 w-20 shrink-0">اسم العميل:</span>
                                     <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{customerName}</span>
                                 </div>
                                 {showCity && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
                                         <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
                                         <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{city}</span>
                                     </div>
                                 )}
                                 {showCategory && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
                                         <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
                                         <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{category}</span>
                                     </div>
                                 )}
 
                                 {showAddress && (
-                                    <div className="col-span-12 md:col-span-6 flex gap-2">
+                                    <div className="col-span-12 md:col-span-6 flex gap-2" data-print-col-6>
                                         <span className="font-bold text-gray-600 w-20 shrink-0">العنوان:</span>
                                         <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{address}</span>
                                     </div>
                                 )}
                                 {showPhone1 && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
                                         <span className="font-bold text-gray-600 w-16 shrink-0">هاتف 1:</span>
                                         <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone1}</span>
                                     </div>
                                 )}
                                 {showPhone2 && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
                                         <span className="font-bold text-gray-600 w-12 shrink-0">هاتف 2:</span>
                                         <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone2}</span>
                                     </div>
@@ -462,7 +462,7 @@ export default function InvoicePrintPage() {
                     </div>
 
                     {/* Footer Totals & Financials */}
-                    <div className="mt-6 flex flex-col md:flex-row gap-6">
+                    <div className="mt-6 flex flex-col md:flex-row gap-6" data-print-footer>
                         {/* Summary & Word Amount */}
                         <div className="flex-1 flex flex-col justify-between space-y-4">
                             <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
@@ -490,7 +490,7 @@ export default function InvoicePrintPage() {
                         </div>
 
                         {/* Financial Balances */}
-                        <div className="w-full md:w-72 border-2 border-gray-900 rounded-lg overflow-hidden bg-white">
+                        <div className="w-full md:w-72 border-2 border-gray-900 rounded-lg overflow-hidden bg-white" data-print-financials>
                             <div className="bg-gray-900 text-white text-center py-1 font-bold text-sm tracking-widest">
                                 كشف الحساب
                             </div>
