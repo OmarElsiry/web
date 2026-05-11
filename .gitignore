@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
+# Logs and output files
+*.log
+build_log*.txt
+errors.txt
+lint_output*.txt
+lint-results*.txt
+eslint-*.json
+lint*.json
+aat-help.txt
+.eslintcache
+
+# OS generated files
+Thumbs.db
+desktop.ini
