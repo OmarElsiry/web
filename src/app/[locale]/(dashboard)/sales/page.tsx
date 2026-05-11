@@ -307,9 +307,9 @@ export default function SalesPage() {
     }, [total]);
 
     return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6 overflow-hidden max-w-7xl mx-auto w-full pb-4" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-7rem)] lg:min-h-[700px] gap-6 max-w-7xl mx-auto w-full pb-4" dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Main Product Area */}
-            <div className="flex-1 flex flex-col gap-6 min-w-0">
+            <div className="flex-1 flex flex-col gap-6 min-w-0 h-[60vh] lg:h-auto">
                 {/* Search & Filter Header */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 bg-card/60 backdrop-blur-xl p-4 rounded-3xl border border-border/50 shadow-sm">
                     <div className="flex items-center flex-1 w-full bg-background/50 rounded-2xl px-4 py-3 border border-border/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">
@@ -355,7 +355,7 @@ export default function SalesPage() {
                 </div>
 
                 {/* Product Grid */}
-                <div className="flex-1 overflow-y-auto rounded-3xl pr-2">
+                <div className="flex-1 overflow-y-auto rounded-3xl pr-2 pb-4">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 gap-4">
                             <div className="p-4 bg-secondary/30 rounded-full">
@@ -459,7 +459,7 @@ export default function SalesPage() {
 
             {/* Sidebar / Checkout Pane */}
             <div className="w-full lg:w-[420px] flex flex-col h-full shrink-0">
-                <div className="bg-card/80 backdrop-blur-2xl border border-border/50 rounded-3xl flex flex-col h-full shadow-2xl overflow-hidden relative">
+                <div className="bg-card/80 backdrop-blur-2xl border border-border/50 rounded-3xl flex flex-col h-full shadow-2xl relative">
                     
                     {/* Top Header & Cashier */}
                     <div className="px-6 py-4 flex items-center justify-between border-b border-border/30 bg-background/50">
