@@ -27,6 +27,12 @@ export default function InvoicePrintPage() {
     const [address, setAddress] = useState("");
     const [customerName, setCustomerName] = useState("");
 
+    // Table Column Toggles
+    const [showItemCode, setShowItemCode] = useState(true);
+    const [showUnit, setShowUnit] = useState(true);
+    const [showDiscountPercent, setShowDiscountPercent] = useState(true);
+    const [showDiscountValue, setShowDiscountValue] = useState(true);
+
     useEffect(() => {
         if (id) {
             getInvoiceById(id as string).then(data => {
@@ -167,6 +173,28 @@ export default function InvoicePrintPage() {
                             </div>
                         </div>
 
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showItemCode} onChange={(e) => setShowItemCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>رقم الصنف</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showUnit} onChange={(e) => setShowUnit(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>الوحدة</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showDiscountPercent} onChange={(e) => setShowDiscountPercent(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>نسبة الخصم</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showDiscountValue} onChange={(e) => setShowDiscountValue(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>قيمة الخصم</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <div className="border-t border-gray-100 pt-6 pb-8">
                             <button
                                 onClick={() => window.print()}
@@ -275,13 +303,13 @@ export default function InvoicePrintPage() {
                             <thead>
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
-                                    <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>
+                                    {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
                                     <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
-                                    <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>
+                                    {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
-                                    <th className="border-l border-gray-300 py-2 w-16 text-center">ن الخصم</th>
-                                    <th className="border-l border-gray-300 py-2 w-16 text-center">ق الخصم</th>
+                                    {showDiscountPercent && <th className="border-l border-gray-300 py-2 w-16 text-center">ن الخصم</th>}
+                                    {showDiscountValue && <th className="border-l border-gray-300 py-2 w-16 text-center">ق الخصم</th>}
                                     <th className="py-2 w-24 text-center font-bold">القيمة</th>
                                 </tr>
                             </thead>
@@ -290,13 +318,13 @@ export default function InvoicePrintPage() {
                                 {invoice.items.map((item: any, idx: number) => (
                                     <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
                                         <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
-                                        <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>
+                                        {showItemCode && <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>}
                                         <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right">{item.productName}</td>
-                                        <td className="border-l border-gray-300 py-2 text-center text-gray-600">{item.productUnit || 'قطعة'}</td>
+                                        {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600">{item.productUnit || 'قطعة'}</td>}
                                         <td className="border-l border-gray-300 py-2 text-center font-bold">{item.quantity}</td>
                                         <td className="border-l border-gray-300 py-2 text-center font-medium">{item.unitPrice.toFixed(2)}</td>
-                                        <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>
-                                        <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>
+                                        {showDiscountPercent && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
+                                        {showDiscountValue && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
                                         <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{item.subtotal.toFixed(2)}</td>
                                     </tr>
                                 ))}
