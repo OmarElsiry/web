@@ -67,16 +67,33 @@ export async function createCategory(name: string) {
 export async function deleteCategory(id: string) {
     const prisma = getPrisma();
     try {
-        // Check if category has products
-        const count = await prisma.product.count({ where: { categoryId: id } });
-        if (count > 0) {
-            return { success: false, error: `Cannot delete: ${count} products use this category.` };
+        const products = await prisma.product.findMany({
+            where: { categoryId: id },
+            include: {
+                _count: {
+                    select: { transactionItems: true, invoiceItems: true, refundItems: true }
+                }
+            }
+        });
+
+        const hasUsage = products.some(p => p._count.transactionItems > 0 || p._count.invoiceItems > 0 || p._count.refundItems > 0);
+        
+        if (hasUsage) {
+            return { success: false, error: 'Cannot delete: some products are used in transactions or invoices.' };
         }
-        await prisma.category.delete({ where: { id } });
+
+        await prisma.$transaction(async (tx) => {
+            const productIds = products.map(p => p.id);
+            if (productIds.length > 0) {
+                await tx.inventory.deleteMany({ where: { productId: { in: productIds } } });
+                await tx.product.deleteMany({ where: { categoryId: id } });
+            }
+            await tx.category.delete({ where: { id } });
+        });
 
         try {
             const { logActivity } = await import('./audit');
-            await logActivity('DELETE_CATEGORY', `Deleted category ID: ${id}`);
+            await logActivity('DELETE_CATEGORY', `Deleted category ID: ${id} along with its products`);
         } catch (e) {
             console.error('Audit log failed', e);
         }
@@ -313,5 +330,50 @@ export async function updateProduct(id: string, data: {
             success: false,
             error: 'Failed to update product. Please try again.'
         };
+    }
+}
+
+export async function deleteProduct(id: string) {
+    const prisma = getPrisma();
+    try {
+        const product = await prisma.product.findUnique({
+            where: { id },
+            include: {
+                _count: {
+                    select: {
+                        transactionItems: true,
+                        invoiceItems: true,
+                        refundItems: true
+                    }
+                }
+            }
+        });
+
+        if (!product) return { success: false, error: 'Product not found.' };
+
+        if (product._count.transactionItems > 0 || product._count.invoiceItems > 0 || product._count.refundItems > 0) {
+            return { success: false, error: 'Cannot delete: product is used in transactions or invoices.' };
+        }
+
+        await prisma.$transaction(async (tx) => {
+            await tx.inventory.deleteMany({ where: { productId: id } });
+            await tx.product.delete({ where: { id } });
+        });
+
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('DELETE_PRODUCT', `Deleted product "${product.name}" (${product.sku})`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
+
+        revalidatePath('/products');
+        revalidatePath('/inventory');
+        revalidatePath('/sales');
+        revalidatePath('/dashboard');
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: 'Failed to delete product.' };
     }
 }

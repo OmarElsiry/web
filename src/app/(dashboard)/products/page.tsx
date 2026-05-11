@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
-import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory } from '@/app/actions/inventory';
+import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct } from '@/app/actions/inventory';
 import clsx from 'clsx';
 
 type SortField = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'sell' | 'margin' | 'percent';
@@ -49,6 +49,7 @@ export default function ProductsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [expandedRow, setExpandedRow] = useState<string | null>(null);
+    const [productDeleteError, setProductDeleteError] = useState<string | null>(null);
 
     // Sorting state
     const [sortField, setSortField] = useState<SortField>('name');
@@ -162,6 +163,7 @@ export default function ProductsPage() {
     }, [newCategoryName, fetchData]);
 
     const handleDeleteCategory = useCallback(async (id: string) => {
+        if (!confirm('Are you sure you want to delete this category? If it has products, they will also be deleted!')) return;
         setCategorySubmitting(true);
         setCategoryError(null);
         try {
@@ -175,6 +177,24 @@ export default function ProductsPage() {
             setCategoryError('Connection error.');
         } finally {
             setCategorySubmitting(false);
+        }
+    }, [fetchData]);
+
+    const handleDeleteProduct = useCallback(async (id: string) => {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+        setLoading(true);
+        setProductDeleteError(null);
+        try {
+            const result = await deleteProduct(id);
+            if (!result.success) {
+                setProductDeleteError(result.error || 'Failed to delete product.');
+            } else {
+                await fetchData();
+            }
+        } catch {
+            setProductDeleteError('Connection error.');
+        } finally {
+            setLoading(false);
         }
     }, [fetchData]);
 
@@ -215,6 +235,13 @@ export default function ProductsPage() {
             if (product) openEditModal(product);
         }
     }, [products, openEditModal]);
+
+    const handleDeleteProductClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) {
+            void handleDeleteProduct(id);
+        }
+    }, [handleDeleteProduct]);
 
     const handlePageChange = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
         const pageStr = e.currentTarget.dataset.page;
@@ -320,6 +347,13 @@ export default function ProductsPage() {
                 </div>
             </div>
 
+            {productDeleteError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 flex items-center gap-2">
+                    <AlertCircle size={20} />
+                    {productDeleteError}
+                </div>
+            )}
+
             {/* Filters Bar */}
             <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
                 {/* Category Filter */}
@@ -421,7 +455,10 @@ export default function ProductsPage() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg" aria-label="Edit product"><Edit size={14} /></button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground" aria-label="Edit product"><Edit size={14} /></button>
+                                                    <button data-id={p.id} onClick={handleDeleteProductClick} className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-colors" aria-label="Delete product"><Trash2 size={14} /></button>
+                                                </div>
                                             </td>
                                         </tr>
                                         {/* Expanded Location Breakdown */}
@@ -625,9 +662,9 @@ export default function ProductsPage() {
                                             <button
                                                 data-id={cat.id}
                                                 onClick={handleDeleteCategoryClick}
-                                                disabled={categorySubmitting || (cat._count?.products || 0) > 0}
+                                                disabled={categorySubmitting}
                                                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title={(cat._count?.products || 0) > 0 ? "Cannot delete: has products" : "Delete category"}
+                                                title="Delete category"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
