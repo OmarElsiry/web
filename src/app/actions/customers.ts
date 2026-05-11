@@ -97,4 +97,37 @@ export async function getCustomerProfile(id: string) {
     };
 }
 
+export async function createCustomer(data: {
+    name: string;
+    phone?: string;
+    address?: string;
+    groupId?: string;
+}) {
+    if (!data.name || data.name.trim().length < 2) {
+        return { success: false, error: 'Customer name must be at least 2 characters.' };
+    }
 
+    const prisma = getPrisma();
+
+    try {
+        const customer = await prisma.customer.create({
+            data: {
+                name: data.name.trim(),
+                phone: data.phone?.trim() || null,
+                address: data.address?.trim() || null,
+                groupId: data.groupId || null,
+                balance: 0,
+            }
+        });
+
+        revalidatePath('/customers');
+        return { success: true, customer };
+    } catch (err: any) {
+        // Handle unique constraint violation (name + phone combo)
+        if (err?.code === 'P2002') {
+            return { success: false, error: 'A customer with this name and phone already exists.' };
+        }
+        console.error('Failed to create customer:', err);
+        return { success: false, error: 'Failed to create customer. Please try again.' };
+    }
+}

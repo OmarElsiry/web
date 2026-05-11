@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Search, Phone, MapPin, ChevronRight, UserCircle, History, ExternalLink, Loader2 } from 'lucide-react';
-import { getCustomersList } from '@/app/actions/customers';
+import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, X, AlertCircle, UserPlus } from 'lucide-react';
+import { getCustomersList, createCustomer } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 
@@ -11,20 +11,58 @@ export default function CustomersPage() {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    // Add Customer Modal
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
+    const [creating, setCreating] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
+
+    const loadCustomers = () => {
+        setLoading(true);
         getCustomersList().then(data => {
             setCustomers(data);
             setLoading(false);
         });
+    };
+
+    useEffect(() => {
+        loadCustomers();
     }, []);
+
+    const handleCreateCustomer = async () => {
+        if (!newCustomer.name.trim()) {
+            setFormError('Customer name is required.');
+            return;
+        }
+        setCreating(true);
+        setFormError(null);
+
+        const result = await createCustomer({
+            name: newCustomer.name,
+            phone: newCustomer.phone || undefined,
+            address: newCustomer.address || undefined,
+        });
+
+        if (result.success) {
+            setShowAddModal(false);
+            setNewCustomer({ name: '', phone: '', address: '' });
+            loadCustomers();
+        } else {
+            setFormError(result.error || 'Failed to create customer.');
+        }
+        setCreating(false);
+    };
 
     const filtered = customers.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone.includes(search)
+        (c.phone && c.phone.includes(search))
     );
+
+    const totalDebt = customers.reduce((sum, c) => sum + (Number(c.balance) > 0 ? Number(c.balance) : 0), 0);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-3">
@@ -34,18 +72,44 @@ export default function CustomersPage() {
                     <p className="text-muted-foreground mt-1 text-lg">Manage and analyze your customer base</p>
                 </div>
 
-                <div className="relative group w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Search customers by name or phone..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
-                    />
+                <div className="flex items-center gap-3">
+                    <div className="relative group flex-1 md:w-80">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Search by name or phone..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-10 pr-4 py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 transition-all shadow-md whitespace-nowrap"
+                    >
+                        <UserPlus size={18} />
+                        Add Customer
+                    </button>
                 </div>
             </div>
 
+            {/* Stats Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="bg-card border border-border rounded-2xl p-4">
+                    <div className="text-sm text-muted-foreground font-medium">Total Customers</div>
+                    <div className="text-2xl font-black mt-1">{customers.length}</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4">
+                    <div className="text-sm text-muted-foreground font-medium">With Outstanding Debt</div>
+                    <div className="text-2xl font-black text-red-600 mt-1">{customers.filter(c => Number(c.balance) > 0).length}</div>
+                </div>
+                <div className="bg-card border border-border rounded-2xl p-4 col-span-2 md:col-span-1">
+                    <div className="text-sm text-muted-foreground font-medium">Total Owed</div>
+                    <div className="text-2xl font-black text-red-600 mt-1">EGP {totalDebt.toLocaleString()}</div>
+                </div>
+            </div>
+
+            {/* Customer Grid */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center h-64 gap-4">
                     <Loader2 className="animate-spin text-primary" size={48} />
@@ -66,26 +130,28 @@ export default function CustomersPage() {
                                 )}>
                                     <UserCircle size={28} />
                                 </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <h3 className="font-black text-lg line-clamp-1">{customer.name}</h3>
+                                        {/* Balance badge right next to the name */}
+                                        <span className={clsx(
+                                            "text-xs font-black px-2 py-0.5 rounded-full whitespace-nowrap",
+                                            Number(customer.balance) > 0
+                                                ? "bg-red-500/10 text-red-600 border border-red-500/20"
+                                                : "bg-green-500/10 text-green-600 border border-green-500/20"
+                                        )}>
+                                            {Number(customer.balance) > 0
+                                                ? `Owes EGP ${Number(customer.balance).toLocaleString()}`
+                                                : 'Settled'}
+                                        </span>
                                         {customer.group && (
                                             <span className="bg-primary/10 text-primary text-[10px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">{customer.group.name}</span>
                                         )}
                                     </div>
                                     <div className="flex items-center gap-1.5 text-muted-foreground text-sm mt-0.5">
                                         <Phone size={14} />
-                                        <span>{customer.phone}</span>
+                                        <span>{customer.phone || 'No phone'}</span>
                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className={clsx(
-                                        "text-lg font-black",
-                                        customer.balance > 0 ? "text-red-600" : "text-green-600"
-                                    )}>
-                                        EGP {Number(customer.balance).toLocaleString()}
-                                    </div>
-                                    <div className="text-[10px] font-black uppercase text-muted-foreground">Balance</div>
                                 </div>
                             </div>
 
@@ -117,6 +183,89 @@ export default function CustomersPage() {
                             <p className="text-sm text-muted-foreground">Try searching with a different name or phone number</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Add Customer Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-md rounded-[2rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8 pb-6 flex flex-col items-center text-center gap-4">
+                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                                <UserPlus size={32} strokeWidth={2} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black tracking-tight mb-1">New Customer</h3>
+                                <p className="text-muted-foreground font-medium text-sm">Add a new customer to your database</p>
+                            </div>
+                        </div>
+
+                        <div className="px-8 pb-6 space-y-4">
+                            {formError && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2">
+                                    <AlertCircle size={16} className="shrink-0" />
+                                    {formError}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Customer Name *</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Ahmed Mohamed"
+                                    value={newCustomer.name}
+                                    onChange={e => setNewCustomer(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Phone (Optional)</label>
+                                <input
+                                    type="tel"
+                                    placeholder="e.g. 01012345678"
+                                    value={newCustomer.phone}
+                                    onChange={e => setNewCustomer(prev => ({ ...prev, phone: e.target.value }))}
+                                    className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5 block">Address (Optional)</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Cairo, Egypt"
+                                    value={newCustomer.address}
+                                    onChange={e => setNewCustomer(prev => ({ ...prev, address: e.target.value }))}
+                                    className="w-full p-3 bg-background border border-border/60 rounded-xl text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-secondary/20 flex gap-3">
+                            <button
+                                onClick={() => { setShowAddModal(false); setFormError(null); setNewCustomer({ name: '', phone: '', address: '' }); }}
+                                className="flex-1 py-4 bg-background border border-border/60 rounded-xl font-bold hover:bg-secondary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateCustomer}
+                                disabled={creating}
+                                className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {creating ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <Plus size={18} strokeWidth={3} />
+                                        Create Customer
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

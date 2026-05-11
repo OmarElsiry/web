@@ -11995,6 +11995,7 @@ export namespace Prisma {
     previousBalance: Decimal | null
     amountPaid: Decimal | null
     currentBalance: Decimal | null
+    discountValue: Decimal | null
   }
 
   export type InvoiceSumAggregateOutputType = {
@@ -12002,6 +12003,7 @@ export namespace Prisma {
     previousBalance: Decimal | null
     amountPaid: Decimal | null
     currentBalance: Decimal | null
+    discountValue: Decimal | null
   }
 
   export type InvoiceMinAggregateOutputType = {
@@ -12016,6 +12018,8 @@ export namespace Prisma {
     previousBalance: Decimal | null
     amountPaid: Decimal | null
     currentBalance: Decimal | null
+    discountType: string | null
+    discountValue: Decimal | null
     userId: string | null
   }
 
@@ -12031,6 +12035,8 @@ export namespace Prisma {
     previousBalance: Decimal | null
     amountPaid: Decimal | null
     currentBalance: Decimal | null
+    discountType: string | null
+    discountValue: Decimal | null
     userId: string | null
   }
 
@@ -12046,6 +12052,8 @@ export namespace Prisma {
     previousBalance: number
     amountPaid: number
     currentBalance: number
+    discountType: number
+    discountValue: number
     userId: number
     _all: number
   }
@@ -12056,6 +12064,7 @@ export namespace Prisma {
     previousBalance?: true
     amountPaid?: true
     currentBalance?: true
+    discountValue?: true
   }
 
   export type InvoiceSumAggregateInputType = {
@@ -12063,6 +12072,7 @@ export namespace Prisma {
     previousBalance?: true
     amountPaid?: true
     currentBalance?: true
+    discountValue?: true
   }
 
   export type InvoiceMinAggregateInputType = {
@@ -12077,6 +12087,8 @@ export namespace Prisma {
     previousBalance?: true
     amountPaid?: true
     currentBalance?: true
+    discountType?: true
+    discountValue?: true
     userId?: true
   }
 
@@ -12092,6 +12104,8 @@ export namespace Prisma {
     previousBalance?: true
     amountPaid?: true
     currentBalance?: true
+    discountType?: true
+    discountValue?: true
     userId?: true
   }
 
@@ -12107,6 +12121,8 @@ export namespace Prisma {
     previousBalance?: true
     amountPaid?: true
     currentBalance?: true
+    discountType?: true
+    discountValue?: true
     userId?: true
     _all?: true
   }
@@ -12209,6 +12225,8 @@ export namespace Prisma {
     previousBalance: Decimal
     amountPaid: Decimal
     currentBalance: Decimal
+    discountType: string | null
+    discountValue: Decimal
     userId: string | null
     _count: InvoiceCountAggregateOutputType | null
     _avg: InvoiceAvgAggregateOutputType | null
@@ -12243,6 +12261,8 @@ export namespace Prisma {
     previousBalance?: boolean
     amountPaid?: boolean
     currentBalance?: boolean
+    discountType?: boolean
+    discountValue?: boolean
     userId?: boolean
     customer?: boolean | Invoice$customerArgs<ExtArgs>
     user?: boolean | Invoice$userArgs<ExtArgs>
@@ -12263,6 +12283,8 @@ export namespace Prisma {
     previousBalance?: boolean
     amountPaid?: boolean
     currentBalance?: boolean
+    discountType?: boolean
+    discountValue?: boolean
     userId?: boolean
     customer?: boolean | Invoice$customerArgs<ExtArgs>
     user?: boolean | Invoice$userArgs<ExtArgs>
@@ -12280,6 +12302,8 @@ export namespace Prisma {
     previousBalance?: boolean
     amountPaid?: boolean
     currentBalance?: boolean
+    discountType?: boolean
+    discountValue?: boolean
     userId?: boolean
     customer?: boolean | Invoice$customerArgs<ExtArgs>
     user?: boolean | Invoice$userArgs<ExtArgs>
@@ -12297,10 +12321,12 @@ export namespace Prisma {
     previousBalance?: boolean
     amountPaid?: boolean
     currentBalance?: boolean
+    discountType?: boolean
+    discountValue?: boolean
     userId?: boolean
   }
 
-  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "date" | "totalAmount" | "paymentMethod" | "customerName" | "customerPhone" | "customerAddress" | "customerId" | "previousBalance" | "amountPaid" | "currentBalance" | "userId", ExtArgs["result"]["invoice"]>
+  export type InvoiceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "date" | "totalAmount" | "paymentMethod" | "customerName" | "customerPhone" | "customerAddress" | "customerId" | "previousBalance" | "amountPaid" | "currentBalance" | "discountType" | "discountValue" | "userId", ExtArgs["result"]["invoice"]>
   export type InvoiceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     customer?: boolean | Invoice$customerArgs<ExtArgs>
     user?: boolean | Invoice$userArgs<ExtArgs>
@@ -12337,6 +12363,8 @@ export namespace Prisma {
       previousBalance: Prisma.Decimal
       amountPaid: Prisma.Decimal
       currentBalance: Prisma.Decimal
+      discountType: string | null
+      discountValue: Prisma.Decimal
       userId: string | null
     }, ExtArgs["result"]["invoice"]>
     composites: {}
@@ -12776,6 +12804,8 @@ export namespace Prisma {
     readonly previousBalance: FieldRef<"Invoice", 'Decimal'>
     readonly amountPaid: FieldRef<"Invoice", 'Decimal'>
     readonly currentBalance: FieldRef<"Invoice", 'Decimal'>
+    readonly discountType: FieldRef<"Invoice", 'String'>
+    readonly discountValue: FieldRef<"Invoice", 'Decimal'>
     readonly userId: FieldRef<"Invoice", 'String'>
   }
     
@@ -13302,6 +13332,7 @@ export namespace Prisma {
     name: string | null
     phone: string | null
     address: string | null
+    governorate: string | null
     balance: Decimal | null
     groupId: string | null
     parentId: string | null
@@ -13314,6 +13345,7 @@ export namespace Prisma {
     name: string | null
     phone: string | null
     address: string | null
+    governorate: string | null
     balance: Decimal | null
     groupId: string | null
     parentId: string | null
@@ -13326,6 +13358,7 @@ export namespace Prisma {
     name: number
     phone: number
     address: number
+    governorate: number
     balance: number
     groupId: number
     parentId: number
@@ -13348,6 +13381,7 @@ export namespace Prisma {
     name?: true
     phone?: true
     address?: true
+    governorate?: true
     balance?: true
     groupId?: true
     parentId?: true
@@ -13360,6 +13394,7 @@ export namespace Prisma {
     name?: true
     phone?: true
     address?: true
+    governorate?: true
     balance?: true
     groupId?: true
     parentId?: true
@@ -13372,6 +13407,7 @@ export namespace Prisma {
     name?: true
     phone?: true
     address?: true
+    governorate?: true
     balance?: true
     groupId?: true
     parentId?: true
@@ -13471,6 +13507,7 @@ export namespace Prisma {
     name: string
     phone: string | null
     address: string | null
+    governorate: string | null
     balance: Decimal
     groupId: string | null
     parentId: string | null
@@ -13502,6 +13539,7 @@ export namespace Prisma {
     name?: boolean
     phone?: boolean
     address?: boolean
+    governorate?: boolean
     balance?: boolean
     groupId?: boolean
     parentId?: boolean
@@ -13519,6 +13557,7 @@ export namespace Prisma {
     name?: boolean
     phone?: boolean
     address?: boolean
+    governorate?: boolean
     balance?: boolean
     groupId?: boolean
     parentId?: boolean
@@ -13533,6 +13572,7 @@ export namespace Prisma {
     name?: boolean
     phone?: boolean
     address?: boolean
+    governorate?: boolean
     balance?: boolean
     groupId?: boolean
     parentId?: boolean
@@ -13547,6 +13587,7 @@ export namespace Prisma {
     name?: boolean
     phone?: boolean
     address?: boolean
+    governorate?: boolean
     balance?: boolean
     groupId?: boolean
     parentId?: boolean
@@ -13554,7 +13595,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type CustomerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "phone" | "address" | "balance" | "groupId" | "parentId" | "createdAt" | "updatedAt", ExtArgs["result"]["customer"]>
+  export type CustomerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "phone" | "address" | "governorate" | "balance" | "groupId" | "parentId" | "createdAt" | "updatedAt", ExtArgs["result"]["customer"]>
   export type CustomerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     group?: boolean | Customer$groupArgs<ExtArgs>
     parent?: boolean | Customer$parentArgs<ExtArgs>
@@ -13584,6 +13625,7 @@ export namespace Prisma {
       name: string
       phone: string | null
       address: string | null
+      governorate: string | null
       balance: Prisma.Decimal
       groupId: string | null
       parentId: string | null
@@ -14020,6 +14062,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Customer", 'String'>
     readonly phone: FieldRef<"Customer", 'String'>
     readonly address: FieldRef<"Customer", 'String'>
+    readonly governorate: FieldRef<"Customer", 'String'>
     readonly balance: FieldRef<"Customer", 'Decimal'>
     readonly groupId: FieldRef<"Customer", 'String'>
     readonly parentId: FieldRef<"Customer", 'String'>
@@ -21287,6 +21330,8 @@ export namespace Prisma {
     previousBalance: 'previousBalance',
     amountPaid: 'amountPaid',
     currentBalance: 'currentBalance',
+    discountType: 'discountType',
+    discountValue: 'discountValue',
     userId: 'userId'
   };
 
@@ -21298,6 +21343,7 @@ export namespace Prisma {
     name: 'name',
     phone: 'phone',
     address: 'address',
+    governorate: 'governorate',
     balance: 'balance',
     groupId: 'groupId',
     parentId: 'parentId',
@@ -22133,6 +22179,8 @@ export namespace Prisma {
     previousBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    discountType?: StringNullableFilter<"Invoice"> | string | null
+    discountValue?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     userId?: StringNullableFilter<"Invoice"> | string | null
     customer?: XOR<CustomerNullableScalarRelationFilter, CustomerWhereInput> | null
     user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
@@ -22152,6 +22200,8 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountType?: SortOrderInput | SortOrder
+    discountValue?: SortOrder
     userId?: SortOrderInput | SortOrder
     customer?: CustomerOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
@@ -22174,6 +22224,8 @@ export namespace Prisma {
     previousBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    discountType?: StringNullableFilter<"Invoice"> | string | null
+    discountValue?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     userId?: StringNullableFilter<"Invoice"> | string | null
     customer?: XOR<CustomerNullableScalarRelationFilter, CustomerWhereInput> | null
     user?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
@@ -22193,6 +22245,8 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountType?: SortOrderInput | SortOrder
+    discountValue?: SortOrder
     userId?: SortOrderInput | SortOrder
     _count?: InvoiceCountOrderByAggregateInput
     _avg?: InvoiceAvgOrderByAggregateInput
@@ -22216,6 +22270,8 @@ export namespace Prisma {
     previousBalance?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    discountType?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
+    discountValue?: DecimalWithAggregatesFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     userId?: StringNullableWithAggregatesFilter<"Invoice"> | string | null
   }
 
@@ -22227,6 +22283,7 @@ export namespace Prisma {
     name?: StringFilter<"Customer"> | string
     phone?: StringNullableFilter<"Customer"> | string | null
     address?: StringNullableFilter<"Customer"> | string | null
+    governorate?: StringNullableFilter<"Customer"> | string | null
     balance?: DecimalFilter<"Customer"> | Decimal | DecimalJsLike | number | string
     groupId?: StringNullableFilter<"Customer"> | string | null
     parentId?: StringNullableFilter<"Customer"> | string | null
@@ -22243,6 +22300,7 @@ export namespace Prisma {
     name?: SortOrder
     phone?: SortOrderInput | SortOrder
     address?: SortOrderInput | SortOrder
+    governorate?: SortOrderInput | SortOrder
     balance?: SortOrder
     groupId?: SortOrderInput | SortOrder
     parentId?: SortOrderInput | SortOrder
@@ -22263,6 +22321,7 @@ export namespace Prisma {
     name?: StringFilter<"Customer"> | string
     phone?: StringNullableFilter<"Customer"> | string | null
     address?: StringNullableFilter<"Customer"> | string | null
+    governorate?: StringNullableFilter<"Customer"> | string | null
     balance?: DecimalFilter<"Customer"> | Decimal | DecimalJsLike | number | string
     groupId?: StringNullableFilter<"Customer"> | string | null
     parentId?: StringNullableFilter<"Customer"> | string | null
@@ -22279,6 +22338,7 @@ export namespace Prisma {
     name?: SortOrder
     phone?: SortOrderInput | SortOrder
     address?: SortOrderInput | SortOrder
+    governorate?: SortOrderInput | SortOrder
     balance?: SortOrder
     groupId?: SortOrderInput | SortOrder
     parentId?: SortOrderInput | SortOrder
@@ -22299,6 +22359,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Customer"> | string
     phone?: StringNullableWithAggregatesFilter<"Customer"> | string | null
     address?: StringNullableWithAggregatesFilter<"Customer"> | string | null
+    governorate?: StringNullableWithAggregatesFilter<"Customer"> | string | null
     balance?: DecimalWithAggregatesFilter<"Customer"> | Decimal | DecimalJsLike | number | string
     groupId?: StringNullableWithAggregatesFilter<"Customer"> | string | null
     parentId?: StringNullableWithAggregatesFilter<"Customer"> | string | null
@@ -23288,6 +23349,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     customer?: CustomerCreateNestedOneWithoutInvoicesInput
     user?: UserCreateNestedOneWithoutSalesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
@@ -23306,6 +23369,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     refunds?: RefundUncheckedCreateNestedManyWithoutInvoiceInput
@@ -23322,6 +23387,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     customer?: CustomerUpdateOneWithoutInvoicesNestedInput
     user?: UserUpdateOneWithoutSalesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
@@ -23340,6 +23407,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutInvoiceNestedInput
@@ -23357,6 +23426,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
   }
 
@@ -23371,6 +23442,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
   }
 
   export type InvoiceUncheckedUpdateManyInput = {
@@ -23385,6 +23458,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
@@ -23393,6 +23468,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23407,6 +23483,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     parentId?: string | null
@@ -23421,6 +23498,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23435,6 +23513,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -23449,6 +23528,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     parentId?: string | null
@@ -23461,6 +23541,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23471,6 +23552,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -24506,6 +24588,8 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountType?: SortOrder
+    discountValue?: SortOrder
     userId?: SortOrder
   }
 
@@ -24514,6 +24598,7 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountValue?: SortOrder
   }
 
   export type InvoiceMaxOrderByAggregateInput = {
@@ -24528,6 +24613,8 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountType?: SortOrder
+    discountValue?: SortOrder
     userId?: SortOrder
   }
 
@@ -24543,6 +24630,8 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountType?: SortOrder
+    discountValue?: SortOrder
     userId?: SortOrder
   }
 
@@ -24551,6 +24640,7 @@ export namespace Prisma {
     previousBalance?: SortOrder
     amountPaid?: SortOrder
     currentBalance?: SortOrder
+    discountValue?: SortOrder
   }
 
   export type EnumPaymentMethodWithAggregatesFilter<$PrismaModel = never> = {
@@ -24588,6 +24678,7 @@ export namespace Prisma {
     name?: SortOrder
     phone?: SortOrder
     address?: SortOrder
+    governorate?: SortOrder
     balance?: SortOrder
     groupId?: SortOrder
     parentId?: SortOrder
@@ -24604,6 +24695,7 @@ export namespace Prisma {
     name?: SortOrder
     phone?: SortOrder
     address?: SortOrder
+    governorate?: SortOrder
     balance?: SortOrder
     groupId?: SortOrder
     parentId?: SortOrder
@@ -24616,6 +24708,7 @@ export namespace Prisma {
     name?: SortOrder
     phone?: SortOrder
     address?: SortOrder
+    governorate?: SortOrder
     balance?: SortOrder
     groupId?: SortOrder
     parentId?: SortOrder
@@ -26310,6 +26403,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     customer?: CustomerCreateNestedOneWithoutInvoicesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     refunds?: RefundCreateNestedManyWithoutInvoiceInput
@@ -26327,6 +26422,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     refunds?: RefundUncheckedCreateNestedManyWithoutInvoiceInput
   }
@@ -26456,6 +26553,8 @@ export namespace Prisma {
     previousBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
+    discountType?: StringNullableFilter<"Invoice"> | string | null
+    discountValue?: DecimalFilter<"Invoice"> | Decimal | DecimalJsLike | number | string
     userId?: StringNullableFilter<"Invoice"> | string | null
   }
 
@@ -27562,6 +27661,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -27575,6 +27675,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     parentId?: string | null
@@ -27701,6 +27802,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -27714,6 +27816,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -27823,6 +27926,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -27836,6 +27940,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     parentId?: string | null
@@ -27854,6 +27959,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -27867,6 +27973,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     createdAt?: Date | string
@@ -27896,6 +28003,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     user?: UserCreateNestedOneWithoutSalesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
     refunds?: RefundCreateNestedManyWithoutInvoiceInput
@@ -27912,6 +28021,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
     refunds?: RefundUncheckedCreateNestedManyWithoutInvoiceInput
@@ -27964,6 +28075,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -27977,6 +28089,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -28009,6 +28122,7 @@ export namespace Prisma {
     name?: StringFilter<"Customer"> | string
     phone?: StringNullableFilter<"Customer"> | string | null
     address?: StringNullableFilter<"Customer"> | string | null
+    governorate?: StringNullableFilter<"Customer"> | string | null
     balance?: DecimalFilter<"Customer"> | Decimal | DecimalJsLike | number | string
     groupId?: StringNullableFilter<"Customer"> | string | null
     parentId?: StringNullableFilter<"Customer"> | string | null
@@ -28037,6 +28151,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -28050,6 +28165,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     parentId?: string | null
     createdAt?: Date | string
@@ -28095,6 +28211,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     customer?: CustomerCreateNestedOneWithoutInvoicesInput
     user?: UserCreateNestedOneWithoutSalesInput
     refunds?: RefundCreateNestedManyWithoutInvoiceInput
@@ -28112,6 +28230,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
     refunds?: RefundUncheckedCreateNestedManyWithoutInvoiceInput
   }
@@ -28188,6 +28308,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     customer?: CustomerUpdateOneWithoutInvoicesNestedInput
     user?: UserUpdateOneWithoutSalesNestedInput
     refunds?: RefundUpdateManyWithoutInvoiceNestedInput
@@ -28205,6 +28327,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     refunds?: RefundUncheckedUpdateManyWithoutInvoiceNestedInput
   }
@@ -28271,6 +28395,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     customer?: CustomerCreateNestedOneWithoutInvoicesInput
     user?: UserCreateNestedOneWithoutSalesInput
     items?: InvoiceItemCreateNestedManyWithoutInvoiceInput
@@ -28288,6 +28414,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
     items?: InvoiceItemUncheckedCreateNestedManyWithoutInvoiceInput
   }
@@ -28388,6 +28516,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     customer?: CustomerUpdateOneWithoutInvoicesNestedInput
     user?: UserUpdateOneWithoutSalesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
@@ -28405,6 +28535,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
   }
@@ -28818,6 +28950,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
   }
 
   export type AuditLogCreateManyUserInput = {
@@ -28857,6 +28991,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     customer?: CustomerUpdateOneWithoutInvoicesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
     refunds?: RefundUpdateManyWithoutInvoiceNestedInput
@@ -28874,6 +29010,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutInvoiceNestedInput
   }
@@ -28890,6 +29028,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
   }
 
   export type AuditLogUpdateWithoutUserInput = {
@@ -29401,6 +29541,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     groupId?: string | null
     createdAt?: Date | string
@@ -29418,6 +29559,8 @@ export namespace Prisma {
     previousBalance?: Decimal | DecimalJsLike | number | string
     amountPaid?: Decimal | DecimalJsLike | number | string
     currentBalance?: Decimal | DecimalJsLike | number | string
+    discountType?: string | null
+    discountValue?: Decimal | DecimalJsLike | number | string
     userId?: string | null
   }
 
@@ -29426,6 +29569,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29439,6 +29583,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29452,6 +29597,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     groupId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29469,6 +29615,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     user?: UserUpdateOneWithoutSalesNestedInput
     items?: InvoiceItemUpdateManyWithoutInvoiceNestedInput
     refunds?: RefundUpdateManyWithoutInvoiceNestedInput
@@ -29485,6 +29633,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
     items?: InvoiceItemUncheckedUpdateManyWithoutInvoiceNestedInput
     refunds?: RefundUncheckedUpdateManyWithoutInvoiceNestedInput
@@ -29501,6 +29651,8 @@ export namespace Prisma {
     previousBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     amountPaid?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    discountType?: NullableStringFieldUpdateOperationsInput | string | null
+    discountValue?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     userId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
@@ -29509,6 +29661,7 @@ export namespace Prisma {
     name: string
     phone?: string | null
     address?: string | null
+    governorate?: string | null
     balance?: Decimal | DecimalJsLike | number | string
     parentId?: string | null
     createdAt?: Date | string
@@ -29520,6 +29673,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29533,6 +29687,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29546,6 +29701,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     phone?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableStringFieldUpdateOperationsInput | string | null
+    governorate?: NullableStringFieldUpdateOperationsInput | string | null
     balance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string

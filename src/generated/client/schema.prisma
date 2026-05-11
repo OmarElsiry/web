@@ -170,6 +170,8 @@ model Invoice {
   previousBalance Decimal   @default(0)
   amountPaid      Decimal   @default(0)
   currentBalance  Decimal   @default(0)
+  discountType    String? // "PERCENTAGE" or "FIXED"
+  discountValue   Decimal   @default(0)
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id])
@@ -179,11 +181,12 @@ model Invoice {
 }
 
 model Customer {
-  id      String  @id @default(uuid())
-  name    String
-  phone   String?
-  address String?
-  balance Decimal @default(0)
+  id          String  @id @default(uuid())
+  name        String
+  phone       String?
+  address     String?
+  governorate String?
+  balance     Decimal @default(0)
 
   groupId String?
   group   CustomerGroup? @relation(fields: [groupId], references: [id])

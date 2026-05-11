@@ -159,6 +159,30 @@ export default function SalesPage() {
 
     const handleCheckoutClick = () => {
         if (cart.length === 0) return;
+
+        // Validation: Require customer data
+        if (!selectedCustomerId && !buyerInfo.customerName.trim()) {
+            setError('Please enter a customer name or select an existing customer.');
+            setTimeout(() => setError(null), 3000);
+            return;
+        }
+
+        // Validation: Walk-in (non-registered) customers must pay full amount
+        if (!selectedCustomerId) {
+            if (paymentMethod === 'CASH') {
+                const paid = typeof amountPaid === 'number' ? amountPaid : 0;
+                if (paid < total) {
+                    setError('Walk-in customers must pay the full amount. No debt allowed.');
+                    setTimeout(() => setError(null), 3000);
+                    return;
+                }
+            }
+            // For CREDIT/INSTAPAY walk-ins, auto-set amountPaid to total (exact payment)
+            if (paymentMethod !== 'CASH') {
+                setAmountPaid(total);
+            }
+        }
+
         setShowConfirmDialog(true);
     };
 

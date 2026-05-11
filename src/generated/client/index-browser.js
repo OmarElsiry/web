@@ -211,6 +211,8 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   previousBalance: 'previousBalance',
   amountPaid: 'amountPaid',
   currentBalance: 'currentBalance',
+  discountType: 'discountType',
+  discountValue: 'discountValue',
   userId: 'userId'
 };
 
@@ -219,6 +221,7 @@ exports.Prisma.CustomerScalarFieldEnum = {
   name: 'name',
   phone: 'phone',
   address: 'address',
+  governorate: 'governorate',
   balance: 'balance',
   groupId: 'groupId',
   parentId: 'parentId',

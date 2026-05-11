@@ -51,7 +51,7 @@ export async function getMenuItemsForUser() {
         { to: '/products', permission: 'products', label: 'Products & Pricing', labelAr: 'الأصناف والتسعير' },
         { to: '/invoices', permission: 'invoices', label: 'Invoices', labelAr: 'الفواتير' },
         { to: '/refunds', permission: 'invoices', label: 'Refunds', labelAr: 'المرتجعات' },
-        { to: '/customers', permission: 'dashboard', label: 'Customers', labelAr: 'العملاء' },
+        { to: '/customers', permission: 'customers', label: 'Customers', labelAr: 'العملاء' },
         { to: '/analytics', permission: 'dashboard', label: 'Analytics', labelAr: 'التحليلات' },
         { to: '/profits', permission: 'profits', label: 'Profits', labelAr: 'الأرباح' },
         { to: '/staff-sales', permission: 'staff_sales', label: 'Staff Sales', labelAr: 'مبيعات الاشخاص' },

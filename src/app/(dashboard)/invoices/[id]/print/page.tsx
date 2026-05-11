@@ -3,229 +3,366 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getInvoiceById } from '@/app/actions/invoices';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Printer, Settings2, Edit3, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { tafqeet } from '@/lib/tafqeet';
 
 export default function InvoicePrintPage() {
     const { id } = useParams();
     const [invoice, setInvoice] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [showSettings, setShowSettings] = useState(true);
+
+    // Editable Data States
+    const [warehouseName, setWarehouseName] = useState("المخزن الرئيسي");
+    const [city, setCity] = useState("كفر الشيخ");
+    const [category, setCategory] = useState("عاملين");
+    const [phone1, setPhone1] = useState("");
+    const [phone2, setPhone2] = useState("");
+    const [sequenceId, setSequenceId] = useState("");
+    const [customerCode, setCustomerCode] = useState("");
+    const [employeeId, setEmployeeId] = useState("");
+    const [employeeName, setEmployeeName] = useState("");
+    const [address, setAddress] = useState("");
+    const [customerName, setCustomerName] = useState("");
 
     useEffect(() => {
         if (id) {
             getInvoiceById(id as string).then(data => {
                 setInvoice(data);
+                if (data) {
+                    setSequenceId(parseInt(data.id.slice(-4), 16).toString());
+                    setCustomerCode("01/1/3/" + parseInt(data.id.slice(0, 3), 16));
+                    setEmployeeName(data.user?.name || data.user?.username || "Unknown");
+                    setEmployeeId(data.user?.id ? parseInt(data.user.id.slice(0, 2), 16).toString() : "5");
+                    setAddress(data.customerAddress || "");
+                    setPhone1(data.customerPhone || "");
+                    setCustomerName(data.customerName || "عميل نقدي");
+                }
                 setLoading(false);
             });
         }
     }, [id]);
 
     if (loading) {
-        return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" size={32} /></div>;
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4 text-blue-600">
+                    <Loader2 className="animate-spin" size={40} />
+                    <p className="font-bold">جاري تحميل الفاتورة...</p>
+                </div>
+            </div>
+        );
     }
 
     if (!invoice) {
-        return <div className="text-center p-10 font-bold text-red-500">Invoice not found</div>;
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="bg-white p-10 rounded-2xl shadow-xl text-center">
+                    <p className="font-bold text-red-500 text-xl mb-2">الفاتورة غير موجودة</p>
+                    <p className="text-gray-500">تأكد من الرابط وحاول مرة أخرى.</p>
+                </div>
+            </div>
+        );
     }
 
-    // --- Data Preparation for Print ---
-    // Simulate "Sequence ID" from last 4 chars of UUID (hex -> int simulation)
-    const sequenceId = parseInt(invoice.id.slice(-4), 16);
-
-    // Simulate Customer Code
-    const customerCode = "01/1/3/" + parseInt(invoice.id.slice(0, 3), 16);
-
-    // Format Date
-    const formattedDate = new Date(invoice.date).toLocaleDateString('en-GB'); // DD/MM/YYYY
-
-    // Employee
-    const employeeName = invoice.user?.name || "Unknown";
-    const employeeId = invoice.user?.id ? parseInt(invoice.user.id.slice(0, 2), 16) : 5;
-
-    // Warehouse (Static for now as per spec)
-    const warehouseName = "المخزن الرئيسي";
-
-    // Address Parsing (simple split)
-    const address = invoice.customerAddress || "N/A";
-    const city = "كفر الشيخ"; // Placeholder or extracted if structured
+    const formattedDate = new Date(invoice.date).toLocaleDateString('en-GB');
 
     return (
-        <div className="min-h-screen bg-white p-8 text-black" dir="rtl">
+        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl">
             {/* Print Styles Injection */}
             <style jsx global>{`
                 @media print {
                     @page { size: A4; margin: 10mm; }
-                    body { -webkit-print-color-adjust: exact; }
+                    body { -webkit-print-color-adjust: exact; background: white !important; }
                     header, footer, nav, aside { display: none !important; }
+                    .print-hidden { display: none !important; }
+                    .print-shadow-none { shadow: none !important; border-color: #000 !important; }
                 }
-                .print-border { border: 2px solid #3b82f6; } /* Blue-500 */
-                .print-header-bg { background-color: #fef08a !important; } /* Yellow-200 */
             `}</style>
 
-            {/* --- HEADER --- */}
-            <div className="print-border mb-4 p-2 relative h-32 flex items-start justify-between">
-                {/* Left: Warehouse */}
-                <div className="flex items-center">
-                    <div className="print-border px-4 py-1 font-bold text-blue-800 bg-white">
-                        المستودع
-                    </div>
-                    <div className="px-4 py-1 font-bold">
-                        {warehouseName}
-                    </div>
+            {/* --- SETTINGS SIDEBAR (Hidden on Print) --- */}
+            <div className={`print-hidden bg-white border-l border-gray-200 shadow-xl transition-all duration-300 flex flex-col z-10 ${showSettings ? 'w-full md:w-80 h-auto md:h-screen sticky top-0' : 'w-full md:w-16 h-auto md:h-screen sticky top-0'}`}>
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
+                    {showSettings && <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>}
+                    <button 
+                        onClick={() => setShowSettings(!showSettings)} 
+                        className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
+                        title={showSettings ? "إخفاء" : "إظهار"}
+                    >
+                        {showSettings ? <X size={20} className="hidden md:block" /> : <Settings2 size={20} />}
+                        <span className="md:hidden text-sm font-bold flex items-center gap-1">
+                            {showSettings ? <ChevronUp size={16}/> : <ChevronDown size={16}/>} 
+                            {showSettings ? 'إخفاء الإعدادات' : 'إظهار الإعدادات'}
+                        </span>
+                    </button>
                 </div>
 
-                {/* Center: Title */}
-                <h1 className="absolute left-1/2 -translate-x-1/2 top-4 text-2xl font-bold text-blue-900">
-                    فاتورة المبيعات
-                </h1>
+                {showSettings && (
+                    <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
+                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
+                                <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                        </div>
 
-                {/* Right: Details Box */}
-                <div className="print-border w-1/3 text-sm">
-                    {/* Row 1: Number */}
-                    <div className="flex border-b border-blue-500">
-                        <div className="w-1/3 text-center border-l border-blue-500 py-1 font-bold bg-blue-50">الرقم</div>
-                        <div className="w-2/3 text-center py-1 font-bold">{sequenceId}</div>
-                    </div>
-                    {/* Row 2: Date */}
-                    <div className="flex border-b border-blue-500">
-                        <div className="w-1/3 text-center border-l border-blue-500 py-1 font-bold bg-blue-50">التاريخ</div>
-                        <div className="w-2/3 text-center py-1 font-bold">{formattedDate}</div>
-                    </div>
-                    {/* Row 3: Employee */}
-                    <div className="flex border-b border-blue-500">
-                        <div className="w-1/3 text-center border-l border-blue-500 py-1 font-bold bg-blue-50">رقم الموظف</div>
-                        <div className="w-2/3 flex items-center justify-center gap-2 py-1 font-bold">
-                            <span>{employeeId}</span>
-                            <span className="text-xs">{employeeName}</span>
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
+                                <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
+                                <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">المدينة</label>
+                                    <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الفئة</label>
+                                    <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
+                                <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف 1</label>
+                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">رقم الهاتف 2</label>
+                                    <input type="text" value={phone2} onChange={e => setPhone2(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
+                                    <input type="text" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
+                                    <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-6 pb-8">
+                            <button
+                                onClick={() => window.print()}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_14px_rgba(37,99,235,0.3)] transition-all flex justify-center items-center gap-2"
+                            >
+                                <Printer size={20} />
+                                <span>طباعة الفاتورة</span>
+                            </button>
                         </div>
                     </div>
-                    {/* Row 4: Customer */}
-                    <div className="flex">
-                        <div className="w-1/3 text-center border-l border-blue-500 py-1 font-bold bg-blue-50">اسم العميل</div>
-                        <div className="w-2/3 text-center py-1 font-bold truncate px-1" title={invoice.customerName}>
-                            <span className="text-xs font-mono">{customerCode}</span> - {invoice.customerName}
+                )}
+            </div>
+
+            {/* --- INVOICE PAPER --- */}
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto">
+                <div className="max-w-[210mm] mx-auto bg-white print-shadow-none shadow-2xl rounded-sm p-[10mm] min-h-[297mm] border border-gray-200 text-black">
+                    
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6 border-b-2 border-gray-900 pb-6">
+                        {/* Company Logo / Name Area */}
+                        <div className="flex-1">
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">شركة المبيعات</h1>
+                            <p className="text-gray-500 font-medium text-sm">نظام إدارة المبيعات المتكامل</p>
+                            <div className="mt-4 flex items-center gap-2">
+                                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
+                                    المستودع: {warehouseName}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <div className="flex-1 text-center flex flex-col items-center justify-center">
+                            <div className="border-4 border-gray-900 px-6 py-2 uppercase tracking-widest text-xl font-black rounded-lg transform -rotate-2">
+                                فاتورة مبيعات
+                            </div>
+                        </div>
+
+                        {/* Invoice Meta */}
+                        <div className="flex-1 flex justify-end">
+                            <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
+                                <tbody>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">
+                                            <span className="font-bold">{employeeId}</span> - {employeeName}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div>
 
-                <div className="absolute top-2 left-2 text-xs font-bold">Page 1 of 1</div>
-            </div>
+                    {/* Customer Info Section */}
+                    <div className="mb-6 rounded-lg border border-gray-300 overflow-hidden bg-gray-50/50">
+                        <div className="bg-gray-100 border-b border-gray-300 px-4 py-2 font-bold text-gray-800 flex items-center justify-between">
+                            <span>بيانات العميل</span>
+                            <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-gray-200">{customerCode}</span>
+                        </div>
+                        <div className="p-4">
+                            <div className="grid grid-cols-12 gap-y-3 gap-x-4 text-sm">
+                                <div className="col-span-12 md:col-span-6 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-20 shrink-0">اسم العميل:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{customerName}</span>
+                                </div>
+                                <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{city}</span>
+                                </div>
+                                <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{category}</span>
+                                </div>
 
-            {/* --- CUSTOMER DETAILS --- */}
-            <div className="flex gap-4 mb-4 text-sm font-bold">
-                <div className="flex-1 flex gap-2 items-center">
-                    <span className="print-border px-2 py-0.5 bg-white text-blue-800">المدينة</span>
-                    <span className="border-b border-gray-400 flex-1 px-2">{city}</span>
-                </div>
-                <div className="flex-1 flex gap-2 items-center">
-                    <span className="print-border px-2 py-0.5 bg-white text-blue-800">الفئة</span>
-                    <span className="border-b border-gray-400 flex-1 px-2">عاملين</span>
-                </div>
-            </div>
-            <div className="flex gap-4 mb-4 text-sm font-bold">
-                <div className="flex-[2] flex gap-2 items-center">
-                    <span className="print-border px-2 py-0.5 bg-white text-blue-800">العنوان</span>
-                    <span className="border-b border-gray-400 flex-1 px-2">{address}</span>
-                </div>
-                <div className="flex-1 flex gap-2 items-center">
-                    <span className="print-border px-2 py-0.5 bg-white text-blue-800">ت1</span>
-                    <span className="border-b border-gray-400 flex-1 px-2"></span>
-                </div>
-                <div className="flex-1 flex gap-2 items-center">
-                    <span className="print-border px-2 py-0.5 bg-white text-blue-800">ت2</span>
-                    <span className="border-b border-gray-400 flex-1 px-2"></span>
-                </div>
-            </div>
-
-
-            {/* --- LINE ITEMS TABLE --- */}
-            <table className="w-full border-collapse border border-blue-800 text-sm mb-4">
-                <thead>
-                    <tr className="print-header-bg text-red-600 border-b border-blue-800">
-                        <th className="border-l border-blue-800 py-1 w-10">م</th>
-                        <th className="border-l border-blue-800 py-1 w-24">رقم الصنف</th>
-                        <th className="border-l border-blue-800 py-1">اسم الصنف</th>
-                        <th className="border-l border-blue-800 py-1 w-16">الوحدة</th>
-                        <th className="border-l border-blue-800 py-1 w-16">الكمية</th>
-                        <th className="border-l border-blue-800 py-1 w-20">السعر</th>
-                        <th className="border-l border-blue-800 py-1 w-16 text-black">ن الخصم</th>
-                        <th className="border-l border-blue-800 py-1 w-16 text-red-600">ق الخصم</th>
-                        <th className="py-1 w-24 text-red-600">القيمة</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {invoice.items.map((item: any, idx: number) => (
-                        <tr key={idx} className="border-b border-blue-200 even:bg-blue-50/30">
-                            <td className="border-l border-blue-800 py-1 text-center font-bold">{idx + 1}</td>
-                            <td className="border-l border-blue-800 py-1 text-center font-bold font-mono">{item.productCode || '---'}</td>
-                            <td className="border-l border-blue-800 py-1 px-2 font-bold text-right">{item.productName}</td>
-                            <td className="border-l border-blue-800 py-1 text-center font-bold">{item.productUnit || 'piece'}</td>
-                            <td className="border-l border-blue-800 py-1 text-center font-bold">{item.quantity}</td>
-                            <td className="border-l border-blue-800 py-1 text-center font-bold">{item.unitPrice.toFixed(2)}</td>
-                            <td className="border-l border-blue-800 py-1 text-center"></td>
-                            <td className="border-l border-blue-800 py-1 text-center"></td>
-                            <td className="py-1 text-center font-bold">{item.subtotal.toFixed(2)}</td>
-                        </tr>
-                    ))}
-                    {/* Fill empty rows to mimic paper look if needed, skipping for now */}
-                </tbody>
-            </table>
-
-            {/* --- FOOTER --- */}
-            <div className="flex gap-4 items-start text-sm">
-                {/* Left: Totals */}
-                <div className="flex-1">
-                    <div className="flex mb-2">
-                        <div className="w-32 font-bold text-blue-900">اجمالي الفاتورة</div>
-                        <div className="flex-1 font-bold text-xl text-blue-900 text-left px-4">{invoice.totalAmount.toFixed(2)}</div>
-                    </div>
-                    <div className="flex">
-                        <div className="w-32 font-bold text-blue-900">الكمية</div>
-                        <div className="flex-1 font-bold text-blue-900 text-left px-4">
-                            {invoice.items.reduce((acc: number, item: any) => acc + item.quantity, 0).toFixed(2)}
+                                <div className="col-span-12 md:col-span-6 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-20 shrink-0">العنوان:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{address}</span>
+                                </div>
+                                <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-16 shrink-0">هاتف 1:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone1}</span>
+                                </div>
+                                <div className="col-span-12 md:col-span-3 flex gap-2">
+                                    <span className="font-bold text-gray-600 w-12 shrink-0">هاتف 2:</span>
+                                    <span className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1">{phone2}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Right: Balances */}
-                <div className="flex-1 border border-gray-400 rounded p-1">
-                    <div className="grid grid-cols-2 gap-y-1">
-                        <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الرصيد السابق</div>
-                        <div className="text-left font-bold px-2">{Number(invoice.previousBalance || 0).toLocaleString()}</div>
-
-                        <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الصافي</div>
-                        <div className="text-left font-bold px-2">{Number(invoice.totalAmount).toLocaleString()}</div>
-
-                        <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300 flex items-center justify-between">
-                            <span>مستلم من العميل</span>
-                            <span className="text-xs font-normal text-gray-500">{invoice.paymentMethod === 'CREDIT' ? 'آجل' : 'نقداً'}</span>
-                        </div>
-                        <div className="text-left font-bold px-2">{Number(invoice.amountPaid || 0).toLocaleString()}</div>
-
-                        <div className="text-right font-bold text-blue-900 px-2 border-l border-gray-300">الرصيد الحالي</div>
-                        <div className="text-left font-bold px-2">{Number(invoice.currentBalance || 0).toLocaleString()}</div>
+                    {/* Line Items */}
+                    <div className="min-h-[200px]">
+                        <table className="w-full border-collapse border-2 border-gray-900 text-sm">
+                            <thead>
+                                <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
+                                    <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
+                                    <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>
+                                    <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
+                                    <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
+                                    <th className="border-l border-gray-300 py-2 w-16 text-center">ن الخصم</th>
+                                    <th className="border-l border-gray-300 py-2 w-16 text-center">ق الخصم</th>
+                                    <th className="py-2 w-24 text-center font-bold">القيمة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {invoice.items.map((item: any, idx: number) => (
+                                    <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
+                                        <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>
+                                        <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right">{item.productName}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center text-gray-600">{item.productUnit || 'قطعة'}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center font-bold">{item.quantity}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center font-medium">{item.unitPrice.toFixed(2)}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>
+                                        <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>
+                                        <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{item.subtotal.toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                                {/* Empty spacer row if needed to push footer down could be added here */}
+                            </tbody>
+                        </table>
                     </div>
+
+                    {/* Footer Totals & Financials */}
+                    <div className="mt-6 flex flex-col md:flex-row gap-6">
+                        {/* Summary & Word Amount */}
+                        <div className="flex-1 flex flex-col justify-between space-y-4">
+                            <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
+                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
+                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
+                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {invoice.items.reduce((acc: number, item: any) => acc + item.quantity, 0)}
+                                    </span>
+                                </div>
+                                <div className="flex-1 flex items-center justify-between">
+                                    <span className="font-bold text-gray-700">الإجمالي العام</span>
+                                    <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {invoice.totalAmount.toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="border border-gray-800 p-3 text-center rounded bg-white relative">
+                                <span className="absolute -top-3 right-4 bg-white px-2 text-xs font-bold text-gray-500">المبلغ بالحروف</span>
+                                <p className="font-bold text-gray-900 text-lg leading-relaxed">
+                                    فقط وقدره ( {tafqeet(Number(invoice.totalAmount))} ) لا غير.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Financial Balances */}
+                        <div className="w-full md:w-72 border-2 border-gray-900 rounded-lg overflow-hidden bg-white">
+                            <div className="bg-gray-900 text-white text-center py-1 font-bold text-sm tracking-widest">
+                                كشف الحساب
+                            </div>
+                            <div className="grid grid-cols-2 text-sm divide-x divide-x-reverse divide-gray-200">
+                                <div className="bg-gray-100 p-2 font-bold text-gray-700">الرصيد السابق</div>
+                                <div className="p-2 font-black text-center">{Number(invoice.previousBalance || 0).toLocaleString()}</div>
+
+                                <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200">قيمة الفاتورة</div>
+                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700">{Number(invoice.totalAmount).toLocaleString()}</div>
+
+                                <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center">
+                                    <span>المدفوع</span>
+                                    <span className="text-[10px] font-normal text-gray-500">{invoice.paymentMethod === 'CREDIT' ? 'آجل' : 'نقداً'}</span>
+                                </div>
+                                <div className="p-2 font-black text-center border-t border-gray-200 text-green-600 flex items-center justify-center">
+                                    {Number(invoice.amountPaid || 0).toLocaleString()}
+                                </div>
+
+                                <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300">الرصيد المتبقي</div>
+                                <div className="p-2 font-black text-center text-xl border-t border-gray-300 bg-gray-50 text-red-600">
+                                    {Number(invoice.currentBalance || 0).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Signatures */}
+                    <div className="mt-12 flex justify-between px-16 text-lg font-bold">
+                        <div className="text-center w-40 flex flex-col items-center">
+                            <div className="h-12 border-b-2 border-dashed border-gray-400 w-full mb-2"></div>
+                            <span className="text-gray-600 text-sm">توقيع المستلم</span>
+                        </div>
+                        <div className="text-center w-40 flex flex-col items-center">
+                            <div className="h-12 border-b-2 border-dashed border-gray-400 w-full mb-2"></div>
+                            <span className="text-gray-600 text-sm">توقيع المسئول</span>
+                        </div>
+                    </div>
+
                 </div>
-            </div>
-
-            {/* --- AMOUNT IN WORDS (TAFQEET) --- */}
-            <div className="mt-4 border border-gray-400 p-2 text-center font-bold">
-                ( {tafqeet(Number(invoice.totalAmount))} ) مدين
-            </div>
-
-            <div className="mt-8 flex justify-between px-10 text-lg font-bold">
-                <div className="text-center w-32 border-t border-black pt-2">توقيع المستلم</div>
-                <div className="text-center w-32 border-t border-black pt-2">المسئول</div>
-            </div>
-
-            <div className="mt-8 text-center hidden print:hidden">
-                <button
-                    onClick={() => window.print()}
-                    className="bg-blue-600 text-white px-6 py-2 rounded shadow hover:bg-blue-700 font-bold"
-                >
-                    Print Invoice (طباعة)
-                </button>
             </div>
         </div>
     );
 }
+
