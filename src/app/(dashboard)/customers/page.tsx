@@ -162,7 +162,7 @@ export default function CustomersPage() {
                             <div className="flex items-start gap-4 mb-4 relative z-10">
                                 <div className={clsx(
                                     "p-3 rounded-xl",
-                                    customer.type === 'USER' ? "bg-primary/10 text-primary" : "bg-orange-500/10 text-orange-600"
+                                    "bg-primary/10 text-primary"
                                 )}>
                                     <UserCircle size={28} />
                                 </div>
