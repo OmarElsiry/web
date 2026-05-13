@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw } from 'lucide-react';
-import { getInvoices } from '@/app/actions/invoices';
+import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw, Pencil, Save, AlertCircle } from 'lucide-react';
+import { getInvoices, updateInvoice } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
 import RefundModal from '@/components/RefundModal';
 import clsx from 'clsx';
@@ -46,6 +46,15 @@ export default function InvoicesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+
+    // Edit mode state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editItems, setEditItems] = useState<Array<{ id: string; productId: string; quantity: number; unitPrice: number }>>([]);
+    const [editBuyer, setEditBuyer] = useState({ name: '', phone: '', address: '' });
+    const [editPayment, setEditPayment] = useState('');
+    const [editAmountPaid, setEditAmountPaid] = useState(0);
+    const [editSaving, setEditSaving] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
 
     // Date Filter State
     const [showDateFilter, setShowDateFilter] = useState(false);
@@ -102,7 +111,11 @@ export default function InvoicesPage() {
         }
     }, [invoices, handleDownload]);
 
-    const handleCloseModal = useCallback(() => setSelectedInvoice(null), []);
+    const handleCloseModal = useCallback(() => {
+        setSelectedInvoice(null);
+        setIsEditing(false);
+        setEditError(null);
+    }, []);
     const handleDownloadSelected = useCallback(() => {
         if (selectedInvoice) handleDownload(selectedInvoice);
     }, [selectedInvoice, handleDownload]);
@@ -116,6 +129,57 @@ export default function InvoicesPage() {
         setSelectedInvoice(null);
         getInvoices().then(data => setInvoices(data as unknown as Invoice[]));
     }, []);
+
+    // --- Edit handlers ---
+    const handleStartEdit = useCallback(() => {
+        if (!selectedInvoice) return;
+        setEditItems(selectedInvoice.items?.map(it => ({
+            id: it.id, productId: it.productId, quantity: it.quantity, unitPrice: it.unitPrice
+        })) || []);
+        setEditBuyer({
+            name: selectedInvoice.customerName || '',
+            phone: selectedInvoice.customerPhone || '',
+            address: selectedInvoice.customerAddress || '',
+        });
+        setEditPayment(selectedInvoice.paymentMethod);
+        setEditAmountPaid(selectedInvoice.amountPaid || 0);
+        setEditError(null);
+        setIsEditing(true);
+    }, [selectedInvoice]);
+
+    const handleCancelEdit = useCallback(() => {
+        setIsEditing(false);
+        setEditError(null);
+    }, []);
+
+    const handleEditItemChange = useCallback((itemId: string, field: 'quantity' | 'unitPrice', value: number) => {
+        setEditItems(prev => prev.map(it => it.id === itemId ? { ...it, [field]: value } : it));
+    }, []);
+
+    const editTotal = editItems.reduce((s, it) => s + it.quantity * it.unitPrice, 0);
+
+    const handleSaveEdit = useCallback(async () => {
+        if (!selectedInvoice) return;
+        setEditSaving(true);
+        setEditError(null);
+        const result = await updateInvoice(selectedInvoice.id, {
+            customerName: editBuyer.name,
+            customerPhone: editBuyer.phone,
+            customerAddress: editBuyer.address,
+            paymentMethod: editPayment as 'CASH' | 'CREDIT' | 'INSTAPAY',
+            amountPaid: editAmountPaid,
+            items: editItems,
+        });
+        if (result.success) {
+            setIsEditing(false);
+            setSelectedInvoice(null);
+            const data = await getInvoices();
+            setInvoices(data as unknown as Invoice[]);
+        } else {
+            setEditError(result.error || t('errors.updateFailed'));
+        }
+        setEditSaving(false);
+    }, [selectedInvoice, editBuyer, editPayment, editAmountPaid, editItems, t]);
 
     const filteredInvoices = invoices.filter(inv => {
         const query = searchQuery.toLowerCase();
@@ -321,21 +385,49 @@ export default function InvoicesPage() {
                             {/* Buyer Info */}
                             <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
                                 <h4 className="font-bold text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">{t('details.buyerInfo')}</h4>
-                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <span className="text-muted-foreground">{t('details.name')}: </span>
-                                        <span className="font-medium">{selectedInvoice.customerName || t('walkInCustomer')}</span>
+                                {isEditing ? (
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase">{t('details.name')}</label>
+                                            <input type="text" value={editBuyer.name} onChange={e => setEditBuyer(p => ({ ...p, name: e.target.value }))} className="w-full p-2 bg-card border border-border rounded-lg text-sm font-medium outline-none focus:ring-1 ring-primary/30" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase">{t('details.phone')}</label>
+                                            <input type="text" value={editBuyer.phone} onChange={e => setEditBuyer(p => ({ ...p, phone: e.target.value }))} className="w-full p-2 bg-card border border-border rounded-lg text-sm font-medium outline-none focus:ring-1 ring-primary/30 tabular-nums" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase">{t('details.address')}</label>
+                                            <input type="text" value={editBuyer.address} onChange={e => setEditBuyer(p => ({ ...p, address: e.target.value }))} className="w-full p-2 bg-card border border-border rounded-lg text-sm font-medium outline-none focus:ring-1 ring-primary/30" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <span className="text-muted-foreground">{t('details.phone')}: </span>
-                                        <span className="font-medium">{selectedInvoice.customerPhone || t('report.na')}</span>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div><span className="text-muted-foreground">{t('details.name')}: </span><span className="font-medium">{selectedInvoice.customerName || t('walkInCustomer')}</span></div>
+                                        <div><span className="text-muted-foreground">{t('details.phone')}: </span><span className="font-medium">{selectedInvoice.customerPhone || t('report.na')}</span></div>
+                                        <div className="col-span-2"><span className="text-muted-foreground">{t('details.address')}: </span><span className="font-medium">{selectedInvoice.customerAddress || t('report.na')}</span></div>
                                     </div>
-                                    <div className="col-span-2">
-                                        <span className="text-muted-foreground">{t('details.address')}: </span>
-                                        <span className="font-medium">{selectedInvoice.customerAddress || t('report.na')}</span>
+                                )}
+                            </div>
+
+                            {/* Payment Method (edit mode) */}
+                            {isEditing && (
+                                <div className="p-4 bg-secondary/20 rounded-xl border border-border">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase">{t('details.payment')}</label>
+                                            <select value={editPayment} onChange={e => setEditPayment(e.target.value)} className="w-full p-2 bg-card border border-border rounded-lg text-sm font-medium outline-none focus:ring-1 ring-primary/30">
+                                                <option value="CASH">CASH</option>
+                                                <option value="CREDIT">CREDIT</option>
+                                                <option value="INSTAPAY">INSTAPAY</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-muted-foreground uppercase">{t('details.amountPaid')}</label>
+                                            <input type="number" min={0} step={0.01} value={editAmountPaid} onChange={e => setEditAmountPaid(Number(e.target.value))} className="w-full p-2 bg-card border border-border rounded-lg text-sm font-medium outline-none focus:ring-1 ring-primary/30 tabular-nums" />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Items Table */}
                             <div className="space-y-3">
@@ -350,28 +442,56 @@ export default function InvoicesPage() {
                                                 <th className={clsx("px-4 py-2", locale === 'ar' ? "text-left" : "text-right")}>{t('details.subtotal')}</th>
                                             </tr>
                                         </thead>
-
                                         <tbody className="divide-y divide-border">
-                                            {selectedInvoice.items?.map(item => (
-                                                <tr key={item.id} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-medium">{item.product.name}</div>
-                                                        <div className="text-[10px] text-muted-foreground">{item.product.sku}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">{item.quantity.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-3", locale === 'ar' ? "text-left" : "text-right")}>{ts('currency')} {item.unitPrice.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-3 font-bold", locale === 'ar' ? "text-left" : "text-right")}>{ts('currency')} {item.subtotal.toLocaleString(locale)}</td>
-                                                </tr>
-                                            ))}
+                                            {selectedInvoice.items?.map(item => {
+                                                const editItem = editItems.find(ei => ei.id === item.id);
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-muted/30">
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-medium">{item.product.name}</div>
+                                                            <div className="text-[10px] text-muted-foreground">{item.product.sku}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center">
+                                                            {isEditing && editItem ? (
+                                                                <input type="number" min={1} value={editItem.quantity} onChange={e => handleEditItemChange(item.id, 'quantity', parseInt(e.target.value) || 1)} className="w-16 p-1 bg-card border border-border rounded-lg text-center text-sm font-bold outline-none focus:ring-1 ring-primary/30 tabular-nums" />
+                                                            ) : item.quantity.toLocaleString(locale)}
+                                                        </td>
+                                                        <td className={clsx("px-4 py-3", locale === 'ar' ? "text-left" : "text-right")}>
+                                                            {isEditing && editItem ? (
+                                                                <input type="number" min={0} step={0.01} value={editItem.unitPrice} onChange={e => handleEditItemChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)} className="w-20 p-1 bg-card border border-border rounded-lg text-right text-sm font-bold outline-none focus:ring-1 ring-primary/30 tabular-nums" />
+                                                            ) : <>{ts('currency')} {item.unitPrice.toLocaleString(locale)}</>}
+                                                        </td>
+                                                        <td className={clsx("px-4 py-3 font-bold", locale === 'ar' ? "text-left" : "text-right")}>
+                                                            {ts('currency')} {isEditing && editItem ? (editItem.quantity * editItem.unitPrice).toLocaleString(locale) : item.subtotal.toLocaleString(locale)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                         <tfoot className="bg-secondary/10 font-bold border-t border-border">
                                             <tr>
                                                 <td colSpan={3} className={clsx("px-4 py-3", locale === 'ar' ? "text-left" : "text-right")}>{t('details.grandTotal')}</td>
-                                                <td className={clsx("px-4 py-3 text-primary text-lg", locale === 'ar' ? "text-left" : "text-right")}>{ts('currency')} {Number(selectedInvoice.totalAmount).toLocaleString(locale)}</td>
+                                                <td className={clsx("px-4 py-3 text-primary text-lg", locale === 'ar' ? "text-left" : "text-right")}>
+                                                    {ts('currency')} {isEditing ? editTotal.toLocaleString(locale) : Number(selectedInvoice.totalAmount).toLocaleString(locale)}
+                                                </td>
                                             </tr>
                                         </tfoot>
                                     </table>
                                 </div>
+
+                                {/* Edit warning / error */}
+                                {isEditing && (
+                                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center gap-2">
+                                        <AlertCircle size={16} className="shrink-0" />
+                                        {t('details.editWarning')}
+                                    </div>
+                                )}
+                                {editError && (
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2">
+                                        <AlertCircle size={16} className="shrink-0" />
+                                        {editError}
+                                    </div>
+                                )}
 
                                 {/* Premium Arabic Financial Footer */}
                                 <div className="mt-6 border-2 border-primary/20 rounded-2xl overflow-hidden bg-primary/5 shadow-inner">
@@ -382,54 +502,66 @@ export default function InvoicesPage() {
                                         </div>
                                         <div className="p-4 flex flex-col items-center justify-center gap-1 bg-primary/10">
                                             <span className="text-[10px] text-primary text-center">{t('details.net')}</span>
-                                            <span className="text-xl text-primary">{ts('currency')} {Number(selectedInvoice.totalAmount).toLocaleString(locale)}</span>
+                                            <span className="text-xl text-primary">{ts('currency')} {isEditing ? editTotal.toLocaleString(locale) : Number(selectedInvoice.totalAmount).toLocaleString(locale)}</span>
                                         </div>
                                         <div className="p-4 flex flex-col items-center justify-center gap-1">
                                             <span className="text-[10px] text-green-600 text-center">{t('details.received')}</span>
-                                            <span className="text-lg text-green-600">{ts('currency')} {Number(selectedInvoice.amountPaid || 0).toLocaleString(locale)}</span>
+                                            <span className="text-lg text-green-600">{ts('currency')} {isEditing ? editAmountPaid.toLocaleString(locale) : Number(selectedInvoice.amountPaid || 0).toLocaleString(locale)}</span>
                                         </div>
                                         <div className="p-4 flex flex-col items-center justify-center gap-1 bg-primary/5">
                                             <span className="text-[10px] text-red-600 font-black text-center">{t('details.currentBalance')}</span>
-                                            <span className="text-xl text-red-600 underline decoration-double">{ts('currency')} {Number(selectedInvoice.currentBalance || 0).toLocaleString(locale)}</span>
+                                            <span className="text-xl text-red-600 underline decoration-double">{ts('currency')} {isEditing ? (Number(selectedInvoice.previousBalance || 0) + editTotal - editAmountPaid).toLocaleString(locale) : Number(selectedInvoice.currentBalance || 0).toLocaleString(locale)}</span>
                                         </div>
                                     </div>
                                 </div>
                              </div>
 
                             <div className="p-4 border-t border-border bg-secondary/5 flex flex-wrap gap-3">
-                                <button
-                                    onClick={handleDownloadSelected}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all"
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <Printer size={18} />
-                                        {t('details.quickPrint')}
-                                    </span>
-                                </button>
-                                <button
-                                    onClick={handleOpenPrintTab}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all hover:bg-blue-700 min-w-[200px]"
-                                >
-                                    <FileText size={18} />
-                                    {t('details.officialInvoice')}
-                                </button>
-                                <button
-                                    onClick={handleCloseModal}
-                                    className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                                >
-                                    {t('details.close')}
-                                </button>
+                                {isEditing ? (
+                                    <>
+                                        <button onClick={handleCancelEdit} className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all">
+                                            <X size={18} /> {t('details.cancelEdit')}
+                                        </button>
+                                        <button onClick={handleSaveEdit} disabled={editSaving} className="flex-1 flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-xl font-bold transition-all hover:bg-green-700 shadow-lg shadow-green-600/20 disabled:opacity-50">
+                                            {editSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                                            {editSaving ? t('details.saving') : t('details.saveChanges')}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button onClick={handleDownloadSelected} className="flex-1 flex items-center justify-center gap-2 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all">
+                                            <span className="flex items-center gap-2"><Printer size={18} />{t('details.quickPrint')}</span>
+                                        </button>
+                                        <button onClick={handleOpenPrintTab} className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white rounded-xl font-bold transition-all hover:bg-blue-700 min-w-[200px]">
+                                            <FileText size={18} /> {t('details.officialInvoice')}
+                                        </button>
+                                        <button onClick={handleCloseModal} className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                                            {t('details.close')}
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             <div className="px-6 pb-6 pt-2 border-t border-border/50 bg-red-50/20 dark:bg-red-950/5 flex flex-col gap-2">
                                 <h4 className="text-[10px] font-bold uppercase text-red-500 tracking-widest pl-1">{t('details.actions')}</h4>
-                                <button
-                                    onClick={handleOpenRefundModal}
-                                    className="flex items-center justify-center gap-2 py-3 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-xl font-bold transition-all hover:bg-red-200 dark:hover:bg-red-900/40"
-                                >
-                                    <RefreshCcw size={18} />
-                                    {t('details.refund')}
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleStartEdit}
+                                        disabled={isEditing}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl font-bold transition-all hover:bg-blue-200 dark:hover:bg-blue-900/40 disabled:opacity-40"
+                                    >
+                                        <Pencil size={18} />
+                                        {t('details.editOrder')}
+                                    </button>
+                                    <button
+                                        onClick={handleOpenRefundModal}
+                                        disabled={isEditing}
+                                        className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-xl font-bold transition-all hover:bg-red-200 dark:hover:bg-red-900/40 disabled:opacity-40"
+                                    >
+                                        <RefreshCcw size={18} />
+                                        {t('details.refund')}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -256,7 +256,19 @@
       "quickPrint": "طباعة سريعة",
       "officialInvoice": "فاتورة رسمية",
       "close": "إغلاق",
-      "refund": "بدء عملية استرجاع"
+      "refund": "بدء عملية استرجاع",
+      "editOrder": "تعديل الطلب",
+      "saveChanges": "حفظ التغييرات",
+      "saving": "جاري الحفظ...",
+      "cancelEdit": "إلغاء التعديل",
+      "editWarning": "التعديل سيؤثر على المخزون والإيرادات.",
+      "amountPaid": "المبلغ المدفوع"
+    },
+    "errors": {
+      "updateFailed": "فشل تحديث الفاتورة."
+    },
+    "success": {
+      "updated": "تم تحديث الفاتورة بنجاح."
     },
     "report": {
       "title": "تقرير الفواتير",
@@ -274,6 +286,8 @@
     "subtitle": "إدارة وتحليل قاعدة عملائك",
     "searchPlaceholder": "البحث بالاسم أو الهاتف...",
     "addCustomer": "إضافة عميل",
+    "editCustomer": "تعديل",
+    "deleteCustomer": "حذف",
     "stats": {
       "totalCustomers": "إجمالي العملاء",
       "withDebt": "عملاء مديونون",
@@ -301,13 +315,36 @@
       "phonePlaceholder": "مثال: 01012345678",
       "addressLabel": "العنوان (اختياري)",
       "addressPlaceholder": "مثال: القاهرة، مصر",
+      "governorateLabel": "المحافظة (اختياري)",
+      "governoratePlaceholder": "مثال: القاهرة",
       "cancel": "إلغاء",
       "create": "إنشاء عميل",
       "creating": "جاري الإنشاء..."
     },
+    "editModal": {
+      "title": "تعديل العميل",
+      "description": "تحديث بيانات العميل. ستطبق التغييرات في كل مكان.",
+      "save": "حفظ التغييرات",
+      "saving": "جاري الحفظ..."
+    },
+    "deleteConfirm": {
+      "title": "حذف العميل",
+      "message": "هل أنت متأكد من حذف هذا العميل نهائياً؟",
+      "warning": "لا يمكن التراجع عن هذا الإجراء.",
+      "confirm": "نعم، احذف",
+      "cancel": "إلغاء",
+      "deleting": "جاري الحذف..."
+    },
     "errors": {
       "nameRequired": "اسم العميل مطلوب.",
-      "createFailed": "فشل إنشاء العميل."
+      "createFailed": "فشل إنشاء العميل.",
+      "updateFailed": "فشل تحديث العميل.",
+      "deleteFailed": "فشل حذف العميل.",
+      "hasInvoices": "لا يمكن الحذف: العميل لديه فواتير موجودة."
+    },
+    "success": {
+      "updated": "تم تحديث العميل بنجاح.",
+      "deleted": "تم حذف العميل بنجاح."
     }
   },
   "Analytics": {

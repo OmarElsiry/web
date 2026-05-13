@@ -131,3 +131,91 @@ export async function createCustomer(data: {
         return { success: false, error: 'Failed to create customer. Please try again.' };
     }
 }
+
+export async function updateCustomer(
+    id: string,
+    data: {
+        name: string;
+        phone?: string;
+        address?: string;
+        governorate?: string;
+        groupId?: string;
+    }
+) {
+    if (!id) return { success: false, error: 'Customer ID is required.' };
+    if (!data.name || data.name.trim().length < 2) {
+        return { success: false, error: 'Customer name must be at least 2 characters.' };
+    }
+
+    const prisma = getPrisma();
+
+    try {
+        // Use a transaction to update customer AND sync legacy invoice fields
+        const customer = await prisma.$transaction(async (tx) => {
+            const updated = await tx.customer.update({
+                where: { id },
+                data: {
+                    name: data.name.trim(),
+                    phone: data.phone?.trim() || null,
+                    address: data.address?.trim() || null,
+                    governorate: data.governorate?.trim() || null,
+                    groupId: data.groupId || null,
+                },
+            });
+
+            // Sync legacy denormalized fields on all linked invoices
+            await tx.invoice.updateMany({
+                where: { customerId: id },
+                data: {
+                    customerName: updated.name,
+                    customerPhone: updated.phone,
+                    customerAddress: updated.address,
+                },
+            });
+
+            return updated;
+        });
+
+        revalidatePath('/customers');
+        revalidatePath('/invoices');
+        revalidatePath('/analytics');
+        revalidatePath('/dashboard');
+        revalidatePath('/profits');
+        return { success: true, customer };
+    } catch (err: any) {
+        if (err?.code === 'P2002') {
+            return { success: false, error: 'A customer with this name and phone already exists.' };
+        }
+        console.error('Failed to update customer:', err);
+        return { success: false, error: 'Failed to update customer. Please try again.' };
+    }
+}
+
+export async function deleteCustomer(id: string) {
+    if (!id) return { success: false, error: 'Customer ID is required.' };
+
+    const prisma = getPrisma();
+
+    try {
+        // Check if customer has any invoices
+        const invoiceCount = await prisma.invoice.count({
+            where: { customerId: id },
+        });
+
+        if (invoiceCount > 0) {
+            return {
+                success: false,
+                error: `Cannot delete this customer because they have ${invoiceCount} invoice(s). Edit them instead.`,
+            };
+        }
+
+        await prisma.customer.delete({ where: { id } });
+
+        revalidatePath('/customers');
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (err: any) {
+        console.error('Failed to delete customer:', err);
+        return { success: false, error: 'Failed to delete customer. Please try again.' };
+    }
+}

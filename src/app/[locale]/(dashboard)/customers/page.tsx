@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X } from 'lucide-react';
-import { getCustomersList, createCustomer } from '@/app/actions/customers';
+import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle } from 'lucide-react';
+import { getCustomersList, createCustomer, updateCustomer, deleteCustomer } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
@@ -32,6 +32,8 @@ interface Customer {
     updatedAt: Date;
 }
 
+type ModalMode = 'add' | 'edit' | null;
+
 export default function CustomersPage() {
     const t = useTranslations('Customers');
     const ts = useTranslations('Sales');
@@ -42,11 +44,17 @@ export default function CustomersPage() {
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
-    // Add Customer Modal
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [newCustomer, setNewCustomer] = useState({ name: '', phone: '', address: '' });
-    const [creating, setCreating] = useState(false);
+    // Modal state (shared for add/edit)
+    const [modalMode, setModalMode] = useState<ModalMode>(null);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+    const [formData, setFormData] = useState({ name: '', phone: '', address: '', governorate: '' });
+    const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+
+    // Delete state
+    const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const loadCustomers = useCallback(async (showLoading = false) => {
         if (showLoading) setLoading(true);
@@ -59,40 +67,101 @@ export default function CustomersPage() {
         loadCustomers(false);
     }, [loadCustomers]);
 
-    const handleCreateCustomer = useCallback(async () => {
-        if (!newCustomer.name.trim()) {
+    // --- Add Modal ---
+    const handleOpenAddModal = useCallback(() => {
+        setFormData({ name: '', phone: '', address: '', governorate: '' });
+        setFormError(null);
+        setEditingCustomer(null);
+        setModalMode('add');
+    }, []);
+
+    // --- Edit Modal ---
+    const handleOpenEditModal = useCallback((e: React.MouseEvent, customer: Customer) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setFormData({
+            name: customer.name,
+            phone: customer.phone || '',
+            address: customer.address || '',
+            governorate: customer.governorate || '',
+        });
+        setFormError(null);
+        setEditingCustomer(customer);
+        setModalMode('edit');
+    }, []);
+
+    const handleCloseModal = useCallback(() => {
+        setModalMode(null);
+        setFormError(null);
+        setEditingCustomer(null);
+        setFormData({ name: '', phone: '', address: '', governorate: '' });
+    }, []);
+
+    const handleSave = useCallback(async () => {
+        if (!formData.name.trim()) {
             setFormError(t('errors.nameRequired'));
             return;
         }
-        setCreating(true);
+        setSaving(true);
         setFormError(null);
 
-        const result = await createCustomer({
-            name: newCustomer.name,
-            phone: newCustomer.phone || undefined,
-            address: newCustomer.address || undefined,
-        });
+        if (modalMode === 'add') {
+            const result = await createCustomer({
+                name: formData.name,
+                phone: formData.phone || undefined,
+                address: formData.address || undefined,
+            });
+            if (result.success) {
+                handleCloseModal();
+                loadCustomers(true);
+            } else {
+                setFormError(result.error || t('errors.createFailed'));
+            }
+        } else if (modalMode === 'edit' && editingCustomer) {
+            const result = await updateCustomer(editingCustomer.id, {
+                name: formData.name,
+                phone: formData.phone || undefined,
+                address: formData.address || undefined,
+                governorate: formData.governorate || undefined,
+            });
+            if (result.success) {
+                handleCloseModal();
+                loadCustomers(true);
+            } else {
+                setFormError(result.error || t('errors.updateFailed'));
+            }
+        }
+        setSaving(false);
+    }, [formData, modalMode, editingCustomer, loadCustomers, handleCloseModal, t]);
 
+    // --- Delete ---
+    const handleOpenDelete = useCallback((e: React.MouseEvent, customer: Customer) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setDeleteTarget(customer);
+        setDeleteError(null);
+    }, []);
+
+    const handleCloseDelete = useCallback(() => {
+        setDeleteTarget(null);
+        setDeleteError(null);
+    }, []);
+
+    const handleConfirmDelete = useCallback(async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        setDeleteError(null);
+        const result = await deleteCustomer(deleteTarget.id);
         if (result.success) {
-            setShowAddModal(false);
-            setNewCustomer({ name: '', phone: '', address: '' });
+            handleCloseDelete();
             loadCustomers(true);
         } else {
-            setFormError(result.error || t('errors.createFailed'));
+            setDeleteError(result.error || t('errors.deleteFailed'));
         }
-        setCreating(false);
-    }, [newCustomer, loadCustomers, t]);
+        setDeleting(false);
+    }, [deleteTarget, loadCustomers, handleCloseDelete, t]);
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
-    const handleOpenAddModal = useCallback(() => setShowAddModal(true), []);
-    const handleCloseAddModal = useCallback(() => {
-        setShowAddModal(false);
-        setFormError(null);
-        setNewCustomer({ name: '', phone: '', address: '' });
-    }, []);
-    const handleNewCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, name: e.target.value })), []);
-    const handleNewCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, phone: e.target.value })), []);
-    const handleNewCustomerAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCustomer(prev => ({ ...prev, address: e.target.value })), []);
 
     const filtered = customers.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -219,10 +288,24 @@ export default function CustomersPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-auto pt-6 border-t border-border flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                    <History size={14} className="text-primary" />
-                                    <span>{t('card.historyAvailable')}</span>
+                            <div className="mt-auto pt-6 border-t border-border flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5">
+                                    <button
+                                        onClick={(e) => handleOpenEditModal(e, customer)}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                                        title={t('editCustomer')}
+                                    >
+                                        <Pencil size={13} />
+                                        {t('editCustomer')}
+                                    </button>
+                                    <button
+                                        onClick={(e) => handleOpenDelete(e, customer)}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                                        title={t('deleteCustomer')}
+                                    >
+                                        <Trash2 size={13} />
+                                        {t('deleteCustomer')}
+                                    </button>
                                 </div>
                                 <Link prefetch={false}
                                     href={`/customers/profile?id=${customer.id}`}
@@ -245,12 +328,12 @@ export default function CustomersPage() {
                 </div>
             )}
 
-            {/* Add Customer Modal */}
-            {showAddModal && (
+            {/* Add / Edit Customer Modal */}
+            {modalMode && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
                     <div className="bg-card w-full max-w-lg rounded-[2.5rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300 relative">
                         <button 
-                            onClick={handleCloseAddModal}
+                            onClick={handleCloseModal}
                             className={clsx(
                                 "absolute top-6 p-2 text-muted-foreground hover:bg-secondary rounded-full transition-all",
                                 isRtl ? "left-6" : "right-6"
@@ -260,12 +343,19 @@ export default function CustomersPage() {
                         </button>
 
                         <div className="p-10 pb-8 flex flex-col items-center text-center gap-4">
-                            <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center text-primary transform rotate-6">
-                                <UserPlus size={40} strokeWidth={2.5} />
+                            <div className={clsx(
+                                "w-20 h-20 rounded-3xl flex items-center justify-center transform rotate-6",
+                                modalMode === 'edit' ? "bg-blue-500/10 text-blue-600" : "bg-primary/10 text-primary"
+                            )}>
+                                {modalMode === 'edit' ? <Pencil size={40} strokeWidth={2.5} /> : <UserPlus size={40} strokeWidth={2.5} />}
                             </div>
                             <div>
-                                <h3 className="text-3xl font-black tracking-tighter uppercase mb-2">{t('modal.title')}</h3>
-                                <p className="text-muted-foreground font-bold text-sm tracking-wide">{t('modal.description')}</p>
+                                <h3 className="text-3xl font-black tracking-tighter uppercase mb-2">
+                                    {modalMode === 'edit' ? t('editModal.title') : t('modal.title')}
+                                </h3>
+                                <p className="text-muted-foreground font-bold text-sm tracking-wide">
+                                    {modalMode === 'edit' ? t('editModal.description') : t('modal.description')}
+                                </p>
                             </div>
                         </div>
 
@@ -282,8 +372,8 @@ export default function CustomersPage() {
                                 <input
                                     type="text"
                                     placeholder={t('modal.namePlaceholder')}
-                                    value={newCustomer.name}
-                                    onChange={handleNewCustomerNameChange}
+                                    value={formData.name}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                     className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
                                     autoFocus
                                 />
@@ -295,43 +385,114 @@ export default function CustomersPage() {
                                     <input
                                         type="tel"
                                         placeholder={t('modal.phonePlaceholder')}
-                                        value={newCustomer.phone}
-                                        onChange={handleNewCustomerPhoneChange}
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                                         className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal tabular-nums"
                                     />
                                 </div>
-
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">{t('modal.addressLabel')}</label>
                                     <input
                                         type="text"
                                         placeholder={t('modal.addressPlaceholder')}
-                                        value={newCustomer.address}
-                                        onChange={handleNewCustomerAddressChange}
+                                        value={formData.address}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                                         className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
                                     />
                                 </div>
                             </div>
+
+                            {modalMode === 'edit' && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">{t('modal.governorateLabel')}</label>
+                                    <input
+                                        type="text"
+                                        placeholder={t('modal.governoratePlaceholder')}
+                                        value={formData.governorate}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, governorate: e.target.value }))}
+                                        className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-8 bg-secondary/20 flex gap-4">
                             <button
-                                onClick={handleCloseAddModal}
+                                onClick={handleCloseModal}
                                 className="flex-1 py-4 bg-card border border-border rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-secondary transition-all active:scale-95 shadow-sm"
                             >
                                 {t('modal.cancel')}
                             </button>
                             <button
-                                onClick={handleCreateCustomer}
-                                disabled={creating}
-                                className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className={clsx(
+                                    "flex-1 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95",
+                                    modalMode === 'edit'
+                                        ? "bg-blue-600 text-white shadow-blue-600/20 hover:bg-blue-700"
+                                        : "bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90"
+                                )}
                             >
-                                {creating ? (
+                                {saving ? (
                                     <Loader2 className="animate-spin" size={20} />
+                                ) : modalMode === 'edit' ? (
+                                    <>
+                                        <Save size={18} strokeWidth={3} />
+                                        {t('editModal.save')}
+                                    </>
                                 ) : (
                                     <>
                                         <Plus size={18} strokeWidth={3} />
                                         {t('modal.create')}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {deleteTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-card w-full max-w-md rounded-[2.5rem] border border-red-500/30 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+                        <div className="p-10 pb-6 flex flex-col items-center text-center gap-4">
+                            <div className="w-20 h-20 bg-red-500/10 rounded-3xl flex items-center justify-center text-red-600">
+                                <AlertTriangle size={40} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 text-red-600">{t('deleteConfirm.title')}</h3>
+                                <p className="text-muted-foreground font-bold text-sm mb-1">{t('deleteConfirm.message')}</p>
+                                <p className="text-lg font-black text-foreground">&quot;{deleteTarget.name}&quot;</p>
+                                <p className="text-red-500 text-xs font-black uppercase tracking-widest mt-3">{t('deleteConfirm.warning')}</p>
+                            </div>
+                        </div>
+
+                        {deleteError && (
+                            <div className="mx-10 mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                                <AlertCircle size={20} className="shrink-0" />
+                                {deleteError}
+                            </div>
+                        )}
+
+                        <div className="p-8 bg-secondary/20 flex gap-4">
+                            <button
+                                onClick={handleCloseDelete}
+                                className="flex-1 py-4 bg-card border border-border rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-secondary transition-all active:scale-95 shadow-sm"
+                            >
+                                {t('deleteConfirm.cancel')}
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                disabled={deleting}
+                                className="flex-1 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-red-600/20 hover:bg-red-700 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                {deleting ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <Trash2 size={18} strokeWidth={3} />
+                                        {t('deleteConfirm.confirm')}
                                     </>
                                 )}
                             </button>

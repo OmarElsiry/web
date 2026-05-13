@@ -256,7 +256,19 @@
       "quickPrint": "Quick Print",
       "officialInvoice": "Official Invoice (فاتورة)",
       "close": "Close",
-      "refund": "Process Item Refund"
+      "refund": "Process Item Refund",
+      "editOrder": "Edit Order",
+      "saveChanges": "Save Changes",
+      "saving": "Saving...",
+      "cancelEdit": "Cancel Edit",
+      "editWarning": "Editing will adjust inventory and revenue.",
+      "amountPaid": "Amount Paid"
+    },
+    "errors": {
+      "updateFailed": "Failed to update invoice."
+    },
+    "success": {
+      "updated": "Invoice updated successfully."
     },
     "report": {
       "title": "Invoices Report",
@@ -274,6 +286,8 @@
     "subtitle": "Manage and analyze your customer base",
     "searchPlaceholder": "Search by name or phone...",
     "addCustomer": "Add Customer",
+    "editCustomer": "Edit",
+    "deleteCustomer": "Delete",
     "stats": {
       "totalCustomers": "Total Customers",
       "withDebt": "With Outstanding Debt",
@@ -301,13 +315,36 @@
       "phonePlaceholder": "e.g. 01012345678",
       "addressLabel": "Address (Optional)",
       "addressPlaceholder": "e.g. Cairo, Egypt",
+      "governorateLabel": "Governorate (Optional)",
+      "governoratePlaceholder": "e.g. Cairo",
       "cancel": "Cancel",
       "create": "Create Customer",
       "creating": "Creating..."
     },
+    "editModal": {
+      "title": "Edit Customer",
+      "description": "Update customer details. Changes will apply everywhere.",
+      "save": "Save Changes",
+      "saving": "Saving..."
+    },
+    "deleteConfirm": {
+      "title": "Delete Customer",
+      "message": "Are you sure you want to permanently delete this customer?",
+      "warning": "This action cannot be undone.",
+      "confirm": "Yes, Delete",
+      "cancel": "Cancel",
+      "deleting": "Deleting..."
+    },
     "errors": {
       "nameRequired": "Customer name is required.",
-      "createFailed": "Failed to create customer."
+      "createFailed": "Failed to create customer.",
+      "updateFailed": "Failed to update customer.",
+      "deleteFailed": "Failed to delete customer.",
+      "hasInvoices": "Cannot delete: customer has existing invoices."
+    },
+    "success": {
+      "updated": "Customer updated successfully.",
+      "deleted": "Customer deleted successfully."
     }
   },
   "Analytics": {
