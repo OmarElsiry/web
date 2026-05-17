@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, ChevronDown, AlertCircle, AlertTriangle, X, CreditCard, Banknote, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, ChevronDown, AlertCircle, AlertTriangle, X, CreditCard, Banknote, Smartphone, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
@@ -47,8 +47,6 @@ export default function SalesPage() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const deferredSearchQuery = useDeferredValue(searchQuery);
-    const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
@@ -80,6 +78,21 @@ export default function SalesPage() {
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Product search dropdown state
+    const [showProductDropdown, setShowProductDropdown] = useState(false);
+    const productSearchRef = useRef<HTMLDivElement>(null);
+
+    // Click outside handler for product dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
+                setShowProductDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleBuyerInfoChange = useCallback((field: string, val: string) => {
         setBuyerInfo(prev => ({ ...prev, [field]: val }));
         if (field !== 'customerName' && field !== 'customerPhone') return;
@@ -106,9 +119,8 @@ export default function SalesPage() {
     }, []);
 
     useEffect(() => {
-        Promise.all([getProducts(), getCategories(), getStaffList(), getCurrentUser()]).then(([prods, cats, staff, user]) => {
+        Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
             setProducts(prods);
-            setCategories(cats);
             setStaffList(staff);
             setLoading(false);
             if (user && staff.some(s => s.id === user.id)) {
@@ -135,6 +147,8 @@ export default function SalesPage() {
             }
             return [...prev, { product, quantity: 1 }];
         });
+        setSearchQuery('');
+        setShowProductDropdown(false);
     }, [t]);
 
     const updateQuantity = useCallback((productId: string, delta: number) => {
@@ -149,6 +163,23 @@ export default function SalesPage() {
                         return item;
                     }
                     return { ...item, quantity: newQty };
+                }
+                return item;
+            }).filter(Boolean) as CartItem[];
+        });
+    }, [t]);
+    
+    const setQuantityDirectly = useCallback((productId: string, qty: number) => {
+        setCart(prev => {
+            return prev.map(item => {
+                if (item.product.id === productId) {
+                    if (qty <= 0) return null;
+                    if (qty > item.product.stock) {
+                        setError(t('errors.stockLimit', { name: item.product.name, stock: item.product.stock }));
+                        setTimeout(() => setError(null), 3000);
+                        return { ...item, quantity: item.product.stock };
+                    }
+                    return { ...item, quantity: qty };
                 }
                 return item;
             }).filter(Boolean) as CartItem[];
@@ -172,8 +203,8 @@ export default function SalesPage() {
 
         // Validation: Walk-in (non-registered) customers must pay full amount
         if (!selectedCustomerId) {
-            if (paymentMethod === 'CASH') {
-                const paid = typeof amountPaid === 'number' ? amountPaid : 0;
+            if (paymentMethod === "CASH") {
+                const paid = typeof amountPaid === "number" ? amountPaid : 0;
                 if (paid < total) {
                     setError(t('errors.walkInDebt'));
                     setTimeout(() => setError(null), 3000);
@@ -181,7 +212,7 @@ export default function SalesPage() {
                 }
             }
             // For CREDIT/INSTAPAY walk-ins, auto-set amountPaid to total (exact payment)
-            if (paymentMethod !== 'CASH') {
+            if (paymentMethod !== "CASH") {
                 setAmountPaid(total);
             }
         }
@@ -225,462 +256,365 @@ export default function SalesPage() {
         }
     }, [cart, paymentMethod, buyerInfo, selectedStaffId, amountPaid, selectedCustomerId, t]);
 
-    const cartQuantityMap = useMemo(() => {
-        const map = new Map<string, number>();
-        for (const item of cart) {
-            map.set(item.product.id, item.quantity);
-        }
-        return map;
-    }, [cart]);
-
     const filteredProducts = useMemo(() => {
+        if (!deferredSearchQuery) return [];
         const lowerQuery = deferredSearchQuery.toLowerCase();
-        const filtered = products.filter(p => {
-            const matchesSearch = !lowerQuery || 
-                p.name.toLowerCase().includes(lowerQuery) || 
-                p.sku.toLowerCase().includes(lowerQuery);
-            const matchesCategory = categoryFilter === 'all' || p.categoryId === categoryFilter;
-            return matchesSearch && matchesCategory;
-        });
-        return filtered.slice(0, 100); // Limit to 100 to prevent DOM freezing
-    }, [products, deferredSearchQuery, categoryFilter]);
+        return products.filter(p => p.stock > 0 && (
+            p.name.toLowerCase().includes(lowerQuery) || 
+            p.sku.toLowerCase().includes(lowerQuery)
+        )).slice(0, 10);
+    }, [products, deferredSearchQuery]);
 
-    const addQuickCash50 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 50 : 50)), []);
-    const addQuickCash100 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 100 : 100)), []);
-    const addQuickCash200 = useCallback(() => setAmountPaid(prev => (typeof prev === 'number' ? prev + 200 : 200)), []);
-    const setExactCash = useCallback(() => setAmountPaid(total), [total]);
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
-    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setOrderNotes(e.target.value), []);
-    const handleDiscountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDiscount(e.target.value === '' ? '' : Math.min(100, Math.max(0, parseInt(e.target.value) || 0))), []);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setShowProductDropdown(true);
+    }, []);
+    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setOrderNotes(e.target.value), []);
+    const handleDiscountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDiscount(e.target.value === '' ? '' : Math.min(100, Math.max(0, parseFloat(e.target.value) || 0))), []);
     const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : parseFloat(e.target.value)), []);
     const handleStaffChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedStaffId(e.target.value), []);
     const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerName', e.target.value), [handleBuyerInfoChange]);
     const handleCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerPhone', e.target.value), [handleBuyerInfoChange]);
     const handleCustomerAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerAddress', e.target.value), [handleBuyerInfoChange]);
     const handleCloseConfirmDialog = useCallback(() => setShowConfirmDialog(false), []);
-    const setCategoryAll = useCallback(() => setCategoryFilter('all'), []);
 
-    const handleCategorySelect = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        const id = e.currentTarget.dataset.id;
-        if (id) setCategoryFilter(id);
-    }, []);
-
-    const handleAddProductToCart = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-        const id = e.currentTarget.dataset.id;
-        if (id) {
-            const product = products.find(p => p.id === id);
-            if (product) {
-                if (product.stock === 0) return;
-                const quantity = cart.find(item => item.product.id === id)?.quantity || 0;
-                if (quantity === 0) addToCart(product);
-            }
-        }
-    }, [products, cart, addToCart]);
-
-    const handleDecrementQuantity = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        const id = e.currentTarget.dataset.id;
-        if (id) updateQuantity(id, -1);
-    }, [updateQuantity]);
-
-    const handleIncrementQuantity = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        const id = e.currentTarget.dataset.id;
-        if (id) updateQuantity(id, 1);
-    }, [updateQuantity]);
-
-    const handleSelectCustomerClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        const id = e.currentTarget.dataset.id;
-        if (id) {
-            const cust = searchResults.find(c => c.id === id);
-            if (cust) selectCustomer(cust);
-        }
-    }, [searchResults, selectCustomer]);
-
-    const handlePaymentMethodSelect = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        const methodId = e.currentTarget.dataset.id as PaymentMethodType;
-        if (methodId) {
-            setPaymentMethod(methodId);
-            if (methodId !== 'CASH') setAmountPaid(total);
-            else setAmountPaid('');
-        }
+    const handlePaymentMethodSelect = useCallback((methodId: PaymentMethodType) => {
+        setPaymentMethod(methodId);
+        if (methodId !== 'CASH') setAmountPaid(total);
+        else setAmountPaid('');
     }, [total]);
 
-    return (
-        <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-7rem)] lg:min-h-[700px] gap-6 max-w-7xl mx-auto w-full pb-4" dir={isRtl ? 'rtl' : 'ltr'}>
-            {/* Main Product Area */}
-            <div className="flex-1 flex flex-col gap-6 min-w-0 h-[60vh] lg:h-auto">
-                {/* Search & Filter Header */}
-                <div className="flex flex-col sm:flex-row items-center gap-4 bg-card/60 backdrop-blur-xl p-4 rounded-3xl border border-border/50 shadow-sm">
-                    <div className="flex items-center flex-1 w-full bg-background/50 rounded-2xl px-4 py-3 border border-border/50 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">
-                        <Search className={clsx("text-muted-foreground shrink-0", isRtl ? "ml-3" : "mr-3")} size={20} />
-                        <input
-                            className="bg-transparent outline-none flex-1 text-sm font-medium placeholder:text-muted-foreground/60 w-full"
-                            placeholder={t('searchPlaceholder')}
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                        />
-                    </div>
-                    
-                    <div className="w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={setCategoryAll}
-                                className={clsx(
-                                    "px-5 py-2.5 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
-                                    categoryFilter === 'all' 
-                                        ? "bg-primary text-primary-foreground shadow-md" 
-                                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                )}
-                            >
-                                {t('allItems')}
-                            </button>
-                            {categories.map(c => (
-                                <button
-                                    key={c.id}
-                                    data-id={c.id}
-                                    onClick={handleCategorySelect}
-                                    className={clsx(
-                                        "px-5 py-2.5 rounded-2xl text-sm font-bold transition-all whitespace-nowrap",
-                                        categoryFilter === c.id 
-                                            ? "bg-primary text-primary-foreground shadow-md" 
-                                            : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                                    )}
-                                >
-                                    {c.name}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Product Grid */}
-                <div className="flex-1 overflow-y-auto rounded-3xl pr-2 pb-4">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 gap-4">
-                            <div className="p-4 bg-secondary/30 rounded-full">
-                                <Loader2 className="animate-spin" size={32} />
-                            </div>
-                            <span className="font-medium">{t('loading')}</span>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20">
-                            {filteredProducts.map(product => {
-                                const quantity = cartQuantityMap.get(product.id) || 0;
-                                const isOutOfStock = product.stock === 0;
-                                const isLowStock = product.stock > 0 && product.stock <= 5;
-
-                                return (
-                                    <div
-                                        key={product.id}
-                                        data-id={product.id}
-                                        onClick={handleAddProductToCart}
-                                        className={clsx(
-                                            "group flex flex-col p-4 bg-card/40 backdrop-blur-sm border rounded-3xl relative overflow-hidden transition-all duration-300",
-                                            isOutOfStock ? "border-red-200/50 bg-red-50/10 opacity-75" : "border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 cursor-pointer"
-                                        )}
-                                    >
-                                        {/* Status Badges */}
-                                        <div className={clsx("absolute top-3 flex flex-col gap-2 z-10", isRtl ? "right-3" : "left-3")}>
-                                            {isOutOfStock && (
-                                                <div className="bg-red-500/90 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
-                                                    <X size={10} strokeWidth={3} /> {t('soldOut')}
-                                                </div>
-                                            )}
-                                            {isLowStock && !isOutOfStock && (
-                                                <div className="bg-amber-500/90 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
-                                                    <AlertTriangle size={10} strokeWidth={3} /> {t('lowStock', { count: product.stock.toLocaleString(locale) })}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Product Image Placeholder */}
-                                        <div className={clsx(
-                                            "w-full aspect-square rounded-2xl mb-4 flex items-center justify-center text-5xl font-black transition-all duration-500 relative overflow-hidden",
-                                            isOutOfStock ? "bg-muted/30 text-muted-foreground/20" : "bg-gradient-to-br from-primary/5 to-primary/10 text-primary/40 group-hover:scale-105"
-                                        )}>
-                                            {product.name.charAt(0)}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        </div>
-
-                                        {/* Product Details */}
-                                        <div className="flex flex-col flex-1">
-                                            <div className="font-bold text-base line-clamp-1 group-hover:text-primary transition-colors">{product.name}</div>
-                                            <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">{product.sku}</div>
-                                            
-                                            <div className="mt-auto pt-4 flex items-end justify-between gap-2">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">{t('priceLabel')}</span>
-                                                    <span className="font-black text-lg">{t('currency')} {product.baseSellingPrice.toLocaleString(locale)}</span>
-                                                </div>
-
-                                                {/* Quantity Controls */}
-                                                {!isOutOfStock && (
-                                                    <div className={clsx(
-                                                        "transition-all duration-300 overflow-hidden",
-                                                        quantity > 0 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 absolute bottom-4 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto",
-                                                        isRtl ? "left-4" : "right-4"
-                                                    )}>
-                                                        {quantity > 0 ? (
-                                                            <div className="flex items-center gap-1 bg-primary/10 p-1 rounded-xl border border-primary/20 backdrop-blur-md">
-                                                                <button
-                                                                    data-id={product.id}
-                                                                    onClick={handleDecrementQuantity}
-                                                                    className="w-8 h-8 flex items-center justify-center bg-background rounded-lg hover:bg-red-50 hover:text-red-500 shadow-sm transition-all"
-                                                                >
-                                                                    {quantity === 1 ? <Trash2 size={14} /> : <Minus size={14} strokeWidth={3} />}
-                                                                </button>
-                                                                <span className="w-8 text-center font-black text-primary">{quantity.toLocaleString(locale)}</span>
-                                                                <button
-                                                                    data-id={product.id}
-                                                                    onClick={handleIncrementQuantity}
-                                                                    disabled={quantity >= product.stock}
-                                                                    className="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-lg shadow-sm hover:bg-primary/90 transition-all disabled:opacity-50 disabled:bg-primary"
-                                                                >
-                                                                    <Plus size={14} strokeWidth={3} />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-10 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                                                                <Plus size={20} strokeWidth={3} />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-muted-foreground gap-4">
+                <Loader2 className="animate-spin" size={48} />
+                <span className="font-bold">{t('loading')}</span>
             </div>
+        );
+    }
 
-            {/* Sidebar / Checkout Pane */}
-            <div className="w-full lg:w-[420px] flex flex-col h-full shrink-0">
-                <div className="bg-card/80 backdrop-blur-2xl border border-border/50 rounded-3xl flex flex-col h-full shadow-2xl relative">
-                    
-                    {/* Top Header & Cashier */}
-                    <div className="px-6 py-4 flex items-center justify-between border-b border-border/30 bg-background/50">
-                        <div className="flex items-center gap-2">
-                            <div className="p-2 bg-primary/10 rounded-xl">
-                                <ShoppingCart size={20} className="text-primary" />
+    return (
+        <div className="max-w-5xl mx-auto w-full py-6 px-4" dir={isRtl ? 'rtl' : 'ltr'}>
+            
+            {error && (
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-2">
+                    <AlertCircle size={20} className="shrink-0" />
+                    {error}
+                </div>
+            )}
+
+            <div className="bg-card border border-border/50 rounded-3xl shadow-xl overflow-hidden relative">
+                
+                {/* Invoice Header */}
+                <div className="p-6 md:p-10 border-b border-border/30 bg-muted/10">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
+                                <FileText size={32} />
                             </div>
-                            <span className="font-extrabold text-lg">{t('sidebar.title')}</span>
+                            <div>
+                                <h1 className="text-3xl font-black tracking-tight">{t('invoiceTitle', { defaultValue: 'NEW INVOICE' })}</h1>
+                                <p className="text-muted-foreground font-medium flex items-center gap-2 mt-1">
+                                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-bold uppercase">DRAFT</span>
+                                    {new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                            </div>
                         </div>
-                        <div className={clsx("flex flex-col", isRtl ? "items-start" : "items-end")}>
-                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{t('sidebar.cashier')}</span>
-                            <select
-                                value={selectedStaffId}
-                                onChange={handleStaffChange}
-                                className={clsx("bg-transparent text-sm font-bold text-primary outline-none cursor-pointer max-w-[120px] truncate", isRtl ? "text-left" : "text-right")}
-                            >
-                                <option value="" disabled>{t('sidebar.selectStaff')}</option>
-                                {staffList.map(emp => (
-                                    <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
-                                ))}
-                            </select>
+                        
+                        <div className="flex flex-col items-end gap-3 bg-background p-4 rounded-2xl border border-border/50 shadow-sm min-w-[240px]">
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-full text-left">{t('sidebar.cashier', { defaultValue: 'SALESPERSON' })}</div>
+                            <div className="flex items-center gap-2 w-full">
+                                <User size={16} className="text-primary shrink-0" />
+                                <select
+                                    value={selectedStaffId}
+                                    onChange={handleStaffChange}
+                                    className="bg-transparent text-sm font-bold outline-none cursor-pointer w-full text-foreground"
+                                >
+                                    <option value="" disabled>{t('sidebar.selectStaff')}</option>
+                                    {staffList.map(emp => (
+                                        <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
-
-                    {/* Customer Section */}
-                    <div className="px-6 py-4 border-b border-border/30 bg-muted/10 relative z-20">
-                        {!selectedCustomerId ? (
-                            <div className="relative">
-                                <div className="flex items-center bg-background border border-border/60 rounded-xl p-1 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                    <div className={clsx("text-muted-foreground", isRtl ? "pr-3" : "pl-3")}>
-                                        {isSearching ? <Loader2 size={16} className="animate-spin" /> : <User size={16} />}
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder={t('sidebar.customerPlaceholder')}
-                                        value={buyerInfo.customerName}
-                                        onChange={handleCustomerNameChange}
-                                        className="w-full bg-transparent p-2 text-sm outline-none font-medium placeholder:text-muted-foreground/60"
-                                    />
-                                </div>
-                                
-                                {showSuggestions && searchResults.length > 0 && (
-                                    <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border/50 rounded-2xl shadow-xl overflow-hidden animate-in slide-in-from-top-2">
-                                        {searchResults.map((cust, idx) => (
-                                            <button
-                                                key={idx}
-                                                data-id={cust.id}
-                                                onClick={handleSelectCustomerClick}
-                                                className="w-full text-left px-4 py-3 hover:bg-secondary/50 border-b border-border/20 last:border-0 transition-colors flex items-center justify-between"
-                                            >
-                                                <div className={isRtl ? "text-right" : "text-left"}>
-                                                    <div className="font-bold text-sm flex items-center gap-2">
-                                                        {cust.name}
-                                                        {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase">{t('sidebar.member')}</span>}
-                                                    </div>
-                                                    {cust.phone && <div className="text-xs text-muted-foreground mt-0.5 font-medium">{cust.phone}</div>}
-                                                </div>
-                                                <ChevronDown size={16} className={clsx("text-muted-foreground", isRtl ? "rotate-90" : "-rotate-90")} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Quick inline manual info if no results but typed something */}
-                                {buyerInfo.customerName.length > 2 && !showSuggestions && !isSearching && (
-                                    <div className="mt-3 p-3 bg-primary/5 rounded-xl border border-primary/10 space-y-2 animate-in fade-in">
-                                        <div className="text-xs font-bold text-primary mb-2 flex items-center gap-1">
-                                            <Plus size={12} /> {t('sidebar.newCustomer')}
+                    
+                    {/* Customer & Payment Meta */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Bill To */}
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-primary/50"></span>
+                                {t('billTo', { defaultValue: 'BILL TO' })}
+                            </h3>
+                            
+                            {!selectedCustomerId ? (
+                                <div className="space-y-3 relative">
+                                    <div className="relative">
+                                        <div className="absolute top-1/2 -translate-y-1/2 left-3 text-muted-foreground">
+                                            {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
                                         </div>
-                                        <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            placeholder={t('sidebar.customerPlaceholder')}
+                                            value={buyerInfo.customerName}
+                                            onChange={handleCustomerNameChange}
+                                            className={clsx("w-full bg-background border border-border/50 rounded-xl py-2.5 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm", isRtl ? "pr-10" : "pl-10")}
+                                        />
+                                        
+                                        {showSuggestions && searchResults.length > 0 && (
+                                            <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border/50 rounded-2xl shadow-xl overflow-hidden z-50">
+                                                {searchResults.map((cust, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        onClick={() => selectCustomer(cust)}
+                                                        className="w-full text-left px-4 py-3 hover:bg-secondary/50 border-b border-border/20 last:border-0 transition-colors flex items-center justify-between"
+                                                    >
+                                                        <div className={isRtl ? "text-right" : "text-left"}>
+                                                            <div className="font-bold text-sm flex items-center gap-2">
+                                                                {cust.name}
+                                                                {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase">{t('sidebar.member')}</span>}
+                                                            </div>
+                                                            {cust.phone && <div className="text-xs text-muted-foreground mt-0.5 font-medium">{cust.phone}</div>}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Manual info fields */}
+                                    {buyerInfo.customerName.length > 0 && !selectedCustomerId && (
+                                        <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
                                             <input
                                                 type="tel"
                                                 placeholder={t('sidebar.phoneOptional')}
                                                 value={buyerInfo.customerPhone}
                                                 onChange={handleCustomerPhoneChange}
-                                                className="w-1/2 p-2 text-xs rounded-lg border border-border/50 bg-background outline-none focus:border-primary/50"
+                                                className="w-1/2 bg-background border border-border/50 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                                             />
                                             <input
                                                 type="text"
                                                 placeholder={t('sidebar.addressOptional')}
                                                 value={buyerInfo.customerAddress}
                                                 onChange={handleCustomerAddressChange}
-                                                className="w-1/2 p-2 text-xs rounded-lg border border-border/50 bg-background outline-none focus:border-primary/50"
+                                                className="w-1/2 bg-background border border-border/50 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                                             />
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-between bg-primary/5 border border-primary/20 p-3 rounded-xl">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold">
-                                        {buyerInfo.customerName.charAt(0)}
-                                    </div>
-                                    <div className={isRtl ? "text-right" : "text-left"}>
-                                        <div className="font-bold text-sm leading-tight">{buyerInfo.customerName}</div>
-                                        {buyerInfo.customerPhone && <div className="text-xs text-muted-foreground font-medium">{buyerInfo.customerPhone}</div>}
-                                    </div>
+                                    )}
                                 </div>
-                                <button onClick={clearCustomer} className="p-2 text-muted-foreground hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors">
-                                    <X size={16} />
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Cart Items List */}
-                    <div className="flex-1 overflow-y-auto px-6 py-2">
-                        {error && (
-                            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-xs font-bold flex items-center gap-2 animate-in slide-in-from-top-1">
-                                <AlertCircle size={16} className="shrink-0" />
-                                {error}
-                            </div>
-                        )}
-                        
-                        {cart.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-4">
-                                <div className="w-24 h-24 rounded-full bg-secondary/50 flex items-center justify-center mb-2">
-                                    <ShoppingCart size={40} strokeWidth={1.5} />
-                                </div>
-                                <div className="font-medium">{t('sidebar.emptyCart')}</div>
-                            </div>
-                        ) : (
-                            <div className="space-y-1">
-                                {cart.map(item => (
-                                    <div key={item.product.id} className="group flex gap-4 py-3 border-b border-border/40 last:border-0 items-center">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-bold text-sm text-foreground truncate">{item.product.name}</div>
-                                            <div className="text-xs text-muted-foreground font-medium mt-0.5">{t('currency')} {item.product.baseSellingPrice.toLocaleString(locale)}</div>
+                            ) : (
+                                <div className="bg-background border border-border/50 p-4 rounded-xl flex items-start justify-between group relative overflow-hidden">
+                                    <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-black text-xl">
+                                            {buyerInfo.customerName.charAt(0)}
                                         </div>
-                                        
-                                        <div className="flex items-center gap-3 bg-secondary/50 p-1 rounded-xl">
-                                            <button data-id={item.product.id} onClick={handleDecrementQuantity} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground">
-                                                <Minus size={14} strokeWidth={2.5} />
-                                            </button>
-                                            <span className="font-black text-sm w-4 text-center">{item.quantity.toLocaleString(locale)}</span>
-                                            <button data-id={item.product.id} onClick={handleIncrementQuantity} disabled={item.quantity >= item.product.stock} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground disabled:opacity-30">
-                                                <Plus size={14} strokeWidth={2.5} />
-                                            </button>
-                                        </div>
-
-                                        <div className={clsx("w-20 shrink-0", isRtl ? "text-left" : "text-right")}>
-                                            <div className="font-black text-sm">{t('currency')} {(item.product.baseSellingPrice * item.quantity).toLocaleString(locale)}</div>
+                                        <div>
+                                            <div className="font-black text-lg">{buyerInfo.customerName}</div>
+                                            <div className="text-sm text-muted-foreground font-medium flex flex-col mt-0.5 gap-0.5">
+                                                {buyerInfo.customerPhone && <span>{buyerInfo.customerPhone}</span>}
+                                                {buyerInfo.customerAddress && <span>{buyerInfo.customerAddress}</span>}
+                                            </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Checkout Details & Actions */}
-                    <div className="bg-background/80 backdrop-blur-xl border-t border-border/50 p-6 flex flex-col gap-4 z-20">
-                        {/* Discount & Notes */}
-                        <div className="flex gap-3">
-                            <div className="relative flex-1">
-                                <input
-                                    type="text"
-                                    placeholder={t('sidebar.addNote')}
-                                    value={orderNotes}
-                                    onChange={handleNotesChange}
-                                    className="w-full bg-secondary/30 border border-border/50 p-3 rounded-xl text-sm font-medium outline-none focus:border-primary/50 transition-colors"
-                                />
-                            </div>
-                            <div className="relative w-28 shrink-0 group">
-                                <input
-                                    type="number"
-                                    placeholder={t('sidebar.discountPercent')}
-                                    value={discount}
-                                    onChange={handleDiscountChange}
-                                    className={clsx("w-full bg-secondary/30 border border-border/50 p-3 rounded-xl text-sm font-bold outline-none focus:border-primary/50 transition-colors", isRtl ? "pr-8" : "pl-8")}
-                                />
-                                <div className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary font-bold", isRtl ? "right-3" : "left-3")}>%</div>
-                            </div>
+                                    <button onClick={clearCustomer} className="p-2 text-muted-foreground hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors bg-secondary/50 opacity-0 group-hover:opacity-100">
+                                        <X size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Totals */}
-                        <div className="space-y-1.5 pt-2">
-                            <div className="flex justify-between text-sm font-medium text-muted-foreground">
+                        {/* Payment Details */}
+                        <div className="space-y-4">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-primary/50"></span>
+                                {t('paymentDetails', { defaultValue: 'PAYMENT DETAILS' })}
+                            </h3>
+                            <div className="bg-background p-1.5 rounded-2xl border border-border/50 flex gap-1 relative shadow-sm">
+                                {[
+                                    { id: 'CASH', icon: Banknote, label: t('sidebar.paymentMethods.CASH') },
+                                    { id: 'CREDIT', icon: CreditCard, label: t('sidebar.paymentMethods.CREDIT') },
+                                    { id: 'INSTAPAY', icon: Smartphone, label: t('sidebar.paymentMethods.INSTAPAY') }
+                                ].map((method) => {
+                                    const isActive = paymentMethod === method.id;
+                                    const Icon = method.icon;
+                                    return (
+                                        <button
+                                            key={method.id}
+                                            onClick={() => handlePaymentMethodSelect(method.id as PaymentMethodType)}
+                                            className={clsx(
+                                                "flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm transition-all duration-300 relative z-10 gap-2",
+                                                isActive ? "text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                                            )}
+                                        >
+                                            {isActive && <div className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-sm" />}
+                                            <Icon size={18} />
+                                            {method.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Invoice Body (Table) */}
+                <div className="p-6 md:p-10">
+                    <div className="border border-border/50 rounded-2xl overflow-hidden bg-background">
+                        <table className="w-full text-sm">
+                            <thead className="bg-secondary/50 text-muted-foreground font-bold text-xs uppercase tracking-wider">
+                                <tr>
+                                    <th className={clsx("p-4", isRtl ? "text-right" : "text-left")}>{t('item', { defaultValue: 'ITEM DESCRIPTION' })}</th>
+                                    <th className="p-4 text-center w-32">{t('qty', { defaultValue: 'QTY' })}</th>
+                                    <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('price', { defaultValue: 'UNIT PRICE' })}</th>
+                                    <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('total', { defaultValue: 'TOTAL' })}</th>
+                                    <th className="p-4 w-12 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border/30">
+                                {cart.map(item => (
+                                    <tr key={item.product.id} className="group hover:bg-muted/10 transition-colors">
+                                        <td className="p-4">
+                                            <div className="font-bold text-base">{item.product.name}</div>
+                                            <div className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider">{item.product.sku}</div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex items-center justify-center gap-1 bg-secondary/30 p-1 rounded-xl border border-border/50 group-hover:border-primary/20 transition-colors">
+                                                <button onClick={() => updateQuantity(item.product.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground">
+                                                    <Minus size={14} strokeWidth={2.5} />
+                                                </button>
+                                                <input 
+                                                    type="number" 
+                                                    value={item.quantity} 
+                                                    onChange={(e) => setQuantityDirectly(item.product.id, parseInt(e.target.value) || 0)}
+                                                    className="w-10 text-center font-black bg-transparent outline-none tabular-nums"
+                                                />
+                                                <button onClick={() => updateQuantity(item.product.id, 1)} disabled={item.quantity >= item.product.stock} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground disabled:opacity-30">
+                                                    <Plus size={14} strokeWidth={2.5} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td className={clsx("p-4 font-bold text-muted-foreground", isRtl ? "text-left" : "text-right")}>
+                                            {t('currency')} {item.product.baseSellingPrice.toLocaleString(locale)}
+                                        </td>
+                                        <td className={clsx("p-4 font-black text-lg", isRtl ? "text-left" : "text-right")}>
+                                            {t('currency')} {(item.product.baseSellingPrice * item.quantity).toLocaleString(locale)}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                            <button onClick={() => updateQuantity(item.product.id, -item.quantity)} className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                
+                                {/* Add Item Row */}
+                                <tr className="bg-secondary/10">
+                                    <td colSpan={5} className="p-4">
+                                        <div className="relative w-full" ref={productSearchRef}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} strokeWidth={3} />}
+                                                </div>
+                                                <input 
+                                                    type="text"
+                                                    placeholder={t('searchPlaceholder', { defaultValue: 'Search for a product to add to invoice...' })}
+                                                    value={searchQuery}
+                                                    onChange={handleSearchChange}
+                                                    onFocus={() => setShowProductDropdown(true)}
+                                                    className="w-full bg-transparent outline-none font-bold placeholder:text-muted-foreground/50 py-2"
+                                                />
+                                            </div>
+                                            
+                                            {showProductDropdown && searchQuery && (
+                                                <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2">
+                                                    {filteredProducts.length > 0 ? (
+                                                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
+                                                            {filteredProducts.map(product => (
+                                                                <button
+                                                                    key={product.id}
+                                                                    onClick={() => addToCart(product)}
+                                                                    className="w-full flex items-center justify-between p-3 hover:bg-secondary rounded-xl transition-colors text-left group"
+                                                                >
+                                                                    <div>
+                                                                        <div className="font-bold text-sm group-hover:text-primary transition-colors">{product.name}</div>
+                                                                        <div className="text-xs text-muted-foreground mt-0.5">{product.sku} • {t('stock', { count: product.stock })}</div>
+                                                                    </div>
+                                                                    <div className="font-black text-primary">
+                                                                        {t('currency')} {product.baseSellingPrice.toLocaleString(locale)}
+                                                                    </div>
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-6 text-center text-muted-foreground font-medium text-sm">
+                                                            {t('noResults', { defaultValue: 'No products found' })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                {/* Invoice Footer */}
+                <div className="p-6 md:p-10 bg-muted/20 border-t border-border/30 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    {/* Notes & Terms */}
+                    <div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-primary/50"></span>
+                            {t('notes', { defaultValue: 'NOTES / TERMS' })}
+                        </h3>
+                        <textarea
+                            value={orderNotes}
+                            onChange={handleNotesChange}
+                            placeholder={t('sidebar.addNote', { defaultValue: 'Add any relevant notes or terms here...' })}
+                            className="w-full bg-background border border-border/50 rounded-xl p-4 text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all min-h-[120px] resize-none"
+                        />
+                    </div>
+
+                    {/* Totals & Checkout */}
+                    <div className="space-y-6">
+                        <div className="bg-background rounded-2xl border border-border/50 p-6 space-y-4 shadow-sm">
+                            <div className="flex justify-between items-center text-sm font-bold text-muted-foreground">
                                 <span>{t('sidebar.subtotal')}</span>
-                                <span>{t('currency')} {subtotal.toLocaleString(locale)}</span>
+                                <span className="text-foreground">{t('currency')} {subtotal.toLocaleString(locale)}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center text-sm font-bold text-muted-foreground group">
+                                <span>{t('discount', { defaultValue: 'DISCOUNT %' })}</span>
+                                <div className="flex items-center gap-2 relative">
+                                    <input 
+                                        type="number" 
+                                        value={discount} 
+                                        onChange={handleDiscountChange} 
+                                        placeholder="0"
+                                        className={clsx("w-20 bg-secondary border border-border/50 rounded-lg py-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all font-black", isRtl ? "pr-2 text-left" : "pl-2 text-right")} 
+                                    />
+                                    <span className="text-muted-foreground">%</span>
+                                </div>
                             </div>
                             {validDiscount > 0 && (
-                                <div className="flex justify-between text-sm font-bold text-red-500">
-                                    <span>{t('sidebar.discount', { percent: validDiscount.toLocaleString(locale) })}</span>
+                                <div className="flex justify-between items-center text-sm font-bold text-red-500">
+                                    <span>{t('discountAmount', { defaultValue: 'Discount Amount' })}</span>
                                     <span>-{t('currency')} {discountAmount.toLocaleString(locale)}</span>
                                 </div>
                             )}
-                            <div className="flex justify-between items-end pt-3 pb-1">
-                                <span className="font-bold text-muted-foreground uppercase tracking-wider text-xs mb-1">{t('sidebar.totalDue')}</span>
-                                <span className="font-black text-4xl tracking-tight">{t('currency')} {total.toLocaleString(locale)}</span>
+                            
+                            <div className="h-px w-full bg-border/50 my-2"></div>
+                            
+                            <div className="flex justify-between items-end">
+                                <span className="font-black text-sm text-muted-foreground uppercase tracking-widest mb-1">{t('sidebar.totalDue')}</span>
+                                <span className="font-black text-4xl tracking-tight text-primary">{t('currency')} {total.toLocaleString(locale)}</span>
                             </div>
                         </div>
 
-                        {/* Payment Type Selection (Segmented Control) */}
-                        <div className="bg-secondary/50 p-1.5 rounded-2xl flex gap-1 relative">
-                            {[
-                                { id: 'CASH', icon: Banknote, label: t('sidebar.paymentMethods.CASH') },
-                                { id: 'CREDIT', icon: CreditCard, label: t('sidebar.paymentMethods.CREDIT') },
-                                { id: 'INSTAPAY', icon: Smartphone, label: t('sidebar.paymentMethods.INSTAPAY') }
-                            ].map((method) => {
-                                const isActive = paymentMethod === method.id;
-                                const Icon = method.icon;
-                                return (
-                                    <button
-                                        key={method.id}
-                                        data-id={method.id}
-                                        onClick={handlePaymentMethodSelect}
-                                        className={clsx(
-                                            "flex-1 flex flex-col items-center justify-center py-2.5 rounded-xl font-bold text-xs transition-all duration-300 relative z-10 gap-1",
-                                            isActive ? "text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                        )}
-                                    >
-                                        {isActive && <div className="absolute inset-0 bg-background rounded-xl -z-10 shadow-sm" />}
-                                        <Icon size={16} />
-                                        {method.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Amount Paid section (Prominent for cash) */}
+                        {/* Amount Paid section for Cash */}
                         {paymentMethod === 'CASH' && (
                             <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                                 <div className="relative">
@@ -701,23 +635,22 @@ export default function SalesPage() {
                                 
                                 {/* Quick Cash Buttons */}
                                 <div className="grid grid-cols-4 gap-2">
-                                    <button onClick={setExactCash} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">{t('sidebar.exact')}</button>
-                                    <button onClick={addQuickCash50} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+{ (50).toLocaleString(locale) }</button>
-                                    <button onClick={addQuickCash100} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+{ (100).toLocaleString(locale) }</button>
-                                    <button onClick={addQuickCash200} className="py-2 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors">+{ (200).toLocaleString(locale) }</button>
+                                    <button onClick={() => setAmountPaid(total)} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">{t('sidebar.exact')}</button>
+                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 50 : 50))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (50).toLocaleString(locale) }</button>
+                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 100 : 100))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (100).toLocaleString(locale) }</button>
+                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 200 : 200))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (200).toLocaleString(locale) }</button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Checkout CTA */}
                         <button
                             onClick={handleCheckoutClick}
                             disabled={processing || cart.length === 0}
                             className={clsx(
-                                "w-full h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg relative overflow-hidden group mt-2",
+                                "w-full h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-xl relative overflow-hidden group",
                                 cart.length === 0 
                                     ? "bg-secondary text-muted-foreground shadow-none cursor-not-allowed" 
-                                    : "bg-primary text-primary-foreground hover:shadow-xl hover:shadow-primary/20 hover:-translate-y-0.5"
+                                    : "bg-primary text-primary-foreground hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1"
                             )}
                         >
                             <div className={clsx("absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out", isRtl ? "origin-right" : "origin-left")} />
@@ -726,8 +659,8 @@ export default function SalesPage() {
                             ) : (
                                 <>
                                     {t('sidebar.completeSale')}
-                                    <div className="bg-white/20 p-1 rounded-lg ml-2">
-                                        <Check size={18} strokeWidth={3} />
+                                    <div className="bg-white/20 p-1.5 rounded-xl ml-2">
+                                        <Check size={20} strokeWidth={3} />
                                     </div>
                                 </>
                             )}
@@ -742,7 +675,7 @@ export default function SalesPage() {
                     <div className="bg-card w-full max-w-md rounded-[2rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-8 pb-6 flex flex-col items-center text-center gap-4">
                             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                                <ShoppingCart size={32} strokeWidth={2} />
+                                <FileText size={32} strokeWidth={2} />
                             </div>
                             <div>
                                 <h3 className="text-2xl font-black tracking-tight mb-1">{t('confirm.title')}</h3>
@@ -751,14 +684,19 @@ export default function SalesPage() {
                         </div>
                         
                         <div className="px-8 pb-6 space-y-4">
-                             <div className="bg-secondary/50 p-5 rounded-2xl space-y-3">
+                             <div className="bg-secondary/50 p-6 rounded-3xl border border-border/50 space-y-4">
                                 <div className="flex justify-between text-sm font-medium">
                                     <span className="text-muted-foreground">{t('confirm.items')}</span>
-                                    <span className="font-bold">{cart.length.toLocaleString(locale)}</span>
+                                    <span className="font-bold bg-background px-2 py-0.5 rounded-md border border-border/50">{cart.length.toLocaleString(locale)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm font-medium">
                                     <span className="text-muted-foreground">{t('confirm.paymentMethod')}</span>
-                                    <span className="font-bold">{t(`sidebar.paymentMethods.${paymentMethod}` as any)}</span>
+                                    <span className="font-bold flex items-center gap-1">
+                                        {paymentMethod === 'CASH' && <Banknote size={14} className="text-primary" />}
+                                        {paymentMethod === 'CREDIT' && <CreditCard size={14} className="text-primary" />}
+                                        {paymentMethod === 'INSTAPAY' && <Smartphone size={14} className="text-primary" />}
+                                        {t(`sidebar.paymentMethods.${paymentMethod}` as any)}
+                                    </span>
                                 </div>
                                 {buyerInfo.customerName && (
                                     <div className="flex justify-between text-sm font-medium">
@@ -766,13 +704,13 @@ export default function SalesPage() {
                                         <span className="font-bold text-right">{buyerInfo.customerName}</span>
                                     </div>
                                 )}
-                                <div className="h-px bg-border my-2" />
-                                <div className="flex justify-between font-black text-xl">
-                                    <span>{t('sidebar.totalDue')}</span>
-                                    <span className="text-primary">{t('currency')} {total.toLocaleString(locale)}</span>
+                                <div className="h-px bg-border/80 my-2" />
+                                <div className="flex justify-between font-black text-xl items-end">
+                                    <span className="text-sm text-muted-foreground tracking-widest uppercase mb-1">{t('sidebar.totalDue')}</span>
+                                    <span className="text-primary text-2xl">{t('currency')} {total.toLocaleString(locale)}</span>
                                 </div>
                                 {paymentMethod === 'CASH' && amountPaid && typeof amountPaid === 'number' && (
-                                    <div className="flex justify-between font-bold text-sm text-green-600 pt-1">
+                                    <div className="flex justify-between font-bold text-sm text-green-600 pt-2 border-t border-green-500/10 mt-2">
                                         <span>{t('sidebar.change', { currency: '', amount: '' }).split(':')[0]}</span>
                                         <span>{t('currency')} {Math.max(0, amountPaid - total).toLocaleString(locale)}</span>
                                     </div>
@@ -780,7 +718,7 @@ export default function SalesPage() {
                             </div>
                         </div>
                         
-                        <div className="p-6 bg-secondary/20 flex gap-3">
+                        <div className="p-6 bg-muted/30 flex gap-3 border-t border-border/50">
                             <button
                                 onClick={handleCloseConfirmDialog}
                                 className="flex-1 py-4 bg-background border border-border/60 rounded-xl font-bold hover:bg-secondary transition-colors"
