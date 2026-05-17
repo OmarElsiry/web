@@ -94,16 +94,16 @@ export default function InvoicesPage() {
     const handleDownload = useCallback((invoice: Invoice) => {
         setTimeout(() => {
             printElement(
-                \`\${t('details.id')}: \${invoice.id.slice(0, 8).toUpperCase()}\`,
+                `${t('details.id')}: ${invoice.id.slice(0, 8).toUpperCase()}`,
                 'print-invoice-content',
-                \`<p>\${t('details.name')}: \${invoice.customerName || t('walkInCustomer')}</p>\`,
+                `<p>${t('details.name')}: ${invoice.customerName || t('walkInCustomer')}</p>`,
                 locale
             );
         }, 100);
     }, [t, locale]);
 
     const handlePrintReport = useCallback(() => {
-        const dateRangeStr = startDate || endDate ? \`<p>\${t('report.period', { start: startDate || 'Start', end: endDate || 'Now' })}</p>\` : '';
+        const dateRangeStr = startDate || endDate ? `<p>${t('report.period', { start: startDate || 'Start', end: endDate || 'Now' })}</p>` : '';
         printElement(t('report.title'), 'print-invoice-list', dateRangeStr, locale);
     }, [startDate, endDate, t, locale]);
 
@@ -383,7 +383,7 @@ export default function InvoicesPage() {
                                 </div>
                                 <div>
                                     <div className="font-bold text-lg">
-                                        {inv.customerName || (inv.user ? \`\${inv.user.username}\` : t('walkInCustomer'))}
+                                        {inv.customerName || (inv.user ? `${inv.user.username}` : t('walkInCustomer'))}
                                     </div>
                                     <div className="text-sm text-muted-foreground flex gap-2 items-center">
                                         <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-xs"># {inv.id.slice(0, 8).toUpperCase()}</span>
@@ -784,16 +784,16 @@ export default function InvoicesPage() {
 
             {/* Hidden Print Content */}
             <div id="print-invoice-list" className="hidden">
-                <style>{\`
+                <style>{`
                     @media print {
                         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                        th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: \${locale === 'ar' ? 'right' : 'left'}; }
+                        th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: ${locale === 'ar' ? 'right' : 'left'}; }
                         th { background-color: #f5f5f5; font-weight: bold; }
                         .text-right { text-align: right; }
                         .text-left { text-align: left; }
                         .font-bold { font-weight: bold; }
                     }
-                \`}</style>
+                `}</style>
                 <div className="mb-4" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
                     <h1 className="text-xl font-bold">{t('report.title')}</h1>
                     <p className="text-sm text-gray-500">{t('report.generatedOn', { date: new Date().toLocaleString(locale) })}</p>
