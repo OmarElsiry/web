@@ -16,7 +16,13 @@
     "expenses": "Expenses",
     "incoming": "Incoming Stock",
     "pricing": "Pricing",
-    "logout": "Logout"
+    "logout": "Logout",
+    "groups": {
+      "overview": "Overview",
+      "sales": "Sales & Finance",
+      "inventory": "Inventory",
+      "management": "Management"
+    }
   },
   "Login": {
     "title": "Welcome Back",
@@ -408,37 +414,7 @@
     "customer": "Customer",
     "loading": "Loading..."
   },
-  "Movements": {
-    "title": "Stock Movements",
-    "subtitle": "Stock Movement History",
-    "refresh": "Refresh",
-    "filters": {
-      "all": "All Types",
-      "sale": "Sales",
-      "in": "Stock In",
-      "out": "Stock Out",
-      "transfer": "Transfers"
-    },
-    "labels": {
-      "by": "By:",
-      "from": "From",
-      "to": "To",
-      "unknown": "Unknown"
-    },
-    "types": {
-      "SALE": "Sale",
-      "IN": "Stock In",
-      "OUT": "Stock Out",
-      "TRANSFER": "Transfer",
-      "RETURN": "Return"
-    },
-    "pagination": {
-      "prev": "Previous",
-      "next": "Next",
-      "status": "Page {page} of {total}"
-    },
-    "empty": "No transactions found matching your filters."
-  },
+
   "StaffSales": {
     "title": "Staff Sales",
     "subtitle": "Performance Tracking",
@@ -479,111 +455,7 @@
       "period": "Period:"
     }
   },
-  "Logs": {
-    "title": "System Logs",
-    "subtitle": "Audit Logs & Activity History",
-    "refresh": "Refresh",
-    "filters": {
-      "user": "Filter by User:",
-      "allUsers": "All Users",
-      "clear": "Clear filter"
-    },
-    "table": {
-      "action": "Action",
-      "status": "Status",
-      "details": "Details",
-      "reason": "Reason",
-      "user": "User",
-      "email": "Email",
-      "time": "Time"
-    },
-    "status": {
-      "failed": "Failed",
-      "success": "Success"
-    },
-    "pagination": {
-      "status": "Page {page} of {total} ({count} entries)"
-    },
-    "empty": "No logs found."
-  },
-  "Refunds": {
-    "title": "Refund History",
-    "subtitle": "Track all product returns and financial reversals",
-    "buttons": {
-      "filterDate": "Filter Date",
-      "refresh": "Refresh Data",
-      "reset": "Reset Filters",
-      "viewInvoice": "View Source Invoice",
-      "closeMemo": "Close Memo"
-    },
-    "filters": {
-      "search": "Search by Invoice ID, Customer, or Staff...",
-      "from": "From:",
-      "to": "To:"
-    },
-    "list": {
-      "loading": "Loading refund history...",
-      "empty": "No refund records found matching your search.",
-      "walkIn": "Walk-in Customer",
-      "withReason": "WITH REASON",
-      "invoice": "Invoice #",
-      "itemsRefunded": "{count} {count, plural, one {ITEM} other {ITEMS}} REFUNDED"
-    },
-    "modal": {
-      "title": "Refund Memo",
-      "staff": "Staff",
-      "customer": "Customer",
-      "date": "Date",
-      "reasonTitle": "Reason for Refund",
-      "noReason": "No specific reason provided for this transaction.",
-      "returnedItems": "Returned Items",
-      "financialReversal": "Financial Reversal",
-      "itemDetails": "Item Details",
-      "condition": "Cond.",
-      "quantity": "Qty",
-      "price": "Price",
-      "total": "Total",
-      "grandTotal": "Grand Total Reversed",
-      "conditions": {
-        "NEW": "NEW",
-        "DAMAGED": "DAMAGED"
-      }
-    }
-  },
-  "Incoming": {
-    "title": "Incoming Stock",
-    "newOrder": "New Purchase Order",
-    "metrics": {
-      "totalShipments": "Total Shipments",
-      "records": "{count} Records"
-    },
-    "table": {
-      "product": "Product",
-      "quantity": "Quantity",
-      "supplier": "Supplier / Notes",
-      "totalCost": "Total Cost",
-      "date": "Date",
-      "status": "Status",
-      "loading": "Loading shipments...",
-      "empty": "No incoming stock history.",
-      "emptyDescription": "Create a purchase order to populate this list."
-    },
-    "modal": {
-      "title": "New Purchase Order",
-      "product": "Select Product",
-      "chooseItem": "Choose item...",
-      "quantity": "Quantity",
-      "location": "Target Location",
-      "selectBranch": "Select branch...",
-      "notes": "Supplier / Notes",
-      "notesPlaceholder": "Enter supplier name or delivery notes...",
-      "cancel": "Cancel",
-      "add": "Add Purchase"
-    },
-    "alerts": {
-      "failed": "Failed to add purchase. Please check connection."
-    }
-  },
+
   "Pricing": {
     "title": "Pricing",
     "subtitle": "Price Management & Margins",
