@@ -91,17 +91,6 @@ export default function InvoicesPage() {
         return !hiddenFields.includes(fieldId);
     }, [hiddenFields, showHiddenFields]);
 
-    const handleDownload = useCallback((invoice: Invoice) => {
-        setTimeout(() => {
-            printElement(
-                `${t('details.id')}: ${invoice.id.slice(0, 8).toUpperCase()}`,
-                'print-invoice-content',
-                `<p>${t('details.name')}: ${invoice.customerName || t('walkInCustomer')}</p>`,
-                locale
-            );
-        }, 100);
-    }, [t, locale]);
-
     const handlePrintReport = useCallback(() => {
         const dateRangeStr = startDate || endDate ? `<p>${t('report.period', { start: startDate || 'Start', end: endDate || 'Now' })}</p>` : '';
         printElement(t('report.title'), 'print-invoice-list', dateRangeStr, locale);
@@ -131,21 +120,14 @@ export default function InvoicesPage() {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
         if (!id) return;
-        const inv = invoices.find(i => i.id === id);
-        if (inv) {
-            setSelectedInvoice(inv);
-            handleDownload(inv);
-        }
-    }, [invoices, handleDownload]);
+        window.open(`/invoices/${id}/print`, '_blank');
+    }, []);
 
     const handleCloseModal = useCallback(() => {
         setSelectedInvoice(null);
         setIsEditing(false);
         setEditError(null);
     }, []);
-    const handleDownloadSelected = useCallback(() => {
-        if (selectedInvoice) handleDownload(selectedInvoice);
-    }, [selectedInvoice, handleDownload]);
     const handleOpenPrintTab = useCallback(() => {
         if (selectedInvoice) window.open(`/invoices/${selectedInvoice.id}/print`, '_blank');
     }, [selectedInvoice]);
@@ -759,9 +741,6 @@ export default function InvoicesPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <button onClick={handleDownloadSelected} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-secondary hover:bg-secondary/80 rounded-xl font-bold transition-all">
-                                            <Printer size={18} /> {t('details.quickPrint', { defaultValue: 'Print' })}
-                                        </button>
                                         <button onClick={handleOpenPrintTab} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-black transition-all hover:bg-primary/90 shadow-lg shadow-primary/20">
                                             <FileText size={18} /> {t('details.officialInvoice', { defaultValue: 'Official PDF' })}
                                         </button>
