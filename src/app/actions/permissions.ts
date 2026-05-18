@@ -53,6 +53,8 @@ export async function getMenuItemsForUser() {
         { to: '/sales', permission: 'sales', translationKey: 'sales' },
         { to: '/stocktake', permission: 'stocktake', translationKey: 'stocktake' },
         { to: '/movements', permission: 'movements', translationKey: 'movements' },
+        { to: '/incoming', permission: 'movements', translationKey: 'incoming' },
+        { to: '/pricing', permission: 'products', translationKey: 'pricing' },
         { to: '/products', permission: 'products', translationKey: 'products' },
         { to: '/invoices', permission: 'invoices', translationKey: 'invoices' },
         { to: '/refunds', permission: 'invoices', translationKey: 'refunds' },

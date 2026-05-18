@@ -20,7 +20,9 @@ import {
     ScrollText,
     DollarSign,
     RefreshCcw,
-    Globe
+    Globe,
+    Download,
+    Tags
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -31,6 +33,8 @@ const iconMap: Record<string, React.ElementType> = {
     '/sales': ShoppingCart,
     '/stocktake': ClipboardCheck,
     '/movements': ArrowLeftRight,
+    '/incoming': Download,
+    '/pricing': Tags,
     '/products': Package,
     '/invoices': FileText,
     '/customers': Users,

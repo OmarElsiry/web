@@ -14,6 +14,8 @@
     "logs": "Audit Logs",
     "users": "Team",
     "expenses": "Expenses",
+    "incoming": "Incoming Stock",
+    "pricing": "Pricing",
     "logout": "Logout"
   },
   "Login": {
