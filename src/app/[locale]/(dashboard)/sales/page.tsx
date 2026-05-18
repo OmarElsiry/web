@@ -59,24 +59,50 @@ export default function SalesPage() {
     const [showSettings, setShowSettings] = useState(true);
 
     // Sidebar Toggles
-    const [showWarehouse, setShowWarehouse] = useState(true);
+    const [showWarehouse, setShowWarehouse] = useState(false);
     const [showCustomerCode, setShowCustomerCode] = useState(true);
     const [showCity, setShowCity] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
-    const [showPhone2, setShowPhone2] = useState(true);
+    const [showPhone2, setShowPhone2] = useState(false);
     const [showItemCode, setShowItemCode] = useState(true);
     const [showUnit, setShowUnit] = useState(true);
     const [showDiscountPercent, setShowDiscountPercent] = useState(true);
     const [showDiscountValue, setShowDiscountValue] = useState(true);
 
     // Sidebar Editable Info
-    const [sequenceId, setSequenceId] = useState("جديد");
-    const [warehouseName, setWarehouseName] = useState("المخزن الرئيسي");
+    const [sequenceId, setSequenceId] = useState("");
+    const [warehouseName, setWarehouseName] = useState("");
     
     // Customer Info
     const [customerName, setCustomerName] = useState("");
     const [customerCode, setCustomerCode] = useState("");
+
+    // Autocomplete History
+    const [history, setHistory] = useState<Record<string, string[]>>({});
+
+    const saveDefaults = () => {
+        const defaults = {
+            showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
+            sequenceId, warehouseName
+        };
+        localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
+        alert('تم حفظ الإعدادات الافتراضية بنجاح');
+    };
+
+    const updateHistory = (key: string, val: string) => {
+        if (!val) return;
+        setHistory(prev => {
+            const arr = prev[key] || [];
+            if (!arr.includes(val)) {
+                const newArr = [val, ...arr].slice(0, 10);
+                const next = { ...prev, [key]: newArr };
+                localStorage.setItem('sales_autocomplete_history', JSON.stringify(next));
+                return next;
+            }
+            return prev;
+        });
+    };
     const [city, setCity] = useState("");
     const [address, setAddress] = useState("");
     const [phone1, setPhone1] = useState("");
@@ -116,6 +142,34 @@ export default function SalesPage() {
     });
 
     useEffect(() => {
+        setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
+
+        const savedDefaults = localStorage.getItem('sales_print_defaults');
+        if (savedDefaults) {
+            try {
+                const d = JSON.parse(savedDefaults);
+                if (d.sequenceId !== undefined) setSequenceId(d.sequenceId);
+                if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
+                if (d.showWarehouse !== undefined) setShowWarehouse(d.showWarehouse);
+                if (d.showCustomerCode !== undefined) setShowCustomerCode(d.showCustomerCode);
+                if (d.showCity !== undefined) setShowCity(d.showCity);
+                if (d.showAddress !== undefined) setShowAddress(d.showAddress);
+                if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
+                if (d.showPhone2 !== undefined) setShowPhone2(d.showPhone2);
+                if (d.showItemCode !== undefined) setShowItemCode(d.showItemCode);
+                if (d.showUnit !== undefined) setShowUnit(d.showUnit);
+                if (d.showDiscountPercent !== undefined) setShowDiscountPercent(d.showDiscountPercent);
+                if (d.showDiscountValue !== undefined) setShowDiscountValue(d.showDiscountValue);
+            } catch (e) {}
+        }
+        
+        const savedHistory = localStorage.getItem('sales_autocomplete_history');
+        if (savedHistory) {
+            try {
+                setHistory(JSON.parse(savedHistory));
+            } catch (e) {}
+        }
+
         Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
             setProducts(prods);
             setStaffList(staff);
@@ -281,6 +335,13 @@ export default function SalesPage() {
 
             if (result.success && result.invoice) {
                 setShowSuccess(true);
+                
+                updateHistory('warehouseName', warehouseName);
+                updateHistory('city', city);
+                updateHistory('address', address);
+                updateHistory('employeeId', employeeId);
+                updateHistory('employeeName', employeeName);
+
                 // Set sequence ID to the actual invoice ID for the printout
                 setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
                 
@@ -297,7 +358,18 @@ export default function SalesPage() {
                         setPhone1('');
                         setPhone2('');
                         setAddress('');
-                        setSequenceId("جديد");
+                        
+                        const savedDefaults = localStorage.getItem('sales_print_defaults');
+                        if (savedDefaults) {
+                            try {
+                                const d = JSON.parse(savedDefaults);
+                                setSequenceId(d.sequenceId || "");
+                            } catch { setSequenceId(""); }
+                        } else {
+                            setSequenceId("");
+                        }
+                        
+                        setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
                         setAmountPaid('');
                         setPreviousBalance(0);
                         getProducts().then(setProducts);
@@ -327,6 +399,21 @@ export default function SalesPage() {
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
+            <datalist id="warehouse-history">
+                {history.warehouseName?.map(v => <option key={v} value={v} />)}
+            </datalist>
+            <datalist id="city-history">
+                {history.city?.map(v => <option key={v} value={v} />)}
+            </datalist>
+            <datalist id="address-history">
+                {history.address?.map(v => <option key={v} value={v} />)}
+            </datalist>
+            <datalist id="employeeId-history">
+                {history.employeeId?.map(v => <option key={v} value={v} />)}
+            </datalist>
+            <datalist id="employeeName-history">
+                {history.employeeName?.map(v => <option key={v} value={v} />)}
+            </datalist>
             {/* Print Styles Injection */}
             <style jsx global>{`
                 @media print {
@@ -439,7 +526,12 @@ export default function SalesPage() {
             {/* --- SETTINGS SIDEBAR (Hidden on Print) --- */}
             <div className={`print-hidden bg-white border-l border-gray-200 shadow-xl transition-all duration-300 flex flex-col z-10 ${showSettings ? 'w-full md:w-80 h-auto md:h-screen sticky top-0' : 'w-full md:w-16 h-auto md:h-screen sticky top-0'}`}>
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
-                    {showSettings && <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>}
+                    {showSettings && (
+                        <div className="flex flex-col gap-1">
+                            <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
+                            <button onClick={saveDefaults} className="text-[10px] text-blue-600 font-bold hover:underline self-start">حفظ كإعدادات افتراضية</button>
+                        </div>
+                    )}
                     <button 
                         onClick={() => setShowSettings(!showSettings)} 
                         className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
@@ -459,13 +551,13 @@ export default function SalesPage() {
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
                             <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
-                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" readOnly />
+                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
                             </div>
                             <div className="flex gap-2 items-center">
                                 <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
-                                    <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="warehouse-history" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
@@ -489,14 +581,14 @@ export default function SalesPage() {
                                 <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                    <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="city-history" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
                                 <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="address-history" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -522,11 +614,11 @@ export default function SalesPage() {
                             <div className="grid grid-cols-3 gap-2">
                                 <div className="col-span-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
-                                    <input type="text" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="employeeId-history" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
-                                    <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="employeeName-history" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
@@ -705,8 +797,7 @@ export default function SalesPage() {
                                     {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
-                                    {showDiscountPercent && <th className="border-l border-gray-300 py-2 w-16 text-center">ن الخصم</th>}
-                                    {showDiscountValue && <th className="border-l border-gray-300 py-2 w-16 text-center">ق الخصم</th>}
+                                    {(showDiscountPercent || showDiscountValue) && <th className="border-l border-gray-300 py-2 w-20 text-center">الخصم</th>}
                                     <th className="py-2 w-24 text-center font-bold">القيمة</th>
                                 </tr>
                             </thead>
@@ -724,8 +815,14 @@ export default function SalesPage() {
                                             {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600"><input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
                                             <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
                                             <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
-                                            {showDiscountPercent && <td className="border-l border-gray-300 py-2 text-center text-gray-400"><input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" placeholder="-" /></td>}
-                                            {showDiscountValue && <td className="border-l border-gray-300 py-2 text-center text-gray-400"><input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" placeholder="-" /></td>}
+                                            {(showDiscountPercent || showDiscountValue) && (
+                                                <td className="border-l border-gray-300 p-1">
+                                                    <div className="flex flex-col gap-1 justify-center items-center h-full">
+                                                        {showDiscountPercent && <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
+                                                        {showDiscountValue && <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
+                                                    </div>
+                                                </td>
+                                            )}
                                             <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{rowTotal.toFixed(2)}</td>
                                         </tr>
                                     );
@@ -767,8 +864,7 @@ export default function SalesPage() {
                                     {showUnit && <td className="border-l border-gray-300 py-2"></td>}
                                     <td className="border-l border-gray-300 py-2"></td>
                                     <td className="border-l border-gray-300 py-2"></td>
-                                    {showDiscountPercent && <td className="border-l border-gray-300 py-2"></td>}
-                                    {showDiscountValue && <td className="border-l border-gray-300 py-2"></td>}
+                                    {(showDiscountPercent || showDiscountValue) && <td className="border-l border-gray-300 py-2"></td>}
                                     <td className="py-2"></td>
                                 </tr>
                             </tbody>
