@@ -62,7 +62,6 @@ export default function SalesPage() {
     const [showWarehouse, setShowWarehouse] = useState(true);
     const [showCustomerCode, setShowCustomerCode] = useState(true);
     const [showCity, setShowCity] = useState(true);
-    const [showCategory, setShowCategory] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
     const [showPhone2, setShowPhone2] = useState(true);
@@ -78,8 +77,7 @@ export default function SalesPage() {
     // Customer Info
     const [customerName, setCustomerName] = useState("");
     const [customerCode, setCustomerCode] = useState("");
-    const [city, setCity] = useState("كفر الشيخ");
-    const [category, setCategory] = useState("عاملين");
+    const [city, setCity] = useState("");
     const [address, setAddress] = useState("");
     const [phone1, setPhone1] = useState("");
     const [phone2, setPhone2] = useState("");
@@ -124,8 +122,6 @@ export default function SalesPage() {
             setLoading(false);
             if (user && staff.some((s: Staff) => s.id === user.id)) {
                 setSelectedStaffId(user.id);
-                setEmployeeName(user.name || user.username || "");
-                setEmployeeId(parseInt(user.id.slice(0, 2), 16).toString());
             }
         });
 
@@ -178,7 +174,7 @@ export default function SalesPage() {
         setSelectedCustomerId(cust.id);
         setPhone1(cust.phone || '');
         setAddress(cust.address || '');
-        setCity(cust.governorate || 'كفر الشيخ');
+        setCity(cust.governorate || '');
         setPreviousBalance(Number(cust.balance) || 0);
         setShowCustomerSuggestions(false);
     };
@@ -489,20 +485,11 @@ export default function SalesPage() {
                                     <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                        <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الفئة</label>
-                                        <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
+                            <div className="flex gap-2 items-center mb-2">
+                                <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <div className="flex-1 min-w-0">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
+                                    <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
@@ -679,15 +666,9 @@ export default function SalesPage() {
                                     )}
                                 </div>
                                 {showCity && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
+                                    <div className="col-span-12 md:col-span-6 flex gap-2" data-print-col-6>
                                         <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
                                         <input value={city} onChange={e => setCity(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
-                                    </div>
-                                )}
-                                {showCategory && (
-                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
-                                        <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
-                                        <input value={category} onChange={e => setCategory(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
                                     </div>
                                 )}
 
