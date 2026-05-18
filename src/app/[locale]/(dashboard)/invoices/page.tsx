@@ -147,7 +147,7 @@ export default function InvoicesPage() {
         if (selectedInvoice) handleDownload(selectedInvoice);
     }, [selectedInvoice, handleDownload]);
     const handleOpenPrintTab = useCallback(() => {
-        if (selectedInvoice) window.open(\`/invoices/\${selectedInvoice.id}/print\`, '_blank');
+        if (selectedInvoice) window.open(`/invoices/${selectedInvoice.id}/print`, '_blank');
     }, [selectedInvoice]);
     const handleOpenRefundModal = useCallback(() => setShowRefundModal(true), []);
     const handleCloseRefundModal = useCallback(() => setShowRefundModal(false), []);
