@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Loader2, Check, User, ChevronDown, AlertCircle, AlertTriangle, X, CreditCard, Banknote, Smartphone, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
-import { getProducts, processSale, getCategories, getStaffList } from '@/app/actions/sales';
+import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle } from 'lucide-react';
+import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
+import { tafqeet } from '@/lib/tafqeet';
 
 interface Product {
     id: string;
@@ -14,13 +15,19 @@ interface Product {
     sku: string;
     baseSellingPrice: number;
     categoryId: string;
-    category?: { id: string; name: string };
     stock: number;
 }
 
 interface CartItem {
+    id: string;
     product: Product;
+    nameOverride: string;
+    unitOverride: string;
+    codeOverride: string;
     quantity: number;
+    priceOverride: number;
+    discountPercent: number | '';
+    discountValue: number | '';
 }
 
 interface Staff {
@@ -35,226 +42,146 @@ interface CustomerSearch {
     phone: string | null;
     address: string | null;
     type: string;
+    balance?: number;
+    governorate?: string | null;
 }
 
 type PaymentMethodType = 'CASH' | 'CREDIT' | 'INSTAPAY';
 
 export default function SalesPage() {
-    const t = useTranslations('Sales');
     const locale = useLocale();
     const isRtl = locale === 'ar';
 
+    const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [showSettings, setShowSettings] = useState(true);
+
+    // Sidebar Toggles
+    const [showWarehouse, setShowWarehouse] = useState(true);
+    const [showCustomerCode, setShowCustomerCode] = useState(true);
+    const [showCity, setShowCity] = useState(true);
+    const [showCategory, setShowCategory] = useState(true);
+    const [showAddress, setShowAddress] = useState(true);
+    const [showPhone1, setShowPhone1] = useState(true);
+    const [showPhone2, setShowPhone2] = useState(true);
+    const [showItemCode, setShowItemCode] = useState(true);
+    const [showUnit, setShowUnit] = useState(true);
+    const [showDiscountPercent, setShowDiscountPercent] = useState(true);
+    const [showDiscountValue, setShowDiscountValue] = useState(true);
+
+    // Sidebar Editable Info
+    const [sequenceId, setSequenceId] = useState("جديد");
+    const [warehouseName, setWarehouseName] = useState("المخزن الرئيسي");
+    
+    // Customer Info
+    const [customerName, setCustomerName] = useState("");
+    const [customerCode, setCustomerCode] = useState("");
+    const [city, setCity] = useState("كفر الشيخ");
+    const [category, setCategory] = useState("عاملين");
+    const [address, setAddress] = useState("");
+    const [phone1, setPhone1] = useState("");
+    const [phone2, setPhone2] = useState("");
+
+    // Customer Search State
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+    const [searchResults, setSearchResults] = useState<CustomerSearch[]>([]);
+    const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+    const customerSearchRef = useRef<HTMLDivElement>(null);
+    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Employee Info
+    const [employeeId, setEmployeeId] = useState("");
+    const [employeeName, setEmployeeName] = useState("");
+    const [staffList, setStaffList] = useState<Staff[]>([]);
+    const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+
+    // Cart Items & Product Search
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const deferredSearchQuery = useDeferredValue(searchQuery);
     const [products, setProducts] = useState<Product[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [processing, setProcessing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-
-    // Salesperson
-    const [staffList, setStaffList] = useState<Staff[]>([]);
-    const [selectedStaffId, setSelectedStaffId] = useState<string>('');
-
-    // Discount & Notes
-    const [discount, setDiscount] = useState<number | ''>('');
-    const [orderNotes, setOrderNotes] = useState('');
-
-    // Buyer info state
-    const [buyerInfo, setBuyerInfo] = useState({
-        customerName: '',
-        customerPhone: '',
-        customerAddress: ''
-    });
-
-    // Customer Search State
-    const [searchResults, setSearchResults] = useState<CustomerSearch[]>([]);
-    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
-    const [amountPaid, setAmountPaid] = useState<number | ''>('');
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [isSearching, setIsSearching] = useState(false);
-    const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Product search dropdown state
     const [showProductDropdown, setShowProductDropdown] = useState(false);
-    const productSearchRef = useRef<HTMLDivElement>(null);
+    const productSearchRef = useRef<HTMLTableCellElement>(null);
+    
+    // Payment info
+    const [previousBalance, setPreviousBalance] = useState<number>(0);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
+    const [amountPaid, setAmountPaid] = useState<number | ''>('');
 
-    // Click outside handler for product dropdown
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
-                setShowProductDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleBuyerInfoChange = useCallback((field: string, val: string) => {
-        setBuyerInfo(prev => ({ ...prev, [field]: val }));
-        if (field !== 'customerName' && field !== 'customerPhone') return;
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        if (val.length < 2) { setSearchResults([]); setShowSuggestions(false); return; }
-        setIsSearching(true);
-        searchTimeoutRef.current = setTimeout(async () => {
-            const results = await searchCustomers(val);
-            setSearchResults(results);
-            setShowSuggestions(results.length > 0);
-            setIsSearching(false);
-        }, 300);
-    }, []);
-
-    const selectCustomer = useCallback((cust: CustomerSearch) => {
-        setBuyerInfo({ customerName: cust.name, customerPhone: cust.phone || '', customerAddress: cust.address || '' });
-        setSelectedCustomerId(cust.id);
-        setShowSuggestions(false);
-    }, []);
-
-    const clearCustomer = useCallback(() => {
-        setBuyerInfo({ customerName: '', customerPhone: '', customerAddress: '' });
-        setSelectedCustomerId(null);
-    }, []);
+    // Date
+    const formattedDate = new Date().toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 
     useEffect(() => {
         Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
             setProducts(prods);
             setStaffList(staff);
             setLoading(false);
-            if (user && staff.some(s => s.id === user.id)) {
+            if (user && staff.some((s: Staff) => s.id === user.id)) {
                 setSelectedStaffId(user.id);
+                setEmployeeName(user.name || user.username || "");
+                setEmployeeId(parseInt(user.id.slice(0, 2), 16).toString());
             }
         });
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
+                setShowProductDropdown(false);
+            }
+            if (customerSearchRef.current && !customerSearchRef.current.contains(event.target as Node)) {
+                setShowCustomerSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const addToCart = useCallback((product: Product) => {
-        setCart(prev => {
-            const currentInCart = prev.find(item => item.product.id === product.id)?.quantity || 0;
-            if (currentInCart >= product.stock) {
-                setError(t('errors.stockLimit', { name: product.name, stock: product.stock }));
-                setTimeout(() => setError(null), 3000);
-                return prev;
-            }
-            const existing = prev.find(item => item.product.id === product.id);
-            if (existing) {
-                return prev.map(item =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
-            }
-            return [...prev, { product, quantity: 1 }];
-        });
-        setSearchQuery('');
-        setShowProductDropdown(false);
-    }, [t]);
-
-    const updateQuantity = useCallback((productId: string, delta: number) => {
-        setCart(prev => {
-            return prev.map(item => {
-                if (item.product.id === productId) {
-                    const newQty = item.quantity + delta;
-                    if (newQty <= 0) return null;
-                    if (delta > 0 && newQty > item.product.stock) {
-                        setError(t('errors.stockLimit', { name: item.product.name, stock: item.product.stock }));
-                        setTimeout(() => setError(null), 3000);
-                        return item;
-                    }
-                    return { ...item, quantity: newQty };
-                }
-                return item;
-            }).filter(Boolean) as CartItem[];
-        });
-    }, [t]);
+    // Derived values
+    const totalQty = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
+    const invoiceTotal = cart.reduce((sum, item) => {
+        const qty = item.quantity || 0;
+        const price = item.priceOverride || 0;
+        const disc = Number(item.discountValue) || 0;
+        return sum + (price * qty - disc);
+    }, 0);
     
-    const setQuantityDirectly = useCallback((productId: string, qty: number) => {
-        setCart(prev => {
-            return prev.map(item => {
-                if (item.product.id === productId) {
-                    if (qty <= 0) return null;
-                    if (qty > item.product.stock) {
-                        setError(t('errors.stockLimit', { name: item.product.name, stock: item.product.stock }));
-                        setTimeout(() => setError(null), 3000);
-                        return { ...item, quantity: item.product.stock };
-                    }
-                    return { ...item, quantity: qty };
-                }
-                return item;
-            }).filter(Boolean) as CartItem[];
-        });
-    }, [t]);
+    const safeAmountPaid = Number(amountPaid) || 0;
+    const currentBalance = previousBalance + invoiceTotal - safeAmountPaid;
 
-    const subtotal = cart.reduce((sum, item) => sum + (item.product.baseSellingPrice * item.quantity), 0);
-    const validDiscount = typeof discount === 'number' ? discount : 0;
-    const discountAmount = validDiscount > 0 ? (subtotal * validDiscount / 100) : 0;
-    const total = subtotal - discountAmount;
-
-    const handleCheckoutClick = useCallback(() => {
-        if (cart.length === 0) return;
-
-        // Validation: Require customer data
-        if (!selectedCustomerId && !buyerInfo.customerName.trim()) {
-            setError(t('errors.customerRequired'));
-            setTimeout(() => setError(null), 3000);
-            return;
+    // Handlers
+    const handleCustomerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setCustomerName(val);
+        setSelectedCustomerId(null); // Clear selected if they type
+        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+        
+        if (val.length < 2) { 
+            setSearchResults([]); 
+            setShowCustomerSuggestions(false); 
+            return; 
         }
+        
+        searchTimeoutRef.current = setTimeout(async () => {
+            const results = await searchCustomers(val);
+            setSearchResults(results as any[]);
+            setShowCustomerSuggestions(results.length > 0);
+        }, 300);
+    };
 
-        // Validation: Walk-in (non-registered) customers must pay full amount
-        if (!selectedCustomerId) {
-            if (paymentMethod === "CASH") {
-                const paid = typeof amountPaid === "number" ? amountPaid : 0;
-                if (paid < total) {
-                    setError(t('errors.walkInDebt'));
-                    setTimeout(() => setError(null), 3000);
-                    return;
-                }
-            }
-            // For CREDIT/INSTAPAY walk-ins, auto-set amountPaid to total (exact payment)
-            if (paymentMethod !== "CASH") {
-                setAmountPaid(total);
-            }
-        }
-
-        setShowConfirmDialog(true);
-    }, [cart.length, selectedCustomerId, buyerInfo.customerName, paymentMethod, amountPaid, total, t]);
-
-    const handleConfirmCheckout = useCallback(async () => {
-        setShowConfirmDialog(false);
-        setProcessing(true);
-        setError(null);
-        try {
-            const result = await processSale(
-                cart.map(item => ({ productId: item.product.id, quantity: item.quantity })),
-                paymentMethod,
-                buyerInfo.customerName ? buyerInfo : undefined,
-                undefined,
-                selectedStaffId,
-                amountPaid === '' ? undefined : amountPaid,
-                selectedCustomerId || undefined
-            );
-
-            if (result.success) {
-                setShowSuccess(true);
-                setCart([]);
-                setBuyerInfo({ customerName: '', customerPhone: '', customerAddress: '' });
-                setSelectedCustomerId(null);
-                setAmountPaid('');
-                setDiscount('');
-                setOrderNotes('');
-                setTimeout(() => setShowSuccess(false), 3000);
-                getProducts().then(setProducts);
-            } else {
-                setError(result.error || t('errors.processFailed'));
-            }
-        } catch (err) {
-            console.error(err);
-            setError(t('errors.connectionError'));
-        } finally {
-            setProcessing(false);
-        }
-    }, [cart, paymentMethod, buyerInfo, selectedStaffId, amountPaid, selectedCustomerId, t]);
+    const selectCustomer = (cust: CustomerSearch) => {
+        setCustomerName(cust.name);
+        setSelectedCustomerId(cust.id);
+        setPhone1(cust.phone || '');
+        setAddress(cust.address || '');
+        setCity(cust.governorate || 'كفر الشيخ');
+        setPreviousBalance(Number(cust.balance) || 0);
+        setShowCustomerSuggestions(false);
+    };
 
     const filteredProducts = useMemo(() => {
         if (!deferredSearchQuery) return [];
@@ -265,487 +192,719 @@ export default function SalesPage() {
         )).slice(0, 10);
     }, [products, deferredSearchQuery]);
 
-    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
-        setShowProductDropdown(true);
-    }, []);
-    const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setOrderNotes(e.target.value), []);
-    const handleDiscountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDiscount(e.target.value === '' ? '' : Math.min(100, Math.max(0, parseFloat(e.target.value) || 0))), []);
-    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : parseFloat(e.target.value)), []);
-    const handleStaffChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedStaffId(e.target.value), []);
-    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerName', e.target.value), [handleBuyerInfoChange]);
-    const handleCustomerPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerPhone', e.target.value), [handleBuyerInfoChange]);
-    const handleCustomerAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleBuyerInfoChange('customerAddress', e.target.value), [handleBuyerInfoChange]);
-    const handleCloseConfirmDialog = useCallback(() => setShowConfirmDialog(false), []);
+    const addToCart = (product: Product) => {
+        setCart(prev => {
+            const currentInCart = prev.filter(item => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
+            if (currentInCart >= product.stock) {
+                setError(`الكمية المتاحة من ${product.name} هي ${product.stock} فقط`);
+                setTimeout(() => setError(null), 3000);
+                return prev;
+            }
+            
+            // Generate a unique ID for the row so we can have multiple rows of same product if needed, 
+            // though usually we just bump qty. Let's just bump qty if exact match, or add new if not.
+            const existingIdx = prev.findIndex(item => item.product.id === product.id);
+            if (existingIdx >= 0) {
+                const newCart = [...prev];
+                newCart[existingIdx] = { ...newCart[existingIdx], quantity: newCart[existingIdx].quantity + 1 };
+                return newCart;
+            }
 
-    const handlePaymentMethodSelect = useCallback((methodId: PaymentMethodType) => {
-        setPaymentMethod(methodId);
-        if (methodId !== 'CASH') setAmountPaid(total);
-        else setAmountPaid('');
-    }, [total]);
+            return [...prev, { 
+                id: crypto.randomUUID(), 
+                product, 
+                codeOverride: product.sku,
+                nameOverride: product.name,
+                unitOverride: 'قطعة',
+                quantity: 1,
+                priceOverride: product.baseSellingPrice,
+                discountPercent: '',
+                discountValue: ''
+            }];
+        });
+        setSearchQuery('');
+        setShowProductDropdown(false);
+    };
+
+    const updateItem = (id: string, updates: Partial<CartItem>) => {
+        setCart(prev => prev.map(item => {
+            if (item.id !== id) return item;
+            
+            const newItem = { ...item, ...updates };
+            
+            // Stock check
+            if (updates.quantity !== undefined && updates.quantity > item.product.stock) {
+                setError(`الكمية المتاحة من ${item.product.name} هي ${item.product.stock} فقط`);
+                setTimeout(() => setError(null), 3000);
+                newItem.quantity = item.product.stock;
+            }
+            
+            // Auto calculate discount value if percent changed
+            if (updates.discountPercent !== undefined && updates.discountPercent !== '') {
+                newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(updates.discountPercent) / 100);
+            }
+            
+            return newItem;
+        }));
+    };
+
+    const removeFromCart = (id: string) => {
+        setCart(prev => prev.filter(item => item.id !== id));
+    };
+
+    const handleCheckoutAndPrint = async () => {
+        if (cart.length === 0) return;
+
+        setProcessing(true);
+        setError(null);
+
+        try {
+            const itemsToProcess = cart.map(item => ({
+                productId: item.product.id,
+                quantity: item.quantity,
+                unitPrice: item.priceOverride - (Number(item.discountValue) || 0) / item.quantity // Distribute discount to unit price for DB
+            }));
+
+            const buyerInfo = {
+                customerName,
+                customerPhone: phone1,
+                customerAddress: address
+            };
+
+            const finalAmountPaid = paymentMethod === 'CASH' && amountPaid === '' ? invoiceTotal : (Number(amountPaid) || 0);
+
+            const result = await processSale(
+                itemsToProcess,
+                paymentMethod,
+                buyerInfo,
+                undefined,
+                selectedStaffId,
+                finalAmountPaid,
+                selectedCustomerId || undefined
+            );
+
+            if (result.success && result.invoice) {
+                setShowSuccess(true);
+                // Set sequence ID to the actual invoice ID for the printout
+                setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
+                
+                // Wait for state to update, then print, then clear
+                setTimeout(() => {
+                    window.print();
+                    
+                    // Clear after print dialog closes (approximate)
+                    setTimeout(() => {
+                        setShowSuccess(false);
+                        setCart([]);
+                        setCustomerName('');
+                        setSelectedCustomerId(null);
+                        setPhone1('');
+                        setPhone2('');
+                        setAddress('');
+                        setSequenceId("جديد");
+                        setAmountPaid('');
+                        setPreviousBalance(0);
+                        getProducts().then(setProducts);
+                    }, 1000);
+                }, 500);
+            } else {
+                setError(result.error || "حدث خطأ أثناء معالجة الفاتورة");
+            }
+        } catch (err) {
+            console.error(err);
+            setError("حدث خطأ في الاتصال");
+        } finally {
+            setProcessing(false);
+        }
+    };
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-muted-foreground gap-4">
-                <Loader2 className="animate-spin" size={48} />
-                <span className="font-bold">{t('loading')}</span>
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4 text-blue-600">
+                    <Loader2 className="animate-spin" size={40} />
+                    <p className="font-bold">جاري تحميل المحرر...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-5xl mx-auto w-full py-6 px-4" dir={isRtl ? 'rtl' : 'ltr'}>
-            
+        <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
+            {/* Print Styles Injection */}
+            <style jsx global>{`
+                @media print {
+                    @page { size: A4; margin: 10mm; }
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                        background: white !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    /* Hide dashboard layout chrome */
+                    header, footer, nav, aside { display: none !important; }
+                    .print-hidden { display: none !important; }
+                    
+                    /* Reset ALL ancestor containers from root down to the invoice */
+                    body > div,
+                    #__next,
+                    #__next > div,
+                    #__next > div > div,
+                    #__next > div > div > div,
+                    main,
+                    main > div {
+                        display: block !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        overflow: visible !important;
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        max-width: none !important;
+                        min-height: auto !important;
+                        position: static !important;
+                        background: white !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                    }
+                    
+                    /* The print page wrapper */
+                    [data-print-invoice-wrapper] {
+                        display: block !important;
+                        min-height: auto !important;
+                        background: white !important;
+                        padding: 0 !important;
+                    }
+                    
+                    /* The scrollable area around the paper */
+                    [data-print-paper-area] {
+                        padding: 0 !important;
+                        overflow: visible !important;
+                        background: white !important;
+                    }
+                    
+                    /* The A4 paper itself */
+                    [data-print-paper] {
+                        box-shadow: none !important;
+                        border: none !important;
+                        border-radius: 0 !important;
+                        margin: 0 !important;
+                        padding: 10mm !important;
+                        max-width: 100% !important;
+                        width: 100% !important;
+                        min-height: auto !important;
+                    }
+                    
+                    /* Force footer totals to display side by side */
+                    [data-print-footer] {
+                        display: flex !important;
+                        flex-direction: row !important;
+                        gap: 1.5rem !important;
+                    }
+                    
+                    /* Force financial box width */
+                    [data-print-financials] {
+                        width: 18rem !important;
+                        flex-shrink: 0 !important;
+                    }
+                    
+                    /* Force customer info grid to be multi-column */
+                    [data-print-customer-grid] {
+                        display: grid !important;
+                        grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+                    }
+                    [data-print-col-6] { grid-column: span 6 / span 6 !important; }
+                    [data-print-col-3] { grid-column: span 3 / span 3 !important; }
+                    
+                    /* Preserve background colors */
+                    [data-print-paper] * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    
+                    /* Hide placeholder text and remove borders of inputs when printing */
+                    input::placeholder { color: transparent !important; }
+                    .print-appearance-none { appearance: none !important; }
+                    .print-hide-spinners::-webkit-inner-spin-button, 
+                    .print-hide-spinners::-webkit-outer-spin-button { 
+                        -webkit-appearance: none; 
+                        margin: 0; 
+                    }
+                }
+            `}</style>
+
             {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-600 text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-2">
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] p-4 bg-red-500/90 backdrop-blur-md border border-red-500/20 rounded-2xl text-white text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-4 shadow-2xl">
                     <AlertCircle size={20} className="shrink-0" />
                     {error}
                 </div>
             )}
 
-            <div className="bg-card border border-border/50 rounded-3xl shadow-xl overflow-hidden relative">
-                
-                {/* Invoice Header */}
-                <div className="p-6 md:p-10 border-b border-border/30 bg-muted/10">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                                <FileText size={32} />
-                            </div>
+            {/* --- SETTINGS SIDEBAR (Hidden on Print) --- */}
+            <div className={`print-hidden bg-white border-l border-gray-200 shadow-xl transition-all duration-300 flex flex-col z-10 ${showSettings ? 'w-full md:w-80 h-auto md:h-screen sticky top-0' : 'w-full md:w-16 h-auto md:h-screen sticky top-0'}`}>
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
+                    {showSettings && <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>}
+                    <button 
+                        onClick={() => setShowSettings(!showSettings)} 
+                        className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
+                        title={showSettings ? "إخفاء" : "إظهار"}
+                    >
+                        {showSettings ? <X size={20} className="hidden md:block" /> : <Settings2 size={20} />}
+                        <span className="md:hidden text-sm font-bold flex items-center gap-1">
+                            {showSettings ? <ChevronUp size={16}/> : <ChevronDown size={16}/>} 
+                            {showSettings ? 'إخفاء الإعدادات' : 'إظهار الإعدادات'}
+                        </span>
+                    </button>
+                </div>
+
+                {showSettings && (
+                    <div className="p-5 overflow-y-auto flex-1 space-y-4">
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
                             <div>
-                                <h1 className="text-3xl font-black tracking-tight">{t('invoiceTitle', { defaultValue: 'NEW INVOICE' })}</h1>
-                                <p className="text-muted-foreground font-medium flex items-center gap-2 mt-1">
-                                    <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md text-xs font-bold uppercase">DRAFT</span>
-                                    {new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
-                                </p>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
+                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50" readOnly />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
+                                    <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                         </div>
-                        
-                        <div className="flex flex-col items-end gap-3 bg-background p-4 rounded-2xl border border-border/50 shadow-sm min-w-[240px]">
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-full text-left">{t('sidebar.cashier', { defaultValue: 'SALESPERSON' })}</div>
-                            <div className="flex items-center gap-2 w-full">
-                                <User size={16} className="text-primary shrink-0" />
-                                <select
-                                    value={selectedStaffId}
-                                    onChange={handleStaffChange}
-                                    className="bg-transparent text-sm font-bold outline-none cursor-pointer w-full text-foreground"
-                                >
-                                    <option value="" disabled>{t('sidebar.selectStaff')}</option>
-                                    {staffList.map(emp => (
-                                        <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
-                                    ))}
-                                </select>
+
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
+                            <div className="flex gap-2">
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
+                                    <input type="text" value={customerName} onChange={handleCustomerNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
+                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
+                                        <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الفئة</label>
+                                        <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
+                                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 1</label>
+                                        <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showPhone2} onChange={(e) => setShowPhone2(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 2</label>
+                                        <input type="text" value={phone2} onChange={e => setPhone2(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
+                                    <input type="text" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
+                                    <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
+                            <div className="grid grid-cols-2 gap-2">
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showItemCode} onChange={(e) => setShowItemCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>رقم الصنف</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showUnit} onChange={(e) => setShowUnit(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>الوحدة</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showDiscountPercent} onChange={(e) => setShowDiscountPercent(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>نسبة الخصم</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
+                                    <input type="checkbox" checked={showDiscountValue} onChange={(e) => setShowDiscountValue(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <span>قيمة الخصم</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-6 pb-8">
+                            <button
+                                onClick={handleCheckoutAndPrint}
+                                disabled={processing || cart.length === 0}
+                                className={clsx(
+                                    "w-full font-bold py-4 px-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg",
+                                    cart.length === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
+                                )}
+                            >
+                                {processing ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <Printer size={20} />
+                                        <span>إصدار وطباعة الفاتورة</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
-                    
-                    {/* Customer & Payment Meta */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {/* Bill To */}
-                        <div className="space-y-4">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-primary/50"></span>
-                                {t('billTo', { defaultValue: 'BILL TO' })}
-                            </h3>
-                            
-                            {!selectedCustomerId ? (
-                                <div className="space-y-3 relative">
-                                    <div className="relative">
-                                        <div className="absolute top-1/2 -translate-y-1/2 left-3 text-muted-foreground">
-                                            {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder={t('sidebar.customerPlaceholder')}
-                                            value={buyerInfo.customerName}
-                                            onChange={handleCustomerNameChange}
-                                            className={clsx("w-full bg-background border border-border/50 rounded-xl py-2.5 outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all font-medium text-sm", isRtl ? "pr-10" : "pl-10")}
-                                        />
-                                        
-                                        {showSuggestions && searchResults.length > 0 && (
-                                            <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border/50 rounded-2xl shadow-xl overflow-hidden z-50">
-                                                {searchResults.map((cust, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => selectCustomer(cust)}
-                                                        className="w-full text-left px-4 py-3 hover:bg-secondary/50 border-b border-border/20 last:border-0 transition-colors flex items-center justify-between"
-                                                    >
-                                                        <div className={isRtl ? "text-right" : "text-left"}>
-                                                            <div className="font-bold text-sm flex items-center gap-2">
-                                                                {cust.name}
-                                                                {cust.type === 'USER' && <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase">{t('sidebar.member')}</span>}
-                                                            </div>
-                                                            {cust.phone && <div className="text-xs text-muted-foreground mt-0.5 font-medium">{cust.phone}</div>}
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                )}
+            </div>
 
-                                    {/* Manual info fields */}
-                                    {buyerInfo.customerName.length > 0 && !selectedCustomerId && (
-                                        <div className="flex gap-3 animate-in fade-in slide-in-from-top-1">
-                                            <input
-                                                type="tel"
-                                                placeholder={t('sidebar.phoneOptional')}
-                                                value={buyerInfo.customerPhone}
-                                                onChange={handleCustomerPhoneChange}
-                                                className="w-1/2 bg-background border border-border/50 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                                            />
-                                            <input
-                                                type="text"
-                                                placeholder={t('sidebar.addressOptional')}
-                                                value={buyerInfo.customerAddress}
-                                                onChange={handleCustomerAddressChange}
-                                                className="w-1/2 bg-background border border-border/50 rounded-xl px-3 py-2 text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="bg-background border border-border/50 p-4 rounded-xl flex items-start justify-between group relative overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
-                                    <div className="flex gap-4 items-center">
-                                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary font-black text-xl">
-                                            {buyerInfo.customerName.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <div className="font-black text-lg">{buyerInfo.customerName}</div>
-                                            <div className="text-sm text-muted-foreground font-medium flex flex-col mt-0.5 gap-0.5">
-                                                {buyerInfo.customerPhone && <span>{buyerInfo.customerPhone}</span>}
-                                                {buyerInfo.customerAddress && <span>{buyerInfo.customerAddress}</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <button onClick={clearCustomer} className="p-2 text-muted-foreground hover:bg-red-50 hover:text-red-500 rounded-lg transition-colors bg-secondary/50 opacity-0 group-hover:opacity-100">
-                                        <X size={16} />
-                                    </button>
+            {/* --- INVOICE PAPER --- */}
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto" data-print-paper-area>
+                <div className="max-w-[210mm] mx-auto bg-white print-shadow-none shadow-2xl rounded-sm p-[10mm] min-h-[297mm] border border-gray-200 text-black" data-print-paper>
+                    
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-6 border-b-2 border-gray-900 pb-6">
+                        {/* Company Logo / Name Area */}
+                        <div className="flex-1 flex flex-col items-start">
+                            <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover" />
+                            </div>
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
+                            <div className="mt-4 flex items-center gap-2">
+                                {showWarehouse && (
+                                    <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200 flex items-center gap-1">
+                                        المستودع: <input value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="bg-transparent outline-none w-32" />
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <div className="flex-1 text-center flex flex-col items-center justify-center">
+                            <div className="border-4 border-gray-900 px-6 py-2 uppercase tracking-widest text-xl font-black rounded-lg transform -rotate-2">
+                                فاتورة مبيعات
+                            </div>
+                        </div>
+
+                        {/* Invoice Meta */}
+                        <div className="flex-1 flex justify-end">
+                            {/* eslint-disable-next-line sonarjs/table-header */}
+                            <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
+                                <tbody>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg"><input value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="bg-transparent outline-none w-16 text-center" /></td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center flex gap-1 justify-center">
+                                            <input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="font-bold bg-transparent outline-none w-6 text-center" /> - 
+                                            <input value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="bg-transparent outline-none w-20" />
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {/* Customer Info Section */}
+                    <div className="mb-6 rounded-lg border border-gray-300 overflow-hidden bg-gray-50/50 relative" ref={customerSearchRef}>
+                        <div className="bg-gray-100 border-b border-gray-300 px-4 py-2 font-bold text-gray-800 flex items-center justify-between">
+                            <span>بيانات العميل</span>
+                            {showCustomerCode && (
+                                <div className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-gray-200 flex items-center gap-1">
+                                    كود: <input value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="bg-transparent outline-none w-24" />
                                 </div>
                             )}
                         </div>
+                        <div className="p-4">
+                            <div className="grid grid-cols-12 gap-y-3 gap-x-4 text-sm" data-print-customer-grid>
+                                <div className="col-span-12 md:col-span-6 flex gap-2 relative" data-print-col-6>
+                                    <span className="font-bold text-gray-600 w-20 shrink-0">اسم العميل:</span>
+                                    <input 
+                                        value={customerName} 
+                                        onChange={handleCustomerNameChange} 
+                                        onFocus={() => setShowCustomerSuggestions(true)}
+                                        className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none placeholder:font-normal placeholder:text-gray-400" 
+                                        placeholder="اكتب اسم العميل للبحث..."
+                                    />
+                                    {showCustomerSuggestions && searchResults.length > 0 && (
+                                        <div className="absolute top-full right-0 w-full mt-1 bg-white border border-gray-200 shadow-xl rounded-lg z-[100] max-h-48 overflow-y-auto print-hidden">
+                                            {searchResults.map(cust => (
+                                                <button key={cust.id} onClick={() => selectCustomer(cust)} className="w-full text-right p-2 border-b hover:bg-gray-50 flex justify-between items-center">
+                                                    <div>
+                                                        <div className="font-bold text-sm">{cust.name}</div>
+                                                        <div className="text-xs text-gray-500">{cust.phone}</div>
+                                                    </div>
+                                                    <div className="text-xs font-bold text-blue-600" dir="ltr">{Number(cust.balance || 0).toLocaleString('ar-EG')} رصيد</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {showCity && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
+                                        <span className="font-bold text-gray-600 w-16 shrink-0">المدينة:</span>
+                                        <input value={city} onChange={e => setCity(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
+                                    </div>
+                                )}
+                                {showCategory && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
+                                        <span className="font-bold text-gray-600 w-12 shrink-0">الفئة:</span>
+                                        <input value={category} onChange={e => setCategory(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
+                                    </div>
+                                )}
 
-                        {/* Payment Details */}
-                        <div className="space-y-4">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-primary/50"></span>
-                                {t('paymentDetails', { defaultValue: 'PAYMENT DETAILS' })}
-                            </h3>
-                            <div className="bg-background p-1.5 rounded-2xl border border-border/50 flex gap-1 relative shadow-sm">
-                                {[
-                                    { id: 'CASH', icon: Banknote, label: t('sidebar.paymentMethods.CASH') },
-                                    { id: 'CREDIT', icon: CreditCard, label: t('sidebar.paymentMethods.CREDIT') },
-                                    { id: 'INSTAPAY', icon: Smartphone, label: t('sidebar.paymentMethods.INSTAPAY') }
-                                ].map((method) => {
-                                    const isActive = paymentMethod === method.id;
-                                    const Icon = method.icon;
-                                    return (
-                                        <button
-                                            key={method.id}
-                                            onClick={() => handlePaymentMethodSelect(method.id as PaymentMethodType)}
-                                            className={clsx(
-                                                "flex-1 flex items-center justify-center py-3 rounded-xl font-bold text-sm transition-all duration-300 relative z-10 gap-2",
-                                                isActive ? "text-primary-foreground shadow-md" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                                            )}
-                                        >
-                                            {isActive && <div className="absolute inset-0 bg-primary rounded-xl -z-10 shadow-sm" />}
-                                            <Icon size={18} />
-                                            {method.label}
-                                        </button>
-                                    );
-                                })}
+                                {showAddress && (
+                                    <div className="col-span-12 md:col-span-6 flex gap-2" data-print-col-6>
+                                        <span className="font-bold text-gray-600 w-20 shrink-0">العنوان:</span>
+                                        <input value={address} onChange={e => setAddress(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
+                                    </div>
+                                )}
+                                {showPhone1 && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
+                                        <span className="font-bold text-gray-600 w-16 shrink-0">هاتف 1:</span>
+                                        <input value={phone1} onChange={e => setPhone1(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
+                                    </div>
+                                )}
+                                {showPhone2 && (
+                                    <div className="col-span-12 md:col-span-3 flex gap-2" data-print-col-3>
+                                        <span className="font-bold text-gray-600 w-12 shrink-0">هاتف 2:</span>
+                                        <input value={phone2} onChange={e => setPhone2(e.target.value)} className="font-bold text-gray-900 border-b border-gray-300 flex-1 pb-1 bg-transparent outline-none" />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Invoice Body (Table) */}
-                <div className="p-6 md:p-10">
-                    <div className="border border-border/50 rounded-2xl overflow-hidden bg-background">
-                        <table className="w-full text-sm">
-                            <thead className="bg-secondary/50 text-muted-foreground font-bold text-xs uppercase tracking-wider">
-                                <tr>
-                                    <th className={clsx("p-4", isRtl ? "text-right" : "text-left")}>{t('item', { defaultValue: 'ITEM DESCRIPTION' })}</th>
-                                    <th className="p-4 text-center w-32">{t('qty', { defaultValue: 'QTY' })}</th>
-                                    <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('price', { defaultValue: 'UNIT PRICE' })}</th>
-                                    <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('total', { defaultValue: 'TOTAL' })}</th>
-                                    <th className="p-4 w-12 text-center"></th>
+                    {/* Line Items */}
+                    <div className="min-h-[200px]">
+                        <table className="w-full border-collapse border-2 border-gray-900 text-sm">
+                            <thead>
+                                <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
+                                    <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
+                                    {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
+                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
+                                    {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
+                                    <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
+                                    <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
+                                    {showDiscountPercent && <th className="border-l border-gray-300 py-2 w-16 text-center">ن الخصم</th>}
+                                    {showDiscountValue && <th className="border-l border-gray-300 py-2 w-16 text-center">ق الخصم</th>}
+                                    <th className="py-2 w-24 text-center font-bold">القيمة</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-border/30">
-                                {cart.map(item => (
-                                    <tr key={item.product.id} className="group hover:bg-muted/10 transition-colors">
-                                        <td className="p-4">
-                                            <div className="font-bold text-base">{item.product.name}</div>
-                                            <div className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider">{item.product.sku}</div>
-                                        </td>
-                                        <td className="p-4">
-                                            <div className="flex items-center justify-center gap-1 bg-secondary/30 p-1 rounded-xl border border-border/50 group-hover:border-primary/20 transition-colors">
-                                                <button onClick={() => updateQuantity(item.product.id, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground">
-                                                    <Minus size={14} strokeWidth={2.5} />
-                                                </button>
-                                                <input 
-                                                    type="number" 
-                                                    value={item.quantity} 
-                                                    onChange={(e) => setQuantityDirectly(item.product.id, parseInt(e.target.value) || 0)}
-                                                    className="w-10 text-center font-black bg-transparent outline-none tabular-nums"
-                                                />
-                                                <button onClick={() => updateQuantity(item.product.id, 1)} disabled={item.quantity >= item.product.stock} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-background shadow-sm transition-all text-muted-foreground hover:text-foreground disabled:opacity-30">
-                                                    <Plus size={14} strokeWidth={2.5} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                        <td className={clsx("p-4 font-bold text-muted-foreground", isRtl ? "text-left" : "text-right")}>
-                                            {t('currency')} {item.product.baseSellingPrice.toLocaleString(locale)}
-                                        </td>
-                                        <td className={clsx("p-4 font-black text-lg", isRtl ? "text-left" : "text-right")}>
-                                            {t('currency')} {(item.product.baseSellingPrice * item.quantity).toLocaleString(locale)}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <button onClick={() => updateQuantity(item.product.id, -item.quantity)} className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                
-                                {/* Add Item Row */}
-                                <tr className="bg-secondary/10">
-                                    <td colSpan={5} className="p-4">
-                                        <div className="relative w-full" ref={productSearchRef}>
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} strokeWidth={3} />}
-                                                </div>
-                                                <input 
-                                                    type="text"
-                                                    placeholder={t('searchPlaceholder', { defaultValue: 'Search for a product to add to invoice...' })}
-                                                    value={searchQuery}
-                                                    onChange={handleSearchChange}
-                                                    onFocus={() => setShowProductDropdown(true)}
-                                                    className="w-full bg-transparent outline-none font-bold placeholder:text-muted-foreground/50 py-2"
-                                                />
-                                            </div>
-                                            
-                                            {showProductDropdown && searchQuery && (
-                                                <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border/50 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2">
-                                                    {filteredProducts.length > 0 ? (
-                                                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                                                            {filteredProducts.map(product => (
-                                                                <button
-                                                                    key={product.id}
-                                                                    onClick={() => addToCart(product)}
-                                                                    className="w-full flex items-center justify-between p-3 hover:bg-secondary rounded-xl transition-colors text-left group"
-                                                                >
-                                                                    <div>
-                                                                        <div className="font-bold text-sm group-hover:text-primary transition-colors">{product.name}</div>
-                                                                        <div className="text-xs text-muted-foreground mt-0.5">{product.sku} • {t('stock', { count: product.stock })}</div>
-                                                                    </div>
-                                                                    <div className="font-black text-primary">
-                                                                        {t('currency')} {product.baseSellingPrice.toLocaleString(locale)}
-                                                                    </div>
-                                                                </button>
-                                                            ))}
+                            <tbody>
+                                {cart.map((item, idx) => {
+                                    const rowTotal = item.priceOverride * item.quantity - (Number(item.discountValue) || 0);
+                                    return (
+                                        <tr key={item.id} className="border-b border-gray-300 even:bg-gray-50/50 group relative">
+                                            <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium relative">
+                                                {idx + 1}
+                                                <button onClick={() => removeFromCart(item.id)} className="absolute -right-3 top-1/2 -translate-y-1/2 text-red-500 opacity-0 group-hover:opacity-100 print-hidden bg-white rounded-full p-0.5 shadow-sm border border-red-200 transition-opacity"><X size={14}/></button>
+                                            </td>
+                                            {showItemCode && <td className="border-l border-gray-300 py-2 px-1 text-center font-mono text-gray-600"><input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
+                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
+                                            {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600"><input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
+                                            <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
+                                            <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
+                                            {showDiscountPercent && <td className="border-l border-gray-300 py-2 text-center text-gray-400"><input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" placeholder="-" /></td>}
+                                            {showDiscountValue && <td className="border-l border-gray-300 py-2 text-center text-gray-400"><input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" placeholder="-" /></td>}
+                                            <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{rowTotal.toFixed(2)}</td>
+                                        </tr>
+                                    );
+                                })}
+
+                                {/* Product Search Row */}
+                                <tr className="border-b border-gray-300 print-hidden bg-gray-50/30">
+                                    <td className="border-l border-gray-300 py-2 text-center text-gray-400"><Plus size={16} className="mx-auto" /></td>
+                                    {showItemCode && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="border-l border-gray-300 py-2 px-3 relative" ref={productSearchRef}>
+                                        <input 
+                                            type="text" 
+                                            placeholder="ابحث عن صنف لإضافته للفاتورة..." 
+                                            value={searchQuery}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                setShowProductDropdown(true);
+                                            }}
+                                            onFocus={() => setShowProductDropdown(true)}
+                                            className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
+                                        />
+                                        {showProductDropdown && searchQuery && (
+                                            <div className="absolute top-full right-0 w-[400px] mt-1 bg-white border border-gray-200 rounded-lg shadow-2xl z-[100] max-h-[300px] overflow-y-auto">
+                                                {filteredProducts.map(p => (
+                                                    <button key={p.id} onClick={() => addToCart(p)} className="w-full text-right p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
+                                                        <div>
+                                                            <div className="font-bold group-hover:text-blue-600 transition-colors">{p.name}</div>
+                                                            <div className="text-xs text-gray-500 mt-0.5">{p.sku} <span className="mx-1">•</span> متوفر: <span className="font-bold text-gray-800">{p.stock}</span></div>
                                                         </div>
-                                                    ) : (
-                                                        <div className="p-6 text-center text-muted-foreground font-medium text-sm">
-                                                            {t('noResults', { defaultValue: 'No products found' })}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
+                                                        <div className="font-black text-blue-600">{p.baseSellingPrice}</div>
+                                                    </button>
+                                                ))}
+                                                {filteredProducts.length === 0 && (
+                                                    <div className="p-4 text-center text-gray-500 text-sm">لا توجد نتائج مطابقة</div>
+                                                )}
+                                            </div>
+                                        )}
                                     </td>
+                                    {showUnit && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="border-l border-gray-300 py-2"></td>
+                                    <td className="border-l border-gray-300 py-2"></td>
+                                    {showDiscountPercent && <td className="border-l border-gray-300 py-2"></td>}
+                                    {showDiscountValue && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="py-2"></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                </div>
-                
-                {/* Invoice Footer */}
-                <div className="p-6 md:p-10 bg-muted/20 border-t border-border/30 grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Notes & Terms */}
-                    <div>
-                        <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-primary/50"></span>
-                            {t('notes', { defaultValue: 'NOTES / TERMS' })}
-                        </h3>
-                        <textarea
-                            value={orderNotes}
-                            onChange={handleNotesChange}
-                            placeholder={t('sidebar.addNote', { defaultValue: 'Add any relevant notes or terms here...' })}
-                            className="w-full bg-background border border-border/50 rounded-xl p-4 text-sm font-medium outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all min-h-[120px] resize-none"
-                        />
-                    </div>
 
-                    {/* Totals & Checkout */}
-                    <div className="space-y-6">
-                        <div className="bg-background rounded-2xl border border-border/50 p-6 space-y-4 shadow-sm">
-                            <div className="flex justify-between items-center text-sm font-bold text-muted-foreground">
-                                <span>{t('sidebar.subtotal')}</span>
-                                <span className="text-foreground">{t('currency')} {subtotal.toLocaleString(locale)}</span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center text-sm font-bold text-muted-foreground group">
-                                <span>{t('discount', { defaultValue: 'DISCOUNT %' })}</span>
-                                <div className="flex items-center gap-2 relative">
-                                    <input 
-                                        type="number" 
-                                        value={discount} 
-                                        onChange={handleDiscountChange} 
-                                        placeholder="0"
-                                        className={clsx("w-20 bg-secondary border border-border/50 rounded-lg py-1 outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all font-black", isRtl ? "pr-2 text-left" : "pl-2 text-right")} 
-                                    />
-                                    <span className="text-muted-foreground">%</span>
+                    {/* Footer Totals & Financials */}
+                    <div className="mt-6 flex flex-col md:flex-row gap-6" data-print-footer>
+                        {/* Summary & Word Amount */}
+                        <div className="flex-1 flex flex-col justify-between space-y-4">
+                            <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
+                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
+                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
+                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {totalQty}
+                                    </span>
+                                </div>
+                                <div className="flex-1 flex items-center justify-between">
+                                    <span className="font-bold text-gray-700">الإجمالي العام</span>
+                                    <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {invoiceTotal.toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
-                            {validDiscount > 0 && (
-                                <div className="flex justify-between items-center text-sm font-bold text-red-500">
-                                    <span>{t('discountAmount', { defaultValue: 'Discount Amount' })}</span>
-                                    <span>-{t('currency')} {discountAmount.toLocaleString(locale)}</span>
-                                </div>
-                            )}
-                            
-                            <div className="h-px w-full bg-border/50 my-2"></div>
-                            
-                            <div className="flex justify-between items-end">
-                                <span className="font-black text-sm text-muted-foreground uppercase tracking-widest mb-1">{t('sidebar.totalDue')}</span>
-                                <span className="font-black text-4xl tracking-tight text-primary">{t('currency')} {total.toLocaleString(locale)}</span>
+
+                            <div className="border border-gray-800 p-3 text-center rounded bg-white relative">
+                                <span className="absolute -top-3 right-4 bg-white px-2 text-xs font-bold text-gray-500">المبلغ بالحروف</span>
+                                <p className="font-bold text-gray-900 text-lg leading-relaxed">
+                                    فقط وقدره ( {tafqeet(invoiceTotal)} ) لا غير.
+                                </p>
                             </div>
                         </div>
 
-                        {/* Amount Paid section for Cash */}
-                        {paymentMethod === 'CASH' && (
-                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                <div className="relative">
-                                    <span className={clsx("absolute top-1/2 -translate-y-1/2 font-black text-muted-foreground", isRtl ? "right-4" : "left-4")}>{t('currency')}</span>
-                                    <input
-                                        type="number"
-                                        placeholder={t('sidebar.amountTendered')}
-                                        value={amountPaid}
-                                        onChange={handleAmountPaidChange}
-                                        className={clsx("w-full bg-background border-2 border-primary/20 p-4 rounded-2xl text-xl font-black outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all", isRtl ? "pr-14 text-left" : "pl-14 text-right")}
+                        {/* Financial Balances */}
+                        <div className="w-full md:w-72 border-2 border-gray-900 rounded-lg overflow-hidden bg-white" data-print-financials>
+                            <div className="bg-gray-900 text-white text-center py-1 font-bold text-sm tracking-widest">
+                                كشف الحساب
+                            </div>
+                            <div className="grid grid-cols-2 text-sm divide-x divide-x-reverse divide-gray-200">
+                                <div className="bg-gray-100 p-2 font-bold text-gray-700 flex items-center">الرصيد السابق</div>
+                                <div className="p-2 font-black text-center text-gray-700">
+                                    <input 
+                                        type="number" 
+                                        value={previousBalance} 
+                                        onChange={e => setPreviousBalance(Number(e.target.value))}
+                                        className="w-full bg-transparent outline-none text-center print-hide-spinners" 
                                     />
-                                    {typeof amountPaid === 'number' && amountPaid > total && (
-                                        <div className={clsx("absolute -top-3 bg-green-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm", isRtl ? "left-4" : "right-4")}>
-                                            {t('sidebar.change', { currency: t('currency'), amount: (amountPaid - total).toLocaleString(locale) })}
-                                        </div>
+                                </div>
+
+                                <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex items-center">قيمة الفاتورة</div>
+                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700 flex items-center justify-center">{invoiceTotal.toFixed(2)}</div>
+
+                                <div className="bg-gray-100 p-1.5 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center relative group cursor-pointer print:cursor-default">
+                                    <span>المدفوع</span>
+                                    <select 
+                                        value={paymentMethod} 
+                                        onChange={e => {
+                                            const m = e.target.value as 'CASH' | 'CREDIT';
+                                            setPaymentMethod(m);
+                                            if (m === 'CASH') setAmountPaid(invoiceTotal);
+                                            else setAmountPaid('');
+                                        }}
+                                        className="text-[10px] bg-transparent text-gray-500 font-normal outline-none print-appearance-none text-right cursor-pointer"
+                                    >
+                                        <option value="CASH">نقداً</option>
+                                        <option value="CREDIT">آجل</option>
+                                        <option value="INSTAPAY">انستا باي</option>
+                                    </select>
+                                </div>
+                                <div className="p-1 border-t border-gray-200 text-green-600 flex items-center justify-center group bg-green-50/30 hover:bg-green-50 transition-colors relative">
+                                    <input 
+                                        type="number" 
+                                        value={amountPaid === '' ? '' : amountPaid} 
+                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
+                                        placeholder={paymentMethod === 'CASH' ? invoiceTotal.toFixed(2) : "0"}
+                                        className="w-full bg-transparent outline-none text-center font-black text-lg print-hide-spinners" 
+                                    />
+                                    {paymentMethod === 'CASH' && amountPaid === '' && (
+                                        <span className="absolute inset-0 flex items-center justify-center font-black pointer-events-none opacity-50">
+                                            {invoiceTotal.toFixed(2)}
+                                        </span>
                                     )}
                                 </div>
-                                
-                                {/* Quick Cash Buttons */}
-                                <div className="grid grid-cols-4 gap-2">
-                                    <button onClick={() => setAmountPaid(total)} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">{t('sidebar.exact')}</button>
-                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 50 : 50))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (50).toLocaleString(locale) }</button>
-                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 100 : 100))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (100).toLocaleString(locale) }</button>
-                                    <button onClick={() => setAmountPaid(prev => (typeof prev === "number" ? prev + 200 : 200))} className="py-2.5 bg-secondary text-foreground font-bold text-xs rounded-xl hover:bg-secondary/80 transition-colors border border-border/50">+{ (200).toLocaleString(locale) }</button>
+
+                                <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300 flex items-center">الرصيد المتبقي</div>
+                                <div className="p-2 font-black text-center text-xl border-t border-gray-300 bg-gray-50 text-red-600 flex items-center justify-center">
+                                    {currentBalance.toLocaleString('ar-EG', { maximumFractionDigits: 2 })}
                                 </div>
                             </div>
-                        )}
-
-                        <button
-                            onClick={handleCheckoutClick}
-                            disabled={processing || cart.length === 0}
-                            className={clsx(
-                                "w-full h-16 rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-xl relative overflow-hidden group",
-                                cart.length === 0 
-                                    ? "bg-secondary text-muted-foreground shadow-none cursor-not-allowed" 
-                                    : "bg-primary text-primary-foreground hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1"
-                            )}
-                        >
-                            <div className={clsx("absolute inset-0 w-full h-full bg-white/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out", isRtl ? "origin-right" : "origin-left")} />
-                            {processing ? (
-                                <Loader2 className="animate-spin" size={24} />
-                            ) : (
-                                <>
-                                    {t('sidebar.completeSale')}
-                                    <div className="bg-white/20 p-1.5 rounded-xl ml-2">
-                                        <Check size={20} strokeWidth={3} />
-                                    </div>
-                                </>
-                            )}
-                        </button>
+                        </div>
                     </div>
+
+                    {/* Signatures */}
+                    <div className="mt-12 flex justify-between px-16 text-lg font-bold">
+                        <div className="text-center w-40 flex flex-col items-center">
+                            <div className="h-12 border-b-2 border-dashed border-gray-400 w-full mb-2"></div>
+                            <span className="text-gray-600 text-sm">توقيع المستلم</span>
+                        </div>
+                        <div className="text-center w-40 flex flex-col items-center">
+                            <div className="h-12 border-b-2 border-dashed border-gray-400 w-full mb-2"></div>
+                            <span className="text-gray-600 text-sm">توقيع المسئول</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
-            {/* Confirmation Dialog */}
-            {showConfirmDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-md rounded-[2rem] border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-8 pb-6 flex flex-col items-center text-center gap-4">
-                            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                                <FileText size={32} strokeWidth={2} />
-                            </div>
-                            <div>
-                                <h3 className="text-2xl font-black tracking-tight mb-1">{t('confirm.title')}</h3>
-                                <p className="text-muted-foreground font-medium text-sm">{t('confirm.subtitle')}</p>
-                            </div>
-                        </div>
-                        
-                        <div className="px-8 pb-6 space-y-4">
-                             <div className="bg-secondary/50 p-6 rounded-3xl border border-border/50 space-y-4">
-                                <div className="flex justify-between text-sm font-medium">
-                                    <span className="text-muted-foreground">{t('confirm.items')}</span>
-                                    <span className="font-bold bg-background px-2 py-0.5 rounded-md border border-border/50">{cart.length.toLocaleString(locale)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm font-medium">
-                                    <span className="text-muted-foreground">{t('confirm.paymentMethod')}</span>
-                                    <span className="font-bold flex items-center gap-1">
-                                        {paymentMethod === 'CASH' && <Banknote size={14} className="text-primary" />}
-                                        {paymentMethod === 'CREDIT' && <CreditCard size={14} className="text-primary" />}
-                                        {paymentMethod === 'INSTAPAY' && <Smartphone size={14} className="text-primary" />}
-                                        {t(`sidebar.paymentMethods.${paymentMethod}` as any)}
-                                    </span>
-                                </div>
-                                {buyerInfo.customerName && (
-                                    <div className="flex justify-between text-sm font-medium">
-                                        <span className="text-muted-foreground">{t('confirm.customer')}</span>
-                                        <span className="font-bold text-right">{buyerInfo.customerName}</span>
-                                    </div>
-                                )}
-                                <div className="h-px bg-border/80 my-2" />
-                                <div className="flex justify-between font-black text-xl items-end">
-                                    <span className="text-sm text-muted-foreground tracking-widest uppercase mb-1">{t('sidebar.totalDue')}</span>
-                                    <span className="text-primary text-2xl">{t('currency')} {total.toLocaleString(locale)}</span>
-                                </div>
-                                {paymentMethod === 'CASH' && amountPaid && typeof amountPaid === 'number' && (
-                                    <div className="flex justify-between font-bold text-sm text-green-600 pt-2 border-t border-green-500/10 mt-2">
-                                        <span>{t('sidebar.change', { currency: '', amount: '' }).split(':')[0]}</span>
-                                        <span>{t('currency')} {Math.max(0, amountPaid - total).toLocaleString(locale)}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        
-                        <div className="p-6 bg-muted/30 flex gap-3 border-t border-border/50">
-                            <button
-                                onClick={handleCloseConfirmDialog}
-                                className="flex-1 py-4 bg-background border border-border/60 rounded-xl font-bold hover:bg-secondary transition-colors"
-                            >
-                                {t('confirm.cancel')}
-                            </button>
-                            <button
-                                onClick={handleConfirmCheckout}
-                                className="flex-1 py-4 bg-primary text-primary-foreground rounded-xl font-black shadow-lg shadow-primary/20 hover:bg-primary/90 hover:scale-[1.02] transition-all"
-                            >
-                                {t('confirm.confirm')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Success Animation Overlay */}
+            {/* Success Animation */}
             {showSuccess && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="flex flex-col items-center gap-6 animate-in zoom-in-50 duration-500 ease-out">
-                        <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl shadow-green-500/20">
-                            <Check size={48} strokeWidth={4} />
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/80 backdrop-blur-sm animate-in fade-in duration-300 print-hidden">
+                    <div className="flex flex-col items-center gap-4 animate-in zoom-in-50 duration-500 ease-out">
+                        <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl shadow-green-500/20">
+                            <Check size={40} strokeWidth={4} />
                         </div>
                         <div className="text-center">
-                            <h2 className="text-4xl font-black tracking-tight mb-2">{t('success.title')}</h2>
-                            <p className="text-muted-foreground font-medium">{t('success.subtitle')}</p>
+                            <h2 className="text-3xl font-black tracking-tight mb-1">تم إصدار الفاتورة</h2>
+                            <p className="text-gray-500 font-medium">جاري تجهيز الطباعة...</p>
                         </div>
                     </div>
                 </div>

@@ -51,7 +51,7 @@ export async function getStaffList() {
 }
 
 export async function processSale(
-    items: { productId: string, quantity: number }[],
+    items: { productId: string, quantity: number, unitPrice?: number }[],
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
     buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string },
     userId?: string,
@@ -75,7 +75,7 @@ export async function processSale(
 
         if (!product) throw new Error(`Product ${item.productId} not found`);
 
-        const price = Number(product.baseSellingPrice);
+        const price = item.unitPrice !== undefined ? item.unitPrice : Number(product.baseSellingPrice);
         totalAmount += price * item.quantity;
 
         invoiceItemsData.push({
