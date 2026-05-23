@@ -258,20 +258,11 @@ export default function InvoicePrintPage() {
                                     <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 1</label>
-                                        <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showPhone2} onChange={(e) => setShowPhone2(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">هاتف 2</label>
-                                        <input type="text" value={phone2} onChange={e => setPhone2(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <div className="flex-1 min-w-0">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الهاتف</label>
+                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
@@ -300,14 +291,6 @@ export default function InvoicePrintPage() {
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
                                     <input type="checkbox" checked={showUnit} onChange={(e) => setShowUnit(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
                                     <span>الوحدة</span>
-                                </label>
-                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showDiscountPercent} onChange={(e) => setShowDiscountPercent(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
-                                    <span>نسبة الخصم</span>
-                                </label>
-                                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showDiscountValue} onChange={(e) => setShowDiscountValue(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
-                                    <span>قيمة الخصم</span>
                                 </label>
                             </div>
                         </div>
