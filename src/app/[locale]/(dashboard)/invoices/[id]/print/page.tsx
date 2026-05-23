@@ -16,7 +16,7 @@ export default function InvoicePrintPage() {
 
     // Editable Data States
     const [warehouseName, setWarehouseName] = useState("المخزن الرئيسي");
-    const [city, setCity] = useState("كفر الشيخ");
+    const [city, setCity] = useState("دمياط الجديدة");
     const [category, setCategory] = useState("عاملين");
     const [phone1, setPhone1] = useState("");
     const [phone2, setPhone2] = useState("");
@@ -30,8 +30,8 @@ export default function InvoicePrintPage() {
     // Table Column Toggles
     const [showItemCode, setShowItemCode] = useState(true);
     const [showUnit, setShowUnit] = useState(true);
-    const [showDiscountPercent, setShowDiscountPercent] = useState(true);
-    const [showDiscountValue, setShowDiscountValue] = useState(true);
+    const [showDiscountPercent, setShowDiscountPercent] = useState(false);
+    const [showDiscountValue, setShowDiscountValue] = useState(false);
 
     // Field Toggles
     const [showWarehouse, setShowWarehouse] = useState(true);
@@ -40,7 +40,7 @@ export default function InvoicePrintPage() {
     const [showCategory, setShowCategory] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
-    const [showPhone2, setShowPhone2] = useState(true);
+    const [showPhone2, setShowPhone2] = useState(false);
 
     useEffect(() => {
         if (id) {

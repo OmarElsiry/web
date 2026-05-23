@@ -67,8 +67,8 @@ export default function SalesPage() {
     const [showPhone2, setShowPhone2] = useState(false);
     const [showItemCode, setShowItemCode] = useState(true);
     const [showUnit, setShowUnit] = useState(true);
-    const [showDiscountPercent, setShowDiscountPercent] = useState(true);
-    const [showDiscountValue, setShowDiscountValue] = useState(true);
+    const [showDiscountPercent, setShowDiscountPercent] = useState(false);
+    const [showDiscountValue, setShowDiscountValue] = useState(false);
 
     // Sidebar Editable Info
     const [sequenceId, setSequenceId] = useState("");
@@ -103,7 +103,7 @@ export default function SalesPage() {
             return prev;
         });
     };
-    const [city, setCity] = useState("");
+    const [city, setCity] = useState("دمياط الجديدة");
     const [address, setAddress] = useState("");
     const [phone1, setPhone1] = useState("");
     const [phone2, setPhone2] = useState("");
