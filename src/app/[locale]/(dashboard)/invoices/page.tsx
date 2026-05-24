@@ -55,6 +55,8 @@ export default function InvoicesPage() {
     const [editBuyer, setEditBuyer] = useState({ name: '', phone: '', address: '' });
     const [editPayment, setEditPayment] = useState('');
     const [editAmountPaid, setEditAmountPaid] = useState(0);
+    const [editDate, setEditDate] = useState('');
+    const [editPreviousBalance, setEditPreviousBalance] = useState(0);
     const [editSaving, setEditSaving] = useState(false);
     const [editError, setEditError] = useState<string | null>(null);
 
@@ -157,6 +159,8 @@ export default function InvoicesPage() {
         });
         setEditPayment(selectedInvoice.paymentMethod);
         setEditAmountPaid(selectedInvoice.amountPaid || 0);
+        setEditDate(selectedInvoice.date ? new Date(selectedInvoice.date).toISOString().slice(0, 16) : '');
+        setEditPreviousBalance(selectedInvoice.previousBalance || 0);
         setEditError(null);
         setIsEditing(true);
         setShowHiddenFields(true); // Always show hidden fields while editing
@@ -203,6 +207,8 @@ export default function InvoicesPage() {
             customerAddress: editBuyer.address,
             paymentMethod: editPayment as 'CASH' | 'CREDIT' | 'INSTAPAY',
             amountPaid: editAmountPaid,
+            previousBalance: editPreviousBalance,
+            date: editDate ? new Date(editDate) : undefined,
             items: editItems,
         });
         if (result.success) {
@@ -215,7 +221,7 @@ export default function InvoicesPage() {
             setEditError(result.error || t('errors.updateFailed'));
         }
         setEditSaving(false);
-    }, [selectedInvoice, editBuyer, editPayment, editAmountPaid, editItems, t]);
+    }, [selectedInvoice, editBuyer, editPayment, editAmountPaid, editPreviousBalance, editDate, editItems, t]);
 
     const filteredInvoices = useMemo(() => {
         return invoices.filter(inv => {
@@ -438,7 +444,16 @@ export default function InvoicesPage() {
                                 </div>
                                 <div className={clsx("text-sm", isRtl ? "text-left" : "text-right")}>
                                     <FieldWrapper id="date" label={t('details.date')} alwaysShow>
-                                        <div className="font-bold">{new Date(selectedInvoice.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                        {isEditing ? (
+                                            <input
+                                                type="datetime-local"
+                                                value={editDate}
+                                                onChange={e => setEditDate(e.target.value)}
+                                                className="bg-secondary/30 border border-border/50 rounded-lg px-3 py-1.5 text-sm font-bold outline-none focus:border-primary/50"
+                                            />
+                                        ) : (
+                                            <div className="font-bold">{new Date(selectedInvoice.date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                        )}
                                     </FieldWrapper>
                                 </div>
                             </div>
@@ -667,21 +682,33 @@ export default function InvoicesPage() {
                                         </FieldWrapper>
                                     )}
 
-                                    {(isFieldVisible('previousBalance') || isEditing) && (selectedInvoice.previousBalance ? true : isEditing)}
+                                    {(isFieldVisible('previousBalance') || isEditing) && (
                                         <FieldWrapper id="previousBalance" label={t('details.previousBalance', { defaultValue: 'PREV BALANCE' })}>
                                             <div className="flex justify-between items-center w-full text-sm">
                                                 <span className="text-muted-foreground font-bold">{t('details.previousBalance')}</span>
-                                                <span className="font-bold text-muted-foreground">{ts('currency')} {Number(selectedInvoice.previousBalance || 0).toLocaleString(locale)}</span>
+                                                {isEditing ? (
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step={0.01}
+                                                        value={editPreviousBalance}
+                                                        onChange={e => setEditPreviousBalance(Number(e.target.value))}
+                                                        className="w-24 p-1.5 bg-background border border-border/50 rounded-lg text-right font-black outline-none focus:border-primary/50 tabular-nums text-orange-600"
+                                                    />
+                                                ) : (
+                                                    <span className="font-bold text-muted-foreground">{ts('currency')} {Number(selectedInvoice.previousBalance || 0).toLocaleString(locale)}</span>
+                                                )}
                                             </div>
                                         </FieldWrapper>
-                                    
+                                    )}
+
                                     {(isFieldVisible('currentBalance') || isEditing) && (
                                         <FieldWrapper id="currentBalance" label={t('details.currentBalance', { defaultValue: 'CURRENT BALANCE' })}>
                                             <div className="flex justify-between items-center w-full bg-red-500/10 p-3 rounded-xl border border-red-500/20 mt-2">
                                                 <span className="text-red-600 font-black text-sm">{t('details.currentBalance')}</span>
                                                 <span className="font-black text-red-600 text-lg">
                                                     {ts('currency')} {isEditing 
-                                                        ? (Number(selectedInvoice.previousBalance || 0) + editTotal - editAmountPaid).toLocaleString(locale) 
+                                                        ? (editPreviousBalance + editTotal - editAmountPaid).toLocaleString(locale) 
                                                         : Number(selectedInvoice.currentBalance || 0).toLocaleString(locale)}
                                                 </span>
                                             </div>

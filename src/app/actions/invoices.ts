@@ -113,6 +113,8 @@ export async function updateInvoice(
         customerAddress?: string;
         paymentMethod?: 'CASH' | 'CREDIT' | 'INSTAPAY';
         amountPaid?: number;
+        previousBalance?: number;
+        date?: string | Date;
         items?: Array<{
             id: string;
             productId: string;
@@ -135,60 +137,75 @@ export async function updateInvoice(
 
             if (!existing) throw new Error('Invoice not found.');
 
-            // 2. Handle item quantity/price changes + inventory deltas
+            // 2. Handle item changes + inventory
             let newTotalAmount = Number(existing.totalAmount);
 
-            if (data.items && data.items.length > 0) {
+            if (data.items !== undefined) {
                 newTotalAmount = 0;
-
-                // Find default location for inventory
+                const incomingItems = data.items;
                 const loc = await tx.location.findFirst();
+                const incomingExistingIds = incomingItems.filter(i => !i.id.startsWith('new-')).map(i => i.id);
 
-                for (const updatedItem of data.items) {
+                // --- REMOVED items: delete + restore stock ---
+                const removedItems = existing.items.filter(ei => !incomingExistingIds.includes(ei.id));
+                for (const removed of removedItems) {
+                    if (loc) {
+                        const inv = await tx.inventory.findFirst({ where: { productId: removed.productId, locationId: loc.id } });
+                        if (inv) await tx.inventory.update({ where: { id: inv.id }, data: { quantity: inv.quantity + removed.quantity } });
+                    }
+                    await tx.invoiceItem.delete({ where: { id: removed.id } });
+                }
+
+                // --- EXISTING items: update qty/price + adjust stock ---
+                for (const updatedItem of incomingItems.filter(i => !i.id.startsWith('new-'))) {
                     const existingItem = existing.items.find(i => i.id === updatedItem.id);
                     if (!existingItem) continue;
 
-                    const oldQty = existingItem.quantity;
-                    const newQty = updatedItem.quantity;
-                    const qtyDelta = oldQty - newQty; // positive = restored stock, negative = deducted
-
-                    // Adjust inventory if quantity changed
+                    const qtyDelta = existingItem.quantity - updatedItem.quantity;
                     if (qtyDelta !== 0 && loc) {
-                        const inventory = await tx.inventory.findFirst({
-                            where: { productId: updatedItem.productId, locationId: loc.id }
-                        });
-
+                        const inventory = await tx.inventory.findFirst({ where: { productId: updatedItem.productId, locationId: loc.id } });
                         if (inventory) {
                             const newStock = inventory.quantity + qtyDelta;
                             if (newStock < 0) {
                                 const product = await tx.product.findUnique({ where: { id: updatedItem.productId } });
-                                throw new Error(`Insufficient stock for ${product?.name || updatedItem.productId}. Available: ${inventory.quantity}, Required increase: ${Math.abs(qtyDelta)}`);
+                                throw new Error(`Insufficient stock for ${product?.name || updatedItem.productId}. Available: ${inventory.quantity}`);
                             }
-                            await tx.inventory.update({
-                                where: { id: inventory.id },
-                                data: { quantity: newStock }
-                            });
+                            await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
                         }
                     }
 
-                    // Update invoice item
                     const newSubtotal = updatedItem.quantity * updatedItem.unitPrice;
                     await tx.invoiceItem.update({
                         where: { id: updatedItem.id },
-                        data: {
-                            quantity: updatedItem.quantity,
-                            unitPrice: updatedItem.unitPrice,
-                            subtotal: newSubtotal
-                        }
+                        data: { quantity: updatedItem.quantity, unitPrice: updatedItem.unitPrice, subtotal: newSubtotal }
                     });
-
                     newTotalAmount += newSubtotal;
+                }
+
+                // --- NEW items: create + deduct stock ---
+                for (const newItem of incomingItems.filter(i => i.id.startsWith('new-'))) {
+                    if (loc) {
+                        const inventory = await tx.inventory.findFirst({ where: { productId: newItem.productId, locationId: loc.id } });
+                        if (inventory) {
+                            const newStock = inventory.quantity - newItem.quantity;
+                            if (newStock < 0) {
+                                const product = await tx.product.findUnique({ where: { id: newItem.productId } });
+                                throw new Error(`Insufficient stock for ${product?.name || newItem.productId}. Available: ${inventory.quantity}`);
+                            }
+                            await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
+                        }
+                    }
+                    const subtotal = newItem.quantity * newItem.unitPrice;
+                    await tx.invoiceItem.create({
+                        data: { invoiceId, productId: newItem.productId, quantity: newItem.quantity, unitPrice: newItem.unitPrice, subtotal }
+                    });
+                    newTotalAmount += subtotal;
                 }
             }
 
             // 3. Calculate balance
             const amountPaid = data.amountPaid ?? Number(existing.amountPaid);
-            const previousBalance = Number(existing.previousBalance);
+            const previousBalance = data.previousBalance ?? Number(existing.previousBalance);
             const currentBalance = previousBalance + newTotalAmount - amountPaid;
 
             // 4. Update the invoice itself
@@ -197,7 +214,9 @@ export async function updateInvoice(
                 data: {
                     totalAmount: newTotalAmount,
                     amountPaid,
+                    previousBalance,
                     currentBalance,
+                    ...(data.date && { date: new Date(data.date) }),
                     ...(data.paymentMethod && { paymentMethod: data.paymentMethod }),
                     ...(data.customerName !== undefined && { customerName: data.customerName || null }),
                     ...(data.customerPhone !== undefined && { customerPhone: data.customerPhone || null }),
