@@ -124,21 +124,25 @@ export async function processSale(
                 const name = buyerInfo.customerName as string;
                 const phone = buyerInfo.customerPhone || null;
 
-                // Try to resolve customer by name/phone, or create if not found
-                const customer = await tx.customer.upsert({
+                // Try to resolve customer by name/phone, or create if not found.
+                // Since @@unique([name, phone]) constraint fails in Prisma when phone is null (under upsert),
+                // we safely check with findFirst first.
+                let customer = await tx.customer.findFirst({
                     where: {
-                        name_phone: {
-                            name: name as any,
-                            phone: phone as any
-                        }
-                    },
-                    update: {},
-                    create: {
                         name,
-                        phone: phone as string | null,
-                        address: buyerInfo.customerAddress || null
+                        phone: phone ? phone : null
                     }
                 });
+
+                if (!customer) {
+                    customer = await tx.customer.create({
+                        data: {
+                            name,
+                            phone: phone ? phone : null,
+                            address: buyerInfo.customerAddress || null
+                        }
+                    });
+                }
                 finalCustomerId = customer.id;
                 previousBalance = Number(customer.balance);
             } else if (finalCustomerId) {
