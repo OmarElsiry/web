@@ -181,20 +181,11 @@ export default function InventoryReportPage() {
 
           <button 
             onClick={handlePrint}
-            className="flex items-center gap-2 bg-slate-900 border border-slate-800 text-slate-300 px-4 py-2.5 rounded-xl hover:bg-slate-800 hover:text-white transition-all shadow-sm active:scale-95"
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 font-bold"
           >
             <Printer className="w-4 h-4" />
-            <span>{isRtl ? "طباعة التقرير" : "Print Report"}</span>
+            <span>{isRtl ? "طباعة وحفظ التقرير (PDF)" : "Print & Export PDF"}</span>
           </button>
-          
-          <a 
-            href="/api/reports/inventory/pdf"
-            download
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 font-semibold"
-          >
-            <Download className="w-4 h-4" />
-            <span>{isRtl ? "تحميل PDF" : "Download PDF"}</span>
-          </a>
         </div>
       </div>
 
