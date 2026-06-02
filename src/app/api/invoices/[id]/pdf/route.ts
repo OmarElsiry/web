@@ -28,19 +28,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // Generate PDF
     const buffer = await new Promise<Buffer>((resolve, reject) => {
-        const doc = new PDFDocument({ margin: 50 });
+        const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
+        const hasArabicFont = fs.existsSync(fontPath);
+
+        const doc = new PDFDocument({ 
+            margin: 50,
+            font: hasArabicFont ? fontPath : undefined
+        });
+        if (hasArabicFont) {
+            doc.registerFont('ArabicFont', fontPath);
+        }
         const buffers: Buffer[] = [];
 
         doc.on('data', buffers.push.bind(buffers));
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
-
-        // Load Arabic font if available
-        const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
-        if (fs.existsSync(fontPath)) {
-            doc.registerFont('ArabicFont', fontPath);
-            doc.font('ArabicFont');
-        }
 
         // -- Content Generation --
         const logoPath = path.join(process.cwd(), 'public', 'stash-logo.png');

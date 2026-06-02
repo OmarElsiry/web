@@ -35,20 +35,22 @@ export async function GET(request: NextRequest) {
 
         // Generate PDF
         const buffer = await new Promise<Buffer>((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 50 });
+            // Load Arabic font
+            const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
+            const hasArabicFont = fs.existsSync(fontPath);
+
+            const doc = new PDFDocument({ 
+                margin: 50,
+                font: hasArabicFont ? fontPath : undefined
+            });
+            if (hasArabicFont) {
+                doc.registerFont('ArabicFont', fontPath);
+            }
             const buffers: Buffer[] = [];
 
             doc.on('data', buffers.push.bind(buffers));
             doc.on('end', () => resolve(Buffer.concat(buffers)));
             doc.on('error', reject);
-
-            // Load Arabic font if available
-            const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
-            const hasArabicFont = fs.existsSync(fontPath);
-            if (hasArabicFont) {
-                doc.registerFont('ArabicFont', fontPath);
-                doc.font('ArabicFont');
-            }
 
             // Header Title
             doc.fillColor('#1A365D')
