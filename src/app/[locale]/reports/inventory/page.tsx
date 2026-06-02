@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Printer, Download, Search, RefreshCw, Layers, DollarSign, Tag, TrendingUp, MapPin, ArrowLeft } from "lucide-react";
+import { Printer, Download, Search, RefreshCw, Layers, TrendingUp, MapPin, ArrowLeft, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 
@@ -19,16 +19,7 @@ interface ProductReportItem {
   costPrice: number;
   baseSellingPrice: number;
   totalStock: number;
-  totalCostValue: number;
-  totalSellValue: number;
   locations: LocationBreakdown[];
-}
-
-interface ReportSummary {
-  totalUniqueItems: number;
-  totalStockQuantity: number;
-  totalCostValuation: number;
-  totalRetailValuation: number;
 }
 
 export default function InventoryReportPage() {
@@ -40,6 +31,10 @@ export default function InventoryReportPage() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<"name" | "sku" | "category" | "costPrice" | "baseSellingPrice" | "totalStock">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -72,9 +67,19 @@ export default function InventoryReportPage() {
     return ["all", ...Array.from(set)];
   }, [products]);
 
-  // Filters & Search
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+  // Handle sort trigger
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // Filters, Search & Sorting
+  const filteredAndSortedProducts = useMemo(() => {
+    const result = products.filter((p) => {
       const matchesSearch =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchQuery.toLowerCase());
@@ -82,29 +87,61 @@ export default function InventoryReportPage() {
         selectedCategory === "all" || p.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [products, searchQuery, selectedCategory]);
+
+    result.sort((a, b) => {
+      let aVal: string | number = a[sortField];
+      let bVal: string | number = b[sortField];
+
+      if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal as string).toLowerCase();
+      }
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [products, searchQuery, selectedCategory, sortField, sortOrder]);
 
   // Re-calculate summary for filtered subset
   const filteredSummary = useMemo(() => {
-    return filteredProducts.reduce(
+    return filteredAndSortedProducts.reduce(
       (acc, p) => {
         acc.totalUniqueItems += 1;
         acc.totalStockQuantity += p.totalStock;
-        acc.totalCostValuation += p.totalCostValue;
-        acc.totalRetailValuation += p.totalSellValue;
         return acc;
       },
       {
         totalUniqueItems: 0,
         totalStockQuantity: 0,
-        totalCostValuation: 0,
-        totalRetailValuation: 0,
       }
     );
-  }, [filteredProducts]);
+  }, [filteredAndSortedProducts]);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const renderSortHeader = (field: typeof sortField, labelEn: string, labelAr: string, alignClass = "") => {
+    const isCurrent = sortField === field;
+    const label = isRtl ? labelAr : labelEn;
+    return (
+      <th 
+        onClick={() => handleSort(field)}
+        className={`px-6 py-4 cursor-pointer hover:bg-slate-800/80 transition-colors select-none text-xs font-semibold uppercase tracking-wider print:bg-slate-100 print:text-slate-700 ${alignClass}`}
+      >
+        <div className={`flex items-center gap-1.5 ${alignClass.includes("text-right") || isRtl ? "justify-start flex-row-reverse" : "justify-start"}`}>
+          <span>{label}</span>
+          {isCurrent ? (
+            sortOrder === "asc" ? <ArrowUp className="w-3.5 h-3.5 text-blue-400" /> : <ArrowDown className="w-3.5 h-3.5 text-blue-400" />
+          ) : (
+            <ArrowUpDown className="w-3.5 h-3.5 text-slate-500 opacity-40 group-hover:opacity-100" />
+          )}
+        </div>
+      </th>
+    );
   };
 
   return (
@@ -125,10 +162,10 @@ export default function InventoryReportPage() {
       <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-            {isRtl ? "تقرير الجرد والتقييم" : "Inventory & Valuation Report"}
+            {isRtl ? "تقرير الجرد والمخازن" : "Inventory Report"}
           </h1>
           <p className="text-slate-400 mt-1">
-            {isRtl ? "جرد المخزون الفعلي، أسعار التكلفة، وأسعار البيع بالتفصيل." : "Real-time stock valuation and pricing breakdown."}
+            {isRtl ? "جرد المخزون الفعلي، أسعار التكلفة، وأسعار البيع بالتفصيل." : "Real-time stock values and pricing breakdown."}
           </p>
         </div>
         
@@ -168,7 +205,7 @@ export default function InventoryReportPage() {
       )}
 
       {/* Summary Cards */}
-      <div className="max-w-7xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
+      <div className="max-w-7xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 max-w-2xl">
         
         <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800/80 p-6 rounded-2xl shadow-xl flex items-center justify-between print:border-slate-300 print:bg-slate-50 print:p-4">
           <div>
@@ -192,30 +229,6 @@ export default function InventoryReportPage() {
             </h3>
           </div>
           <div className="p-3 bg-indigo-600/10 rounded-xl text-indigo-400 print:hidden"><TrendingUp className="w-6 h-6" /></div>
-        </div>
-
-        <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800/80 p-6 rounded-2xl shadow-xl flex items-center justify-between print:border-slate-300 print:bg-slate-50 print:p-4">
-          <div>
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider print:text-slate-600">
-              {isRtl ? "تقييم التكلفة" : "Cost Valuation"}
-            </span>
-            <h3 className="text-2xl font-bold mt-1 text-emerald-400 print:text-emerald-700">
-              EGP {isLoading ? "..." : filteredSummary.totalCostValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          <div className="p-3 bg-emerald-600/10 rounded-xl text-emerald-400 print:hidden"><DollarSign className="w-6 h-6" /></div>
-        </div>
-
-        <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800/80 p-6 rounded-2xl shadow-xl flex items-center justify-between print:border-slate-300 print:bg-slate-50 print:p-4">
-          <div>
-            <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider print:text-slate-600">
-              {isRtl ? "تقييم البيع" : "Retail Valuation"}
-            </span>
-            <h3 className="text-2xl font-bold mt-1 text-violet-400 print:text-violet-700">
-              EGP {isLoading ? "..." : filteredSummary.totalRetailValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          <div className="p-3 bg-violet-600/10 rounded-xl text-violet-400 print:hidden"><Tag className="w-6 h-6" /></div>
         </div>
 
       </div>
@@ -252,48 +265,47 @@ export default function InventoryReportPage() {
         
         {/* Printable Only Title */}
         <div className="hidden print:block p-8 text-center border-b border-slate-200">
-          <h2 className="text-2xl font-bold text-slate-900">{isRtl ? "تقرير الجرد والتقييم للمخازن" : "Inventory Status & Valuation Report"}</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{isRtl ? "تقرير الجرد والكميات للمخازن" : "Inventory Status & Quantity Report"}</h2>
           <p className="text-slate-500 mt-1">Generated: {new Date().toLocaleString()}</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-slate-300 print:text-black">
             <thead>
-              <tr className="bg-slate-900/60 text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-800/50 print:bg-slate-100 print:text-slate-700 print:border-slate-300">
-                <th className={`px-6 py-4 ${isRtl ? "text-right" : "text-left"}`}>{isRtl ? "الصنف / SKU" : "Item / SKU"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-right" : "text-left"}`}>{isRtl ? "التصنيف" : "Category"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-left" : "text-right"}`}>{isRtl ? "التكلفة" : "Cost"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-left" : "text-right"}`}>{isRtl ? "سعر البيع" : "Selling Price"}</th>
-                <th className="px-6 py-4 text-center">{isRtl ? "الوحدة" : "Unit"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-left" : "text-right"}`}>{isRtl ? "الكمية" : "Stock"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-left" : "text-right"}`}>{isRtl ? "إجمالي التكلفة" : "Total Cost"}</th>
-                <th className={`px-6 py-4 ${isRtl ? "text-left" : "text-right"}`}>{isRtl ? "إجمالي البيع" : "Total Sell"}</th>
+              <tr className="bg-slate-900/60 border-b border-slate-800/50 print:bg-slate-100 print:border-slate-300">
+                {renderSortHeader("name", "Item", "الصنف")}
+                {renderSortHeader("sku", "SKU", "رمز SKU")}
+                {renderSortHeader("category", "Category", "التصنيف")}
+                {renderSortHeader("costPrice", "Cost", "التكلفة", isRtl ? "text-right" : "text-right")}
+                {renderSortHeader("baseSellingPrice", "Selling Price", "سعر البيع", isRtl ? "text-right" : "text-right")}
+                <th className="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-400 print:text-slate-700">{isRtl ? "الوحدة" : "Unit"}</th>
+                {renderSortHeader("totalStock", "Stock", "الكمية", isRtl ? "text-right" : "text-right")}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-900/40 print:divide-slate-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
                     <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                     Loading inventory data...
                   </td>
                 </tr>
-              ) : filteredProducts.length === 0 ? (
+              ) : filteredAndSortedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     No matching items found.
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map((p) => {
+                filteredAndSortedProducts.map((p) => {
                   const margin = p.baseSellingPrice > 0 ? ((p.baseSellingPrice - p.costPrice) / p.baseSellingPrice) * 100 : 0;
                   return (
                     <React.Fragment key={p.id}>
                       <tr className="hover:bg-slate-900/40 transition-colors group print:hover:bg-transparent">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="font-semibold text-slate-100 print:text-slate-900 text-sm max-w-[200px] truncate">{p.name}</div>
-                          <div className="text-xs text-slate-400 font-mono mt-1 print:text-slate-500">{p.sku}</div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-400 print:text-slate-500">{p.sku}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-300 print:bg-slate-100 print:text-slate-800">
                             {p.category}
@@ -312,13 +324,11 @@ export default function InventoryReportPage() {
                             {p.totalStock.toLocaleString()}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 font-mono text-sm text-slate-300 print:text-slate-700 ${isRtl ? "text-left" : "text-right"}`}>{p.totalCostValue.toFixed(2)}</td>
-                        <td className={`px-6 py-4 font-mono text-sm font-bold text-slate-100 print:text-slate-900 ${isRtl ? "text-left" : "text-right"}`}>{p.totalSellValue.toFixed(2)}</td>
                       </tr>
                       {/* Location breakdown if multiple exists */}
                       {p.locations.length > 1 && (
                         <tr className="bg-slate-950/20 print:bg-slate-50/50">
-                          <td colSpan={8} className="px-6 py-2">
+                          <td colSpan={7} className="px-6 py-2">
                             <div className={`flex flex-wrap gap-4 text-xs text-slate-400 py-1 print:text-slate-600 ${isRtl ? "pr-4" : "pl-4"}`}>
                               {p.locations.map((loc, index) => (
                                 <div key={index} className="flex items-center gap-1">
@@ -336,18 +346,12 @@ export default function InventoryReportPage() {
               )}
             </tbody>
             {/* Total Footer Summary */}
-            {!isLoading && filteredProducts.length > 0 && (
-              <tfoot className="bg-slate-900/60 border-t border-slate-800/50 print:bg-slate-100 print:border-slate-300">
+            {!isLoading && filteredAndSortedProducts.length > 0 && (
+              <tfoot className="bg-slate-900/60 border-t border-slate-700/50 print:bg-slate-100 print:border-slate-300">
                 <tr className="font-bold text-sm text-slate-200 print:text-slate-900">
-                  <td colSpan={2} className="px-6 py-5">{isRtl ? "الإجمالي العام" : "General Totals"}</td>
+                  <td colSpan={3} className="px-6 py-5">{isRtl ? "الإجمالي العام" : "General Totals"}</td>
                   <td colSpan={3}></td>
                   <td className={`px-6 py-5 text-base ${isRtl ? "text-left" : "text-right"}`}>{filteredSummary.totalStockQuantity.toLocaleString()}</td>
-                  <td className={`px-6 py-5 font-mono text-emerald-400 print:text-emerald-700 ${isRtl ? "text-left" : "text-right"}`}>
-                    EGP {filteredSummary.totalCostValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className={`px-6 py-5 font-mono text-violet-400 print:text-violet-700 ${isRtl ? "text-left" : "text-right"}`}>
-                    EGP {filteredSummary.totalRetailValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
                 </tr>
               </tfoot>
             )}
