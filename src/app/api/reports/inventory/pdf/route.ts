@@ -64,16 +64,16 @@ export async function GET(request: NextRequest) {
             // Table Headers
             const tableTop = 150;
             const colProduct = 50;
-            const colSKU = 220;
-            const colCategory = 320;
-            const colUnit = 420;
-            const colQty = 480;
+            const colSKU = 190;
+            const colCategory = 330;
+            const colUnit = 440;
+            const colQty = 490;
 
             doc.fontSize(11).fillColor('#2D3748');
-            doc.text('Product Name / الصنف', colProduct, tableTop);
-            doc.text('SKU', colSKU, tableTop);
-            doc.text('Category', colCategory, tableTop);
-            doc.text('Unit', colUnit, tableTop);
+            doc.text('Product Name / الصنف', colProduct, tableTop, { width: 135, height: 15, lineBreak: false });
+            doc.text('SKU', colSKU, tableTop, { width: 135, height: 15, lineBreak: false });
+            doc.text('Category', colCategory, tableTop, { width: 100, height: 15, lineBreak: false });
+            doc.text('Unit', colUnit, tableTop, { width: 45, height: 15, lineBreak: false });
             doc.text('Total Qty', colQty, tableTop, { align: 'right', width: 60 });
 
             // Draw separator line
@@ -96,10 +96,10 @@ export async function GET(request: NextRequest) {
                 totalInventoryCount += totalStock;
 
                 // Print Product Details
-                doc.text(product.name, colProduct, y);
-                doc.text(product.sku, colSKU, y);
-                doc.text(product.category?.name || 'Uncategorized', colCategory, y);
-                doc.text(product.unit, colUnit, y);
+                doc.text(product.name, colProduct, y, { width: 135, height: 15, lineBreak: false });
+                doc.text(product.sku, colSKU, y, { width: 135, height: 15, lineBreak: false });
+                doc.text(product.category?.name || 'Uncategorized', colCategory, y, { width: 100, height: 15, lineBreak: false });
+                doc.text(product.unit, colUnit, y, { width: 45, height: 15, lineBreak: false });
                 doc.text(totalStock.toString(), colQty, y, { align: 'right', width: 60 });
 
                 y += 22;
