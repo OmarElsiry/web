@@ -8,11 +8,10 @@ dotenv.config({ path: '.env.local' });
 
 const prisma = getPrisma();
 
-// Helper to download Amiri font if it doesn't exist
 async function ensureFontExists(fontPath: string) {
   if (fs.existsSync(fontPath)) return true;
 
-  console.log('Amiri font is missing. Downloading from Google Fonts to ensure Arabic text renders correctly...');
+  console.log('Amiri font is missing. Downloading from Google Fonts...');
   const fontUrl = 'https://github.com/google/fonts/raw/main/ofl/amiri/Amiri-Regular.ttf';
   try {
     const response = await fetch(fontUrl);
@@ -20,17 +19,16 @@ async function ensureFontExists(fontPath: string) {
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
-    // Ensure public folder exists
     const dir = path.dirname(fontPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
     
     fs.writeFileSync(fontPath, buffer);
-    console.log('Successfully downloaded Amiri-Regular.ttf to', fontPath);
+    console.log('Successfully downloaded Amiri-Regular.ttf');
     return true;
   } catch (error: any) {
-    console.error('Failed to download Arabic font. PDF will use Helvetica (Arabic letters may not render):', error.message);
+    console.error('Failed to download Arabic font:', error.message);
     return false;
   }
 }
@@ -56,12 +54,7 @@ async function main() {
       }
     });
   } catch (dbError: any) {
-    console.error('\n[DATABASE CONNECTION ERROR]');
-    console.error(dbError.message);
-    console.error('\nYour Supabase/PostgreSQL database seems to be unreachable.');
-    console.error('If you are using Supabase, please verify that your project is NOT paused.');
-    console.error('You can check the status at https://supabase.com/dashboard');
-    console.error('Ensure that the DATABASE_URL in .env.local is correct.');
+    console.error('[DATABASE CONNECTION ERROR]', dbError.message);
     process.exit(1);
   }
 
@@ -72,8 +65,7 @@ async function main() {
 
   console.log(`Fetched ${products.length} products. Generating PDF...`);
 
-  // Setup PDF Document
-  const doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({ margin: 40, size: 'A4' });
   const outputPath = path.join(process.cwd(), 'inventory-report.pdf');
   const writeStream = fs.createWriteStream(outputPath);
   
@@ -84,94 +76,118 @@ async function main() {
     doc.font('ArabicFont');
   }
 
-  // Header Title
+  // Title Header
   doc.fillColor('#1A365D')
      .fontSize(22)
-     .text('Inventory Status Report', { align: 'center' })
-     .fontSize(10)
-     .fillColor('#4A5568')
-     .text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' })
-     .moveDown(2);
+     .text('Inventory & Valuation Report', { align: 'center' })
+     .fontSize(9)
+     .fillColor('#718096')
+     .text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' })
+     .moveDown(1.5);
 
-  // Table Headers
-  const tableTop = 150;
-  const colProduct = 50;
-  const colSKU = 190;
-  const colCategory = 330;
-  const colUnit = 440;
-  const colQty = 490;
+  const colProduct = 40;
+  const colSKU = 155;
+  const colCost = 255;
+  const colSell = 315;
+  const colStock = 375;
+  const colTotalCost = 425;
+  const colTotalSell = 495;
 
-  doc.fontSize(11).fillColor('#2D3748');
-  doc.text('Product Name / الصنف', colProduct, tableTop, { width: 135, height: 15, lineBreak: false });
-  doc.text('SKU', colSKU, tableTop, { width: 135, height: 15, lineBreak: false });
-  doc.text('Category', colCategory, tableTop, { width: 100, height: 15, lineBreak: false });
-  doc.text('Unit', colUnit, tableTop, { width: 45, height: 15, lineBreak: false });
-  doc.text('Total Qty', colQty, tableTop, { align: 'right', width: 60 });
+  const tableTop = 130;
 
-  // Draw separator line
-  doc.moveTo(50, tableTop + 18).lineTo(550, tableTop + 18).strokeColor('#CBD5E0').lineWidth(1).stroke();
+  doc.rect(40, tableTop - 5, 515, 22).fill('#F7FAFC');
+
+  doc.fontSize(9).fillColor('#4A5568');
+  doc.text('Product Name / الصنف', colProduct, tableTop, { width: 110, height: 15, lineBreak: false });
+  doc.text('SKU', colSKU, tableTop, { width: 95, height: 15, lineBreak: false });
+  doc.text('Cost', colCost, tableTop, { align: 'right', width: 55 });
+  doc.text('Sell Price', colSell, tableTop, { align: 'right', width: 55 });
+  doc.text('Stock', colStock, tableTop, { align: 'right', width: 45 });
+  doc.text('Val (Cost)', colTotalCost, tableTop, { align: 'right', width: 65 });
+  doc.text('Val (Sell)', colTotalSell, tableTop, { align: 'right', width: 60 });
+
+  doc.moveTo(40, tableTop + 18).lineTo(555, tableTop + 18).strokeColor('#E2E8F0').lineWidth(1).stroke();
 
   let y = tableTop + 25;
-  let totalInventoryCount = 0;
+  let grandTotalStock = 0;
+  let grandTotalCostVal = 0;
+  let grandTotalSellVal = 0;
 
-  doc.fontSize(10).fillColor('#2D3748');
+  doc.fontSize(8.5).fillColor('#2D3748');
 
   for (const product of products) {
-    // Check page overflow
-    if (y > 700) {
+    if (y > 750) {
       doc.addPage();
       if (hasArabicFont) doc.font('ArabicFont');
       y = 50;
     }
 
     const totalStock = product.inventoryItems.reduce((acc, curr) => acc + curr.quantity, 0);
-    totalInventoryCount += totalStock;
+    const cost = Number(product.costPrice);
+    const sell = Number(product.baseSellingPrice);
+    const itemTotalCostVal = totalStock * cost;
+    const itemTotalSellVal = totalStock * sell;
 
-    // Print Product Details
-    doc.text(product.name, colProduct, y, { width: 135, height: 15, lineBreak: false });
-    doc.text(product.sku, colSKU, y, { width: 135, height: 15, lineBreak: false });
-    doc.text(product.category?.name || 'Uncategorized', colCategory, y, { width: 100, height: 15, lineBreak: false });
-    doc.text(product.unit, colUnit, y, { width: 45, height: 15, lineBreak: false });
-    doc.text(totalStock.toString(), colQty, y, { align: 'right', width: 60 });
+    grandTotalStock += totalStock;
+    grandTotalCostVal += itemTotalCostVal;
+    grandTotalSellVal += itemTotalSellVal;
 
-    y += 22;
+    doc.text(product.name, colProduct, y, { width: 110, height: 14, lineBreak: false });
+    doc.text(product.sku, colSKU, y, { width: 95, height: 14, lineBreak: false });
+    doc.text(cost.toFixed(2), colCost, y, { align: 'right', width: 55 });
+    doc.text(sell.toFixed(2), colSell, y, { align: 'right', width: 55 });
+    doc.text(totalStock.toString(), colStock, y, { align: 'right', width: 45 });
+    doc.text(itemTotalCostVal.toFixed(2), colTotalCost, y, { align: 'right', width: 65 });
+    doc.text(itemTotalSellVal.toFixed(2), colTotalSell, y, { align: 'right', width: 60 });
 
-    // Optional: Print breakdown per location if multiple locations exist
+    y += 18;
+
     if (product.inventoryItems.length > 1) {
       for (const item of product.inventoryItems) {
-        if (y > 700) {
+        if (y > 750) {
           doc.addPage();
           if (hasArabicFont) doc.font('ArabicFont');
           y = 50;
         }
-        doc.fillColor('#718096').fontSize(9);
-        doc.text(`  • ${item.location.name}: ${item.quantity}`, colProduct + 10, y);
-        y += 15;
+        doc.fillColor('#A0AEC0').fontSize(7.5);
+        doc.text(`  • ${item.location.name}: ${item.quantity}`, colProduct + 8, y);
+        y += 13;
       }
-      doc.fillColor('#2D3748').fontSize(10); // Restore defaults
-      y += 5; // Add extra padding
+      doc.fillColor('#2D3748').fontSize(8.5);
+      y += 3;
     }
   }
 
-  // Draw bottom separator
-  doc.moveTo(50, y + 5).lineTo(550, y + 5).strokeColor('#CBD5E0').stroke();
+  doc.moveTo(40, y + 5).lineTo(555, y + 5).strokeColor('#CBD5E0').lineWidth(1.5).stroke();
 
-  // Summary section
   y += 15;
-  doc.fontSize(12).fillColor('#1A365D');
-  doc.text(`Total Unique Items: ${products.length}`, colProduct, y);
-  doc.text(`Total Stock Count: ${totalInventoryCount}`, colQty - 100, y, { align: 'right', width: 160 });
+  if (y > 720) {
+    doc.addPage();
+    if (hasArabicFont) doc.font('ArabicFont');
+    y = 50;
+  }
+
+  doc.rect(40, y, 515, 65).fill('#EDF2F7');
+  doc.fillColor('#1A365D').fontSize(10);
+  
+  const summaryY = y + 10;
+  doc.text('REPORT SUMMARY / ملخص التقرير', 55, summaryY);
+  
+  doc.fontSize(9).fillColor('#2D3748');
+  doc.text(`Total Unique Items: ${products.length}`, 55, summaryY + 20);
+  doc.text(`Total Stock Quantity: ${grandTotalStock.toLocaleString()}`, 55, summaryY + 35);
+  
+  doc.text(`Total Cost Valuation: EGP ${grandTotalCostVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 20, { align: 'right', width: 240 });
+  doc.text(`Total Retail Valuation: EGP ${grandTotalSellVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 35, { align: 'right', width: 240 });
+
+  doc.fontSize(8).fillColor('#A0AEC0').text('Stash Inventory Management System', 40, 800, { align: 'center' });
 
   doc.end();
 
   await new Promise((resolve) => writeStream.on('finish', resolve));
-  console.log(`\nPDF Report successfully generated: ${outputPath}`);
+  console.log(`PDF successfully generated: ${outputPath}`);
 }
 
 main()
-  .catch((err) => {
-    console.error('Unhandled error in script:', err);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch((err) => console.error(err))
+  .finally(() => prisma.$disconnect());
