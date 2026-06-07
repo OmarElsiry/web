@@ -22,6 +22,7 @@ export async function getInventory() {
 
     return inventory.map(item => ({
         ...item,
+        quantity: Number(item.quantity),
         product: {
             ...item.product,
             costPrice: Number(item.product.costPrice),
@@ -233,11 +234,11 @@ export async function getUnifiedProducts() {
 
     // Compute grand total stock across all products
     const grandTotal = products.reduce((sum, p) =>
-        sum + p.inventoryItems.reduce((s, inv) => s + inv.quantity, 0), 0
+        sum + p.inventoryItems.reduce((s, inv) => s + Number(inv.quantity), 0), 0
     );
 
     return products.map(p => {
-        const totalStock = p.inventoryItems.reduce((s, inv) => s + inv.quantity, 0);
+        const totalStock = p.inventoryItems.reduce((s, inv) => s + Number(inv.quantity), 0);
         const percentOfTotal = grandTotal > 0 ? Number(((totalStock / grandTotal) * 100).toFixed(1)) : 0;
 
         return {
@@ -260,7 +261,7 @@ export async function getUnifiedProducts() {
                 locationId: inv.locationId,
                 locationName: inv.location.name,
                 locationType: inv.location.type,
-                quantity: inv.quantity
+                quantity: Number(inv.quantity)
             }))
         };
     });

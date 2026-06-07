@@ -89,7 +89,7 @@ export async function getCustomerProfile(id: string) {
             seller: inv.user?.name || 'Unknown',
             items: inv.items.map(it => ({
                 product: it.product.name,
-                quantity: it.quantity,
+                quantity: Number(it.quantity),
                 price: Number(it.unitPrice),
                 subtotal: Number(it.subtotal)
             }))

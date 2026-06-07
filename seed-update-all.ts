@@ -344,7 +344,7 @@ async function main() {
         where: { productId: bunSadaWasat.id, locationId: location.id },
       });
 
-      const available = inv ? inv.quantity : 0;
+      const available = inv ? Number(inv.quantity) : 0;
       const orderQty = 5;
       const unitPrice = 550;
       const totalAmount = orderQty * unitPrice;
@@ -438,7 +438,7 @@ async function main() {
       currentCat = p.category.name;
       console.log(`\n  📁 ${currentCat}`);
     }
-    const totalStock = p.inventoryItems.reduce((s, i) => s + i.quantity, 0);
+    const totalStock = p.inventoryItems.reduce((s, i) => s + Number(i.quantity), 0);
     const stockStr = totalStock > 0 ? ` | stock: ${totalStock}` : '';
     console.log(
       `     • ${p.name} — cost: ${Number(p.costPrice)} | retail: ${Number(p.retailPrice)}${stockStr}`

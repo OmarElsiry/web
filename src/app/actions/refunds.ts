@@ -32,7 +32,7 @@ async function verifyInvoiceQuantities(tx: any, invoiceId: string, items: Refund
     invoice.refunds.forEach((ref: any) => {
         ref.items.forEach((ri: any) => {
             const current = refundedQtyMap.get(ri.productId) || 0;
-            refundedQtyMap.set(ri.productId, current + ri.quantity);
+            refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
         });
     });
 
@@ -41,7 +41,7 @@ async function verifyInvoiceQuantities(tx: any, invoiceId: string, items: Refund
         if (!invoiceItem) throw new Error(`Product ${item.productId} not found on invoice.`);
 
         const alreadyRefunded = refundedQtyMap.get(item.productId) || 0;
-        if (alreadyRefunded + item.quantity > invoiceItem.quantity) {
+        if (alreadyRefunded + item.quantity > Number(invoiceItem.quantity)) {
             throw new Error(`Refund quantity for product ${item.productId} exceeds the original invoice quantity.`);
         }
     }

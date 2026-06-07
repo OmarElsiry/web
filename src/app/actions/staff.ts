@@ -66,7 +66,13 @@ export async function getStaffSalesDetail(
     const totalTransactions = invoices.length;
 
     return {
-        invoices,
+        invoices: invoices.map(inv => ({
+            ...inv,
+            items: inv.items.map(it => ({
+                ...it,
+                quantity: Number(it.quantity)
+            }))
+        })),
         totalSales,
         totalTransactions,
         period

@@ -62,7 +62,13 @@ export async function getStockMovements(
 
         return {
             success: true,
-            movements,
+            movements: movements.map(m => ({
+                ...m,
+                items: m.items.map(it => ({
+                    ...it,
+                    quantity: Number(it.quantity)
+                }))
+            })),
             pagination: {
                 total,
                 pages: Math.ceil(total / limit),

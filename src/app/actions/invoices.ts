@@ -31,7 +31,7 @@ export async function getInvoices() {
         inv.refunds?.forEach(ref => {
             ref.items.forEach(ri => {
                 const current = refundedQtyMap.get(ri.productId) || 0;
-                refundedQtyMap.set(ri.productId, current + ri.quantity);
+                refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
             });
         });
 
@@ -43,9 +43,10 @@ export async function getInvoices() {
             currentBalance: Number(inv.currentBalance || 0),
             items: inv.items.map(item => ({
                 ...item,
+                quantity: Number(item.quantity),
                 unitPrice: Number(item.unitPrice),
                 subtotal: Number(item.subtotal),
-                refundableQuantity: Math.max(0, item.quantity - (refundedQtyMap.get(item.productId) || 0))
+                refundableQuantity: Math.max(0, Number(item.quantity) - (refundedQtyMap.get(item.productId) || 0))
             }))
         };
     });
@@ -81,7 +82,7 @@ export async function getInvoiceById(id: string) {
     invoice.refunds?.forEach(ref => {
         ref.items.forEach(ri => {
             const current = refundedQtyMap.get(ri.productId) || 0;
-            refundedQtyMap.set(ri.productId, current + ri.quantity);
+            refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
         });
     });
 
@@ -93,9 +94,10 @@ export async function getInvoiceById(id: string) {
         currentBalance: Number(invoice.currentBalance || 0),
         items: invoice.items.map(item => ({
             ...item,
+            quantity: Number(item.quantity),
             unitPrice: Number(item.unitPrice),
             subtotal: Number(item.subtotal),
-            refundableQuantity: Math.max(0, item.quantity - (refundedQtyMap.get(item.productId) || 0)),
+            refundableQuantity: Math.max(0, Number(item.quantity) - (refundedQtyMap.get(item.productId) || 0)),
             // Ensure product fields are accessible
             productCode: item.product.sku,
             productName: item.product.name,
@@ -151,7 +153,7 @@ export async function updateInvoice(
                 for (const removed of removedItems) {
                     if (loc) {
                         const inv = await tx.inventory.findFirst({ where: { productId: removed.productId, locationId: loc.id } });
-                        if (inv) await tx.inventory.update({ where: { id: inv.id }, data: { quantity: inv.quantity + removed.quantity } });
+                        if (inv) await tx.inventory.update({ where: { id: inv.id }, data: { quantity: Number(inv.quantity) + Number(removed.quantity) } });
                     }
                     await tx.invoiceItem.delete({ where: { id: removed.id } });
                 }
@@ -161,14 +163,14 @@ export async function updateInvoice(
                     const existingItem = existing.items.find(i => i.id === updatedItem.id);
                     if (!existingItem) continue;
 
-                    const qtyDelta = existingItem.quantity - updatedItem.quantity;
+                    const qtyDelta = Number(existingItem.quantity) - updatedItem.quantity;
                     if (qtyDelta !== 0 && loc) {
                         const inventory = await tx.inventory.findFirst({ where: { productId: updatedItem.productId, locationId: loc.id } });
                         if (inventory) {
-                            const newStock = inventory.quantity + qtyDelta;
+                            const newStock = Number(inventory.quantity) + qtyDelta;
                             if (newStock < 0) {
                                 const product = await tx.product.findUnique({ where: { id: updatedItem.productId } });
-                                throw new Error(`Insufficient stock for ${product?.name || updatedItem.productId}. Available: ${inventory.quantity}`);
+                                throw new Error(`Insufficient stock for ${product?.name || updatedItem.productId}. Available: ${Number(inventory.quantity)}`);
                             }
                             await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
                         }
@@ -187,10 +189,10 @@ export async function updateInvoice(
                     if (loc) {
                         const inventory = await tx.inventory.findFirst({ where: { productId: newItem.productId, locationId: loc.id } });
                         if (inventory) {
-                            const newStock = inventory.quantity - newItem.quantity;
+                            const newStock = Number(inventory.quantity) - newItem.quantity;
                             if (newStock < 0) {
                                 const product = await tx.product.findUnique({ where: { id: newItem.productId } });
-                                throw new Error(`Insufficient stock for ${product?.name || newItem.productId}. Available: ${inventory.quantity}`);
+                                throw new Error(`Insufficient stock for ${product?.name || newItem.productId}. Available: ${Number(inventory.quantity)}`);
                             }
                             await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
                         }
@@ -261,6 +263,7 @@ export async function updateInvoice(
                 totalAmount: Number(result.totalAmount),
                 items: result.items.map(it => ({
                     ...it,
+                    quantity: Number(it.quantity),
                     unitPrice: Number(it.unitPrice),
                     subtotal: Number(it.subtotal)
                 }))

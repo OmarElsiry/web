@@ -122,7 +122,7 @@ async function main() {
       y = 50;
     }
 
-    const totalStock = product.inventoryItems.reduce((acc, curr) => acc + curr.quantity, 0);
+    const totalStock = product.inventoryItems.reduce((acc, curr) => acc + Number(curr.quantity), 0);
     const cost = Number(product.costPrice);
     const sell = Number(product.baseSellingPrice);
     const itemTotalCostVal = totalStock * cost;
@@ -184,7 +184,7 @@ async function main() {
 
   doc.end();
 
-  await new Promise((resolve) => writeStream.on('finish', resolve));
+  await new Promise<void>((resolve) => writeStream.on('finish', () => resolve()));
   console.log(`PDF successfully generated: ${outputPath}`);
 }
 

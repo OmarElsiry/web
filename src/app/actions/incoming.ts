@@ -23,9 +23,9 @@ export async function getIncomingTransactions() {
             id: item.id,
             transactionId: tx.id,
             productName: item.product.name,
-            quantity: item.quantity,
+            quantity: Number(item.quantity),
             supplier: tx.notes || 'External Supplier',
-            costPrice: Number(item.product.costPrice) * item.quantity,
+            costPrice: Number(item.product.costPrice) * Number(item.quantity),
             status: 'received' as const,
             date: tx.date
         }))

@@ -563,9 +563,10 @@ export default function InvoicesPage() {
                                                             {isEditing ? (
                                                                 <input 
                                                                     type="number" 
-                                                                    min={1} 
+                                                                    min={0.01} 
+                                                                    step="any" 
                                                                     value={qty} 
-                                                                    onChange={e => handleEditItemChange(item.id, 'quantity', parseInt(e.target.value) || 1)} 
+                                                                    onChange={e => handleEditItemChange(item.id, 'quantity', parseFloat(e.target.value) || 1)} 
                                                                     className="w-16 p-1.5 bg-secondary/30 border border-border/50 rounded-lg text-center font-black outline-none focus:border-primary/50 tabular-nums mx-auto" 
                                                                 />
                                                             ) : <span className="font-black text-lg">{qty.toLocaleString(locale)}</span>}

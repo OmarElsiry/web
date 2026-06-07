@@ -89,7 +89,7 @@ export default function IncomingStockPage() {
     }, []);
     
     const handleQuantityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) || 0 }));
+        setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }));
     }, []);
     
     const handleLocationIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -217,7 +217,8 @@ export default function IncomingStockPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.quantity')}</label>
                                     <input
                                         type="number"
-                                        min="1"
+                                        min="0.01"
+                                        step="any"
                                         className="w-full p-4 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all font-black text-sm"
                                         required
                                         value={formData.quantity}

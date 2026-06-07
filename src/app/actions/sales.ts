@@ -21,7 +21,7 @@ export async function getProducts() {
     }) : [];
 
     // Map inventory to a lookup
-    const stockMap = new Map(inventories.map(inv => [inv.productId, inv.quantity]));
+    const stockMap = new Map(inventories.map(inv => [inv.productId, Number(inv.quantity)]));
 
     return products.map(p => ({
         id: p.id,
@@ -31,7 +31,7 @@ export async function getProducts() {
         costPrice: Number(p.costPrice),
         categoryId: p.categoryId,
         category: p.category,
-        stock: stockMap.get(p.id) || 0
+        stock: Number(stockMap.get(p.id) || 0)
     }));
 }
 
@@ -103,7 +103,7 @@ export async function processSale(
                     where: { productId: item.productId, locationId: loc.id }
                 });
 
-                const available = inventory ? inventory.quantity : 0;
+                const available = inventory ? Number(inventory.quantity) : 0;
                 if (available < item.quantity) {
                     const product = await tx.product.findUnique({ where: { id: item.productId } });
                     throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);

@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     });
 
     const formattedProducts = products.map((p) => {
-      const totalStock = p.inventoryItems.reduce((acc, curr) => acc + curr.quantity, 0);
+      const totalStock = p.inventoryItems.reduce((acc, curr) => acc + Number(curr.quantity), 0);
       const costPrice = Number(p.costPrice);
       const baseSellingPrice = Number(p.baseSellingPrice);
 
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         totalSellValue: totalStock * baseSellingPrice,
         locations: p.inventoryItems.map(inv => ({
           locationName: inv.location.name,
-          quantity: inv.quantity
+          quantity: Number(inv.quantity)
         }))
       };
     });

@@ -200,7 +200,7 @@ async function _getCustomerAnalytics() {
             }
             inv.items.forEach(item => {
                 const existing = purchaseHistory.get(item.product.name) || 0;
-                purchaseHistory.set(item.product.name, existing + item.quantity);
+                purchaseHistory.set(item.product.name, existing + Number(item.quantity));
             });
         });
 

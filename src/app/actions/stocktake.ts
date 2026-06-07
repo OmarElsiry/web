@@ -29,11 +29,11 @@ export async function getStocktakeItems() {
         sku: p.sku,
         category: p.category?.name || 'Uncategorized',
         price: Number(p.baseSellingPrice),
-        stock: p.inventoryItems.reduce((sum, item) => sum + item.quantity, 0),
+        stock: p.inventoryItems.reduce((sum, item) => sum + Number(item.quantity), 0),
         locations: p.inventoryItems.map(item => ({
             id: item.locationId,
             name: item.location.name,
-            quantity: item.quantity
+            quantity: Number(item.quantity)
         }))
     }));
 }
