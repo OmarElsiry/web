@@ -60,7 +60,7 @@ export default function SalesPage() {
 
     // Sidebar Toggles
     const [showWarehouse, setShowWarehouse] = useState(false);
-    const [showCustomerCode, setShowCustomerCode] = useState(true);
+    const [showCustomerCode, setShowCustomerCode] = useState(false);
     const [showCity, setShowCity] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
@@ -150,8 +150,8 @@ export default function SalesPage() {
                 const d = JSON.parse(savedDefaults);
                 if (d.sequenceId !== undefined) setSequenceId(d.sequenceId);
                 if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
-                if (d.showWarehouse !== undefined) setShowWarehouse(d.showWarehouse);
-                if (d.showCustomerCode !== undefined) setShowCustomerCode(d.showCustomerCode);
+                // if (d.showWarehouse !== undefined) setShowWarehouse(d.showWarehouse);
+                // if (d.showCustomerCode !== undefined) setShowCustomerCode(d.showCustomerCode);
                 if (d.showCity !== undefined) setShowCity(d.showCity);
                 if (d.showAddress !== undefined) setShowAddress(d.showAddress);
                 if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
@@ -553,13 +553,7 @@ export default function SalesPage() {
                                 <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
                                 <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
-                                    <input type="text" list="warehouse-history" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                            </div>
+                            {/* Warehouse Field Hidden */}
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
@@ -570,13 +564,7 @@ export default function SalesPage() {
                                     <input type="text" value={customerName} onChange={handleCustomerNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
-                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                            </div>
+                            {/* Customer Code Field Hidden */}
                             <div className="flex gap-2 items-center mb-2">
                                 <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">

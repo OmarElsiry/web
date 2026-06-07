@@ -34,10 +34,10 @@ export default function InvoicePrintPage() {
     const [showDiscountValue, setShowDiscountValue] = useState(false);
 
     // Field Toggles
-    const [showWarehouse, setShowWarehouse] = useState(true);
-    const [showCustomerCode, setShowCustomerCode] = useState(true);
+    const [showWarehouse, setShowWarehouse] = useState(false);
+    const [showCustomerCode, setShowCustomerCode] = useState(false);
     const [showCity, setShowCity] = useState(true);
-    const [showCategory, setShowCategory] = useState(true);
+    const [showCategory, setShowCategory] = useState(false);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
     const [showPhone2, setShowPhone2] = useState(false);
@@ -211,13 +211,7 @@ export default function InvoicePrintPage() {
                                 <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
                                 <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
-                                    <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                            </div>
+                            {/* Warehouse Field Hidden */}
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
@@ -228,13 +222,7 @@ export default function InvoicePrintPage() {
                                     <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
-                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                            </div>
+                            {/* Customer Code Field Hidden */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="flex gap-2 items-center">
                                     <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
@@ -243,13 +231,7 @@ export default function InvoicePrintPage() {
                                         <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                     </div>
                                 </div>
-                                <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
-                                    <div className="flex-1 min-w-0">
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الفئة</label>
-                                        <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                </div>
+                                {/* Category Field Hidden */}
                             </div>
                             <div className="flex gap-2 items-center">
                                 <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
