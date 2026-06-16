@@ -318,20 +318,20 @@ function ProfileContent() {
                             <th className="text-center">{t('report.table.index')}</th>
                             <th>{t('report.table.date')}</th>
                             <th>{t('report.table.invoice')}</th>
-                            <th className={isRtl ? 'text-left' : 'text-right'}>{t('report.table.total')}</th>
-                            <th className={isRtl ? 'text-left' : 'text-right'}>{t('report.table.paid')}</th>
-                            <th className={isRtl ? 'text-left' : 'text-right'}>{t('report.table.balance')}</th>
+                            <th className={'text-center'}>{t('report.table.total')}</th>
+                            <th className={'text-center'}>{t('report.table.paid')}</th>
+                            <th className={'text-center'}>{t('report.table.balance')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {invoices.map((inv: any, idx: number) => (
                             <tr key={inv.id}>
                                 <td className="text-center font-bold">{(idx + 1).toLocaleString(locale)}</td>
-                                <td className="font-bold">{new Date(inv.date).toLocaleDateString(locale)}</td>
-                                <td className="font-mono text-sm font-black uppercase">{inv.id.slice(-8).toUpperCase()}</td>
-                                <td className={clsx("font-black", isRtl ? 'text-left' : 'text-right')}>{Number(inv.total).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
-                                <td className={clsx("text-green-700 font-bold", isRtl ? 'text-left' : 'text-right')}>{Number(inv.paid).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
-                                <td className={clsx("text-red-600 font-black", isRtl ? 'text-left' : 'text-right')}>{Number(inv.currentBalance || 0).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
+                                <td className="font-bold text-center">{new Date(inv.date).toLocaleDateString(locale)}</td>
+                                <td className="font-mono text-sm font-black uppercase text-center">{inv.id.slice(-8).toUpperCase()}</td>
+                                <td className={clsx("font-black", 'text-center')}>{Number(inv.total).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
+                                <td className={clsx("text-green-700 font-bold", 'text-center')}>{Number(inv.paid).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
+                                <td className={clsx("text-red-600 font-black", 'text-center')}>{Number(inv.currentBalance || 0).toLocaleString(locale, { minimumFractionDigits: 2 })}</td>
                             </tr>
                         ))}
                     </tbody>

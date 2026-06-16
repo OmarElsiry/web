@@ -197,8 +197,8 @@ export default function StocktakePage() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                             <tr>
-                                <th className="px-6 py-4">{t('table.product')}</th>
-                                <th className="px-6 py-4">{t('table.category')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.product')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.category')}</th>
                                 <th className="px-6 py-4 text-center">{t('table.systemStock')}</th>
                                 <th className="px-6 py-4 text-center w-32">{t('table.actualCount')}</th>
                                 <th className="px-6 py-4 text-center">{t('table.diff')}</th>
@@ -220,7 +220,7 @@ export default function StocktakePage() {
                                             "transition-colors",
                                             hasDiff ? "bg-yellow-500/5 hover:bg-yellow-500/10" : "hover:bg-muted/50"
                                         )}>
-                                            <td className="px-6 py-4 font-semibold text-foreground">
+                                            <td className="px-6 py-4 font-semibold text-foreground text-center">
                                                 {product.name}
                                                 {hasDiff && (
                                                     <span className={clsx("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500", locale === 'ar' ? "mr-2" : "ml-2")}>
@@ -233,7 +233,7 @@ export default function StocktakePage() {
                                                     </div>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-muted-foreground">
+                                            <td className="px-6 py-4 text-muted-foreground text-center">
                                                 <span className="px-2 py-1 bg-secondary rounded-md text-xs">
                                                     {product.category || 'Uncategorized'}
                                                 </span>

@@ -654,15 +654,15 @@ export default function SalesPage() {
                             <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الرقم</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg"><input value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="bg-transparent outline-none w-16 text-center" /></td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">التاريخ</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center flex gap-1 justify-center">
                                             <input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="font-bold bg-transparent outline-none w-6 text-center" /> - 
                                             <input value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="bg-transparent outline-none w-20" />
@@ -846,7 +846,7 @@ export default function SalesPage() {
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
                                     {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
-                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 px-3 text-center">اسم الصنف</th>
                                     {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
@@ -864,12 +864,12 @@ export default function SalesPage() {
                                                 <button onClick={() => removeFromCart(item.id)} className="absolute -right-3 top-1/2 -translate-y-1/2 text-red-500 opacity-0 group-hover:opacity-100 print-hidden bg-white rounded-full p-0.5 shadow-sm border border-red-200 transition-opacity"><X size={14}/></button>
                                             </td>
                                             {showItemCode && <td className="border-l border-gray-300 py-2 px-1 text-center font-mono text-gray-600"><input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
-                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
+                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-center"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
                                             {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600"><input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
                                             <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
                                             <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
                                             {(showDiscountPercent || showDiscountValue) && (
-                                                <td className="border-l border-gray-300 p-1">
+                                                <td className="border-l border-gray-300 p-1 text-center">
                                                     <div className="flex flex-col gap-1 justify-center items-center h-full">
                                                         {showDiscountPercent && <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
                                                         {showDiscountValue && <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
@@ -884,8 +884,8 @@ export default function SalesPage() {
                                 {/* Product Search Row */}
                                 <tr className="border-b border-gray-300 print-hidden bg-gray-50/30">
                                     <td className="border-l border-gray-300 py-2 text-center text-gray-400"><Plus size={16} className="mx-auto" /></td>
-                                    {showItemCode && <td className="border-l border-gray-300 py-2"></td>}
-                                    <td className="border-l border-gray-300 py-2 px-3 relative" ref={productSearchRef}>
+                                    {showItemCode && <td className="border-l border-gray-300 py-2 text-center"></td>}
+                                    <td className="border-l border-gray-300 py-2 px-3 relative text-center" ref={productSearchRef}>
                                         <input 
                                             type="text" 
                                             placeholder="ابحث عن صنف لإضافته للفاتورة..." 
@@ -914,11 +914,11 @@ export default function SalesPage() {
                                             </div>
                                         )}
                                     </td>
-                                    {showUnit && <td className="border-l border-gray-300 py-2"></td>}
-                                    <td className="border-l border-gray-300 py-2"></td>
-                                    <td className="border-l border-gray-300 py-2"></td>
-                                    {(showDiscountPercent || showDiscountValue) && <td className="border-l border-gray-300 py-2"></td>}
-                                    <td className="py-2"></td>
+                                    {showUnit && <td className="border-l border-gray-300 py-2 text-center"></td>}
+                                    <td className="border-l border-gray-300 py-2 text-center"></td>
+                                    <td className="border-l border-gray-300 py-2 text-center"></td>
+                                    {(showDiscountPercent || showDiscountValue) && <td className="border-l border-gray-300 py-2 text-center"></td>}
+                                    <td className="py-2 text-center"></td>
                                 </tr>
                             </tbody>
                         </table>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw, Pencil, Save, AlertCircle, Eye, EyeOff, Plus, Minus, Trash2 } from 'lucide-react';
-import { getInvoices, updateInvoice } from '@/app/actions/invoices';
+import { getInvoices, updateInvoice, undoInvoice } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
 import RefundModal from '@/components/RefundModal';
 import clsx from 'clsx';
@@ -48,6 +48,7 @@ export default function InvoicesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+    const [undoing, setUndoing] = useState(false);
 
     // Edit mode state
     const [isEditing, setIsEditing] = useState(false);
@@ -140,6 +141,30 @@ export default function InvoicesPage() {
         setSelectedInvoice(null);
         getInvoices().then(data => setInvoices(data as unknown as Invoice[]));
     }, []);
+
+    const handleUndoInvoice = useCallback(async () => {
+        if (!selectedInvoice) return;
+        
+        if (selectedInvoice.items?.some(i => i.quantity > i.refundableQuantity)) {
+             alert(t('details.cannotUndoRefunded', { defaultValue: 'Cannot undo an invoice with processed refunds. Revert refunds first.' }));
+             return;
+        }
+
+        if (!confirm(t('details.confirmUndo', { defaultValue: 'Are you sure you want to completely undo this invoice? This will restore stock, revert customer balance, and delete the invoice record. This action cannot be reversed.' }))) {
+            return;
+        }
+
+        setUndoing(true);
+        const res = await undoInvoice(selectedInvoice.id);
+        if (res.success) {
+            const updatedInvoices = await getInvoices();
+            setInvoices(updatedInvoices as unknown as Invoice[]);
+            setSelectedInvoice(null);
+        } else {
+            alert(res.error || 'Failed to undo invoice');
+        }
+        setUndoing(false);
+    }, [selectedInvoice, t]);
 
     // --- Edit handlers ---
     const handleStartEdit = useCallback(() => {
@@ -382,7 +407,7 @@ export default function InvoicesPage() {
                             </div>
 
                             <div className={clsx("flex items-center gap-4 md:gap-8 justify-between w-full md:w-auto", locale === 'ar' ? "md:justify-start" : "md:justify-end")}>
-                                <div className={clsx(locale === 'ar' ? "text-left" : "text-right")}>
+                                <div className={clsx('text-center')}>
                                     <div className="font-black text-xl text-primary">{ts('currency')} {Number(inv.totalAmount).toLocaleString(locale)}</div>
                                     <div className="text-xs text-muted-foreground font-medium">{inv.paymentMethod}</div>
                                 </div>
@@ -442,7 +467,7 @@ export default function InvoicesPage() {
                                     <h1 className="text-4xl font-black text-foreground mb-1">{t('invoiceTitle', { defaultValue: 'INVOICE' })}</h1>
                                     <div className="text-muted-foreground font-medium">#{selectedInvoice.id.slice(0, 8).toUpperCase()}</div>
                                 </div>
-                                <div className={clsx("text-sm", isRtl ? "text-left" : "text-right")}>
+                                <div className={clsx("text-sm", 'text-center')}>
                                     <FieldWrapper id="date" label={t('details.date')} alwaysShow>
                                         {isEditing ? (
                                             <input
@@ -602,10 +627,10 @@ export default function InvoicesPage() {
                                     <table className="w-full text-sm hidden md:table">
                                         <thead className="bg-muted/30 text-muted-foreground font-bold text-xs uppercase tracking-wider">
                                             <tr>
-                                                <th className={clsx("p-4", isRtl ? "text-right" : "text-left")}>{t('details.item')}</th>
+                                                <th className={clsx("p-4", 'text-center')}>{t('details.item')}</th>
                                                 <th className="p-4 text-center w-32">{t('details.qty')}</th>
-                                                <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('details.price')}</th>
-                                                <th className={clsx("p-4 w-32", isRtl ? "text-left" : "text-right")}>{t('details.subtotal')}</th>
+                                                <th className={clsx("p-4 w-32", 'text-center')}>{t('details.price')}</th>
+                                                <th className={clsx("p-4 w-32", 'text-center')}>{t('details.subtotal')}</th>
                                                 {isEditing && <th className="p-4 w-12 text-center"></th>}
                                             </tr>
                                         </thead>
@@ -619,7 +644,7 @@ export default function InvoicesPage() {
 
                                                 return (
                                                     <tr key={item.id} className="hover:bg-muted/10 transition-colors">
-                                                        <td className="p-4">
+                                                        <td className="p-4 text-center">
                                                             <div className="font-bold text-base">{name}</div>
                                                             <div className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider">{sku}</div>
                                                         </td>
@@ -635,7 +660,7 @@ export default function InvoicesPage() {
                                                                 />
                                                             ) : <span className="font-black text-lg">{qty.toLocaleString(locale)}</span>}
                                                         </td>
-                                                        <td className={clsx("p-4", isRtl ? "text-left" : "text-right")}>
+                                                        <td className={clsx("p-4", 'text-center')}>
                                                             {isEditing ? (
                                                                 <div className="flex items-center gap-1 justify-end">
                                                                     <span className="text-muted-foreground">{ts('currency')}</span>
@@ -650,7 +675,7 @@ export default function InvoicesPage() {
                                                                 </div>
                                                             ) : <span className="font-bold text-muted-foreground">{ts('currency')} {price.toLocaleString(locale)}</span>}
                                                         </td>
-                                                        <td className={clsx("p-4 font-black text-lg", isRtl ? "text-left" : "text-right")}>
+                                                        <td className={clsx("p-4 font-black text-lg", 'text-center')}>
                                                             {ts('currency')} {subtotal.toLocaleString(locale)}
                                                         </td>
                                                         {isEditing && (
@@ -667,7 +692,7 @@ export default function InvoicesPage() {
                                             {/* Add item row during edit */}
                                             {isEditing && (
                                                 <tr className="bg-secondary/10">
-                                                    <td colSpan={5} className="p-4">
+                                                    <td colSpan={5} className="p-4 text-center">
                                                         <div className="relative w-full max-w-md">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="p-2 bg-primary/10 rounded-lg text-primary">
@@ -816,6 +841,14 @@ export default function InvoicesPage() {
                                             <RefreshCcw size={18} />
                                             {t('details.refund')}
                                         </button>
+                                        <button
+                                            onClick={handleUndoInvoice}
+                                            disabled={undoing}
+                                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white border border-red-700 rounded-xl font-bold transition-all disabled:opacity-50"
+                                        >
+                                            {undoing ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                            {t('details.undoOrder', { defaultValue: 'Undo Invoice' })}
+                                        </button>
                                     </>
                                 )}
                             </div>
@@ -875,7 +908,7 @@ export default function InvoicesPage() {
                             <th>{t('details.date')}</th>
                             <th>{t('details.id')}</th>
                             <th>{t('details.buyerInfo')}</th>
-                            <th className={locale === 'ar' ? 'text-left' : 'text-right'}>{t('details.grandTotal')}</th>
+                            <th className={'text-center'}>{t('details.grandTotal')}</th>
                             <th>{t('details.payment')}</th>
                         </tr>
                     </thead>
@@ -885,15 +918,15 @@ export default function InvoicesPage() {
                                 <td>{new Date(inv.date).toLocaleDateString(locale)}</td>
                                 <td>{inv.id.slice(0, 8).toUpperCase()}</td>
                                 <td>{inv.customerName || (inv.user ? inv.user.username : t('walkInCustomer'))}</td>
-                                <td className={locale === 'ar' ? 'text-left' : 'text-right'}>{ts('currency')} {Number(inv.totalAmount).toLocaleString(locale)}</td>
+                                <td className={'text-center'}>{ts('currency')} {Number(inv.totalAmount).toLocaleString(locale)}</td>
                                 <td>{inv.paymentMethod}</td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
                         <tr>
-                            <td colSpan={3} className={clsx("font-bold pt-4", locale === 'ar' ? "text-left" : "text-right")}>{t('report.total')}</td>
-                            <td className={clsx("font-bold pt-4", locale === 'ar' ? "text-left" : "text-right")}>
+                            <td colSpan={3} className={clsx("font-bold pt-4", 'text-center')}>{t('report.total')}</td>
+                            <td className={clsx("font-bold pt-4", 'text-center')}>
                                 {ts('currency')} {filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0).toLocaleString(locale)}
                             </td>
                             <td></td>

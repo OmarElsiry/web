@@ -132,13 +132,13 @@ function LogsContent() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border text-xs uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4">{t('table.action')}</th>
-                                <th className="px-6 py-4">{t('table.status')}</th>
-                                <th className="px-6 py-4">{t('table.details')}</th>
-                                <th className="px-6 py-4">{t('table.reason')}</th>
-                                <th className="px-6 py-4">{t('table.user')}</th>
-                                <th className="px-6 py-4">{t('table.email')}</th>
-                                <th className={clsx("px-6 py-4", locale === 'ar' ? "text-left" : "text-right")}>{t('table.time')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.action')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.status')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.details')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.reason')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.user')}</th>
+                                <th className="px-6 py-4 text-center">{t('table.email')}</th>
+                                <th className={clsx("px-6 py-4", 'text-center')}>{t('table.time')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -149,29 +149,29 @@ function LogsContent() {
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="hover:bg-muted/50 transition-colors text-sm">
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 text-center">
                                             <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold border", getActionColor(log.action))}>
                                                 {log.action}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 text-center">
                                             {log.status === false ? (
                                                 <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-red-100 text-red-700 border-red-200">{t('status.failed')}</span>
                                             ) : (
                                                 <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-green-100 text-green-700 border-green-200">{t('status.success')}</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 font-medium text-foreground/80">{log.details}</td>
-                                        <td className="px-6 py-4 text-muted-foreground text-xs">{log.reason || '-'}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 font-medium text-foreground/80 text-center">{log.details}</td>
+                                        <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.reason || '-'}</td>
+                                        <td className="px-6 py-4 text-center">
                                             <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
                                                 <User size={14} />
                                                 {log.user?.name || 'System'}
                                                 {log.user?.role && <span className="text-[10px] bg-secondary px-1 rounded">{log.user.role}</span>}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-muted-foreground text-xs">{log.user?.username || '-'}</td>
-                                        <td className={clsx("px-6 py-4 tabular-nums text-muted-foreground text-xs whitespace-nowrap", locale === 'ar' ? "text-left" : "text-right")}>
+                                        <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.user?.username || '-'}</td>
+                                        <td className={clsx("px-6 py-4 tabular-nums text-muted-foreground text-xs whitespace-nowrap", 'text-center')}>
                                             {new Date(log.timestamp).toLocaleString(locale)}
                                         </td>
                                     </tr>

@@ -106,7 +106,7 @@ export default function RefundHistoryPage() {
                     <div className="p-3 bg-red-100 dark:bg-red-950/30 text-red-600 rounded-xl shadow-sm">
                         <RefreshCcw size={28} />
                     </div>
-                    <div className={isRtl ? "text-right" : "text-left"}>
+                    <div className={'text-center'}>
                         <h2 className="text-3xl font-black tracking-tighter uppercase">{t('title')}</h2>
                         <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
                     </div>
@@ -199,7 +199,7 @@ export default function RefundHistoryPage() {
                                 <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-600 rounded-xl transition-transform group-hover:scale-110">
                                     <RefreshCcw size={24} />
                                 </div>
-                                <div className={clsx("space-y-1", isRtl ? "text-right" : "text-left")}>
+                                <div className={clsx("space-y-1", 'text-center')}>
                                     <div className="font-black text-lg flex items-center gap-2 uppercase tracking-tight">
                                         {ref.invoice.customerName || t('list.walkIn')}
                                         {ref.reason && <span className="text-[10px] font-bold bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{t('list.withReason')}</span>}
@@ -215,7 +215,7 @@ export default function RefundHistoryPage() {
                             </div>
 
                             <div className="flex items-center gap-4 md:gap-8 justify-between md:justify-end">
-                                <div className={isRtl ? "text-left" : "text-right"}>
+                                <div className={'text-center'}>
                                     <div className="text-2xl font-black text-red-600 tabular-nums">
                                         - {ts('currency')} {Number(ref.totalAmount).toLocaleString(locale)}
                                     </div>
@@ -234,7 +234,7 @@ export default function RefundHistoryPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-card w-full max-w-2xl rounded-3xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-border flex items-center justify-between bg-red-50/50 dark:bg-red-950/10">
-                            <div className={isRtl ? "text-right" : "text-left"}>
+                            <div className={'text-center'}>
                                 <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
                                     {t('modal.title')}
                                 </h3>
@@ -289,17 +289,17 @@ export default function RefundHistoryPage() {
                                     <table className="w-full text-sm">
                                         <thead className="bg-secondary/30 text-muted-foreground">
                                             <tr>
-                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", isRtl ? "text-right" : "text-left")}>{t('modal.itemDetails')}</th>
+                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", 'text-center')}>{t('modal.itemDetails')}</th>
                                                 <th className="px-4 py-3 text-center font-black text-[10px] uppercase">{t('modal.condition')}</th>
                                                 <th className="px-4 py-3 text-center font-black text-[10px] uppercase">{t('modal.quantity')}</th>
-                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", isRtl ? "text-left" : "text-right")}>{t('modal.price')}</th>
-                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", isRtl ? "text-left" : "text-right")}>{t('modal.total')}</th>
+                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", 'text-center')}>{t('modal.price')}</th>
+                                                <th className={clsx("px-4 py-3 font-black text-[10px] uppercase", 'text-center')}>{t('modal.total')}</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
                                             {selectedRefund.items.map(item => (
                                                 <tr key={item.id} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-4">
+                                                    <td className="px-4 py-4 text-center">
                                                         <div className="font-bold text-sm tracking-tight">{item.product.name}</div>
                                                         <div className="text-[10px] font-mono text-muted-foreground uppercase">{item.product.sku}</div>
                                                     </td>
@@ -312,15 +312,15 @@ export default function RefundHistoryPage() {
                                                         </span>
                                                     </td>
                                                     <td className="px-4 py-4 text-center font-mono font-bold">{item.quantity.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-4 font-mono text-xs", isRtl ? "text-left" : "text-right")}>{ts('currency')} {item.unitPrice.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-4 font-mono font-black text-red-600", isRtl ? "text-left" : "text-right")}>- {ts('currency')} {item.subtotal.toLocaleString(locale)}</td>
+                                                    <td className={clsx("px-4 py-4 font-mono text-xs", 'text-center')}>{ts('currency')} {item.unitPrice.toLocaleString(locale)}</td>
+                                                    <td className={clsx("px-4 py-4 font-mono font-black text-red-600", 'text-center')}>- {ts('currency')} {item.subtotal.toLocaleString(locale)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                         <tfoot className="bg-red-50/50 dark:bg-red-950/10 font-black border-t-2 border-red-100 dark:border-red-900/50">
                                             <tr>
-                                                <td colSpan={4} className={clsx("px-4 py-5 text-xs uppercase tracking-widest text-muted-foreground font-bold", isRtl ? "text-left" : "text-right")}>{t('modal.grandTotal')}</td>
-                                                <td className={clsx("px-4 py-5 text-red-600 text-xl font-black tabular-nums", isRtl ? "text-left" : "text-right")}>- {ts('currency')} {Number(selectedRefund.totalAmount).toLocaleString(locale)}</td>
+                                                <td colSpan={4} className={clsx("px-4 py-5 text-xs uppercase tracking-widest text-muted-foreground font-bold", 'text-center')}>{t('modal.grandTotal')}</td>
+                                                <td className={clsx("px-4 py-5 text-red-600 text-xl font-black tabular-nums", 'text-center')}>- {ts('currency')} {Number(selectedRefund.totalAmount).toLocaleString(locale)}</td>
                                             </tr>
                                         </tfoot>
                                     </table>

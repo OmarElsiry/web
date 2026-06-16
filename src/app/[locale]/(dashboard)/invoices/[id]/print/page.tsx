@@ -325,15 +325,15 @@ export default function InvoicePrintPage() {
                             <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الرقم</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">التاريخ</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">
                                             <span className="font-bold">{employeeId}</span> - {employeeName}
                                         </td>
@@ -397,7 +397,7 @@ export default function InvoicePrintPage() {
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
                                     {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
-                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 px-3 text-center">اسم الصنف</th>
                                     {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
@@ -412,7 +412,7 @@ export default function InvoicePrintPage() {
                                     <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
                                         <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
                                         {showItemCode && <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>}
-                                        <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right">{item.productName}</td>
+                                        <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-center">{item.productName}</td>
                                         {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600">{item.productUnit || 'قطعة'}</td>}
                                         <td className="border-l border-gray-300 py-2 text-center font-bold">{item.quantity}</td>
                                         <td className="border-l border-gray-300 py-2 text-center font-medium">{item.unitPrice.toFixed(2)}</td>

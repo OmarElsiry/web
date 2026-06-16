@@ -172,7 +172,7 @@ export default function MovementsPage() {
                                     </div>
 
                                     {/* Locations */}
-                                    <div className={clsx("min-w-[150px] space-y-2 text-sm", locale === 'ar' ? "text-left" : "text-right")}>
+                                    <div className={clsx("min-w-[150px] space-y-2 text-sm", 'text-center')}>
                                         {(tx.fromLocation || tx.type === 'SALE' || tx.type === 'OUT') && (
                                             <div className={clsx("flex items-center gap-1.5 text-muted-foreground", locale === 'ar' ? "justify-start" : "justify-end")}>
                                                 <span className="text-xs uppercase font-bold">{t('labels.from')}</span>

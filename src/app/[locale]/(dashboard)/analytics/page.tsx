@@ -183,19 +183,19 @@ export default function AnalyticsPage() {
                                         <table className="w-full text-sm text-left">
                                             <thead className="bg-secondary/50 text-muted-foreground border-b border-border">
                                                 <tr>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('buyers.table.rank')}</th>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('buyers.table.customer')}</th>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('buyers.table.address')}</th>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('buyers.table.frequency')}</th>
-                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", locale === 'ar' ? "text-left" : "text-right")}>{t('buyers.table.contribution')}</th>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] w-8"></th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('buyers.table.rank')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('buyers.table.customer')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('buyers.table.address')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('buyers.table.frequency')}</th>
+                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", 'text-center')}>{t('buyers.table.contribution')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] w-8 text-center"></th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
                                                 {buyerData.map((buyer, idx) => (
                                                     <React.Fragment key={idx}>
                                                         <tr className="hover:bg-secondary/20 transition-colors group">
-                                                            <td className="p-4">
+                                                            <td className="p-4 text-center">
                                                                 <span className={clsx(
                                                                     "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
                                                                     idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
@@ -205,13 +205,13 @@ export default function AnalyticsPage() {
                                                                     #{(idx + 1).toLocaleString(locale)}
                                                                 </span>
                                                             </td>
-                                                            <td className="p-4">
+                                                            <td className="p-4 text-center">
                                                                 <div className="font-black text-base">{buyer.name}</div>
                                                                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                                     <Phone size={10} /> {buyer.phone}
                                                                 </div>
                                                             </td>
-                                                            <td className="p-4">
+                                                            <td className="p-4 text-center">
                                                                 {buyer.address ? (
                                                                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                                                                         <MapPin size={12} className="text-primary shrink-0" />
@@ -219,16 +219,16 @@ export default function AnalyticsPage() {
                                                                     </div>
                                                                 ) : <span className="text-xs text-muted-foreground/50">—</span>}
                                                             </td>
-                                                            <td className="p-4">
+                                                            <td className="p-4 text-center">
                                                                 <div className="flex items-center gap-2">
                                                                     <Calendar size={14} className="text-muted-foreground" />
                                                                     <span className="font-medium">{buyer.visitCount.toLocaleString(locale)} {t('buyers.table.visits')}</span>
                                                                 </div>
                                                             </td>
-                                                            <td className={clsx("p-4", locale === 'ar' ? "text-left" : "text-right")}>
+                                                            <td className={clsx("p-4", 'text-center')}>
                                                                 <div className="font-black text-primary text-lg">{ts('currency')} {buyer.totalSpent.toLocaleString(locale)}</div>
                                                             </td>
-                                                            <td className="p-4">
+                                                            <td className="p-4 text-center">
                                                                 {buyer.purchaseHistory?.length > 0 && (
                                                                     <button
                                                                         data-idx={idx}
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
                                                         </tr>
                                                         {expandedBuyer === idx && buyer.purchaseHistory?.length > 0 && (
                                                             <tr className="bg-secondary/10">
-                                                                <td colSpan={6} className="px-4 py-3">
+                                                                <td colSpan={6} className="px-4 py-3 text-center">
                                                                     <div className={clsx("space-y-1", locale === 'ar' ? "mr-12" : "ml-12")}>
                                                                         <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{t('buyers.table.history')}</div>
                                                                         {buyer.purchaseHistory.map((ph: PurchaseHistory, i: number) => (
@@ -302,16 +302,16 @@ export default function AnalyticsPage() {
                                         <table className="w-full text-sm text-left">
                                             <thead className="bg-secondary/50 text-muted-foreground border-b border-border">
                                                 <tr>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('products.table.rank')}</th>
-                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px]">{t('products.table.product')}</th>
-                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", locale === 'ar' ? "text-left" : "text-right")}>{t('products.table.quantity')}</th>
-                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", locale === 'ar' ? "text-left" : "text-right")}>{t('products.table.revenue')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('products.table.rank')}</th>
+                                                    <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('products.table.product')}</th>
+                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", 'text-center')}>{t('products.table.quantity')}</th>
+                                                    <th className={clsx("p-4 font-bold uppercase tracking-wider text-[10px]", 'text-center')}>{t('products.table.revenue')}</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border">
                                                 {productData.map((prod, idx) => (
                                                     <tr key={idx} className="hover:bg-secondary/20 transition-colors group">
-                                                        <td className="p-4">
+                                                        <td className="p-4 text-center">
                                                             <span className={clsx(
                                                                 "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
                                                                 idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
@@ -321,15 +321,15 @@ export default function AnalyticsPage() {
                                                                 #{(idx + 1).toLocaleString(locale)}
                                                             </span>
                                                         </td>
-                                                        <td className="p-4">
+                                                        <td className="p-4 text-center">
                                                             <div className="font-black text-base group-hover:text-primary transition-colors">{prod.name}</div>
                                                             <div className="text-xs text-muted-foreground font-mono bg-secondary/30 px-2 py-0.5 rounded inline-block mt-1">{prod.sku}</div>
                                                         </td>
-                                                        <td className={clsx("p-4", locale === 'ar' ? "text-left" : "text-right")}>
+                                                        <td className={clsx("p-4", 'text-center')}>
                                                             <div className="font-bold text-lg">{prod.quantitySold.toLocaleString(locale)}</div>
                                                             <div className="text-[10px] text-muted-foreground uppercase">{t('products.table.units')}</div>
                                                         </td>
-                                                        <td className={clsx("p-4", locale === 'ar' ? "text-left" : "text-right")}>
+                                                        <td className={clsx("p-4", 'text-center')}>
                                                             <div className="font-black text-green-600 text-lg">{ts('currency')} {prod.revenue.toLocaleString(locale)}</div>
                                                         </td>
                                                     </tr>

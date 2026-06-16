@@ -317,7 +317,7 @@ export default function ProductsPage() {
 
     const renderSortableHeader = (field: SortField, children: React.ReactNode, className = "") => (
         <th
-            className={clsx("px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors select-none text-xs", className)}
+            className={clsx("px-4 py-3 cursor-pointer hover:bg-secondary/50 transition-colors select-none text-xs", className, 'text-center')}
             data-field={field}
             onClick={handleSortClick}
         >
@@ -393,20 +393,20 @@ export default function ProductsPage() {
             {/* Unified Table */}
             <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className={clsx("w-full text-sm", isRtl ? "text-right" : "text-left")}>
+                    <table className={clsx("w-full text-sm", 'text-center')}>
                         <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                             <tr>
-                                <th className="px-4 py-3 w-8"></th>
+                                <th className="px-4 py-3 w-8 text-center"></th>
                                 {renderSortableHeader('name', t('table.product'))}
                                 {renderSortableHeader('sku', t('table.sku'))}
                                 {renderSortableHeader('category', t('table.category'))}
-                                <th className="px-4 py-3 text-xs">{t('table.unit')}</th>
-                                {renderSortableHeader('cost', t('table.cost'), isRtl ? "text-left" : "text-right")}
-                                {renderSortableHeader('sell', t('table.sell'), isRtl ? "text-left" : "text-right")}
-                                {renderSortableHeader('margin', t('table.margin'), isRtl ? "text-left" : "text-right")}
-                                {renderSortableHeader('stock', t('table.stock'), isRtl ? "text-left" : "text-right")}
-                                {renderSortableHeader('percent', t('table.percentTotal'), isRtl ? "text-left" : "text-right")}
-                                <th className={clsx("px-4 py-3 text-xs", isRtl ? "text-left" : "text-right")}>{t('table.actions')}</th>
+                                <th className="px-4 py-3 text-xs text-center">{t('table.unit')}</th>
+                                {renderSortableHeader('cost', t('table.cost'), 'text-center')}
+                                {renderSortableHeader('sell', t('table.sell'), 'text-center')}
+                                {renderSortableHeader('margin', t('table.margin'), 'text-center')}
+                                {renderSortableHeader('stock', t('table.stock'), 'text-center')}
+                                {renderSortableHeader('percent', t('table.percentTotal'), 'text-center')}
+                                <th className={clsx("px-4 py-3 text-xs", 'text-center')}>{t('table.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -421,7 +421,7 @@ export default function ProductsPage() {
                                     return (
                                         <React.Fragment key={p.id}>
                                             <tr className="hover:bg-muted/50 transition-colors group">
-                                                <td className="px-4 py-3">
+                                                <td className="px-4 py-3 text-center">
                                                     {p.locationBreakdown.length > 0 && (
                                                         <button
                                                             data-id={p.id}
@@ -432,13 +432,13 @@ export default function ProductsPage() {
                                                         </button>
                                                     )}
                                                 </td>
-                                                <td className="px-4 py-3 font-semibold">{p.name}</td>
-                                                <td className="px-4 py-3 font-mono text-xs">{p.sku}</td>
-                                                <td className="px-4 py-3"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{p.categoryName}</span></td>
-                                                <td className="px-4 py-3 text-xs capitalize text-muted-foreground">{t(`units.${p.unit}` as any)}</td>
-                                                <td className={clsx("px-4 py-3 font-mono text-xs", isRtl ? "text-left" : "text-right")}>{ts('currency')} {p.costPrice.toLocaleString(locale)}</td>
-                                                <td className={clsx("px-4 py-3 font-mono text-xs font-bold", isRtl ? "text-left" : "text-right")}>{ts('currency')} {p.baseSellingPrice.toLocaleString(locale)}</td>
-                                                <td className={clsx("px-4 py-3", isRtl ? "text-left" : "text-right")}>
+                                                <td className="px-4 py-3 font-semibold text-center">{p.name}</td>
+                                                <td className="px-4 py-3 font-mono text-xs text-center">{p.sku}</td>
+                                                <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{p.categoryName}</span></td>
+                                                <td className="px-4 py-3 text-xs capitalize text-muted-foreground text-center">{t(`units.${p.unit}` as any)}</td>
+                                                <td className={clsx("px-4 py-3 font-mono text-xs", 'text-center')}>{ts('currency')} {p.costPrice.toLocaleString(locale)}</td>
+                                                <td className={clsx("px-4 py-3 font-mono text-xs font-bold", 'text-center')}>{ts('currency')} {p.baseSellingPrice.toLocaleString(locale)}</td>
+                                                <td className={clsx("px-4 py-3", 'text-center')}>
                                                     <span className={clsx(
                                                         "px-2 py-0.5 rounded text-[10px] font-bold",
                                                         Number(margin) >= 20 ? "bg-green-100 text-green-700" : Number(margin) >= 10 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
@@ -446,11 +446,11 @@ export default function ProductsPage() {
                                                         {Number(margin).toLocaleString(locale)}%
                                                     </span>
                                                 </td>
-                                                <td className={clsx("px-4 py-3", isRtl ? "text-left" : "text-right")}>
+                                                <td className={clsx("px-4 py-3", 'text-center')}>
                                                     <span className={clsx("font-bold", p.totalStock < 10 ? "text-red-500" : "")}>{p.totalStock.toLocaleString(locale)}</span>
                                                     {p.totalStock < 10 && <AlertCircle size={12} className="inline mx-1 text-red-500" />}
                                                 </td>
-                                                <td className={clsx("px-4 py-3", isRtl ? "text-left" : "text-right")}>
+                                                <td className={clsx("px-4 py-3", 'text-center')}>
                                                     <div className={clsx("flex items-center gap-2", isRtl ? "justify-start" : "justify-end")}>
                                                         <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
                                                             <div
@@ -461,7 +461,7 @@ export default function ProductsPage() {
                                                         <span className="text-xs font-mono w-12">{p.percentOfTotal.toLocaleString(locale)}%</span>
                                                     </div>
                                                 </td>
-                                                <td className={clsx("px-4 py-3", isRtl ? "text-left" : "text-right")}>
+                                                <td className={clsx("px-4 py-3", 'text-center')}>
                                                     <div className={clsx("flex items-center gap-1", isRtl ? "justify-start" : "justify-end")}>
                                                         <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground" aria-label="Edit product"><Edit size={14} /></button>
                                                         <button data-id={p.id} onClick={handleDeleteProductClick} className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-colors" aria-label="Delete product"><Trash2 size={14} /></button>
@@ -471,7 +471,7 @@ export default function ProductsPage() {
                                             {/* Expanded Location Breakdown */}
                                             {isExpanded && (
                                                 <tr className="bg-secondary/10">
-                                                    <td colSpan={11} className="px-4 py-3">
+                                                    <td colSpan={11} className="px-4 py-3 text-center">
                                                         <div className={clsx("space-y-1", isRtl ? "mr-8" : "ml-8")}>
                                                             <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{t('stockByLocation')}</div>
                                                             {p.locationBreakdown.map((loc: LocationBreakdown) => (
@@ -484,7 +484,7 @@ export default function ProductsPage() {
                                                                     )}>
                                                                         {loc.locationType}
                                                                     </span>
-                                                                    <span className={clsx("font-bold font-mono w-16", isRtl ? "text-left" : "text-right")}>{loc.quantity.toLocaleString(locale)}</span>
+                                                                    <span className={clsx("font-bold font-mono w-16", 'text-center')}>{loc.quantity.toLocaleString(locale)}</span>
                                                                 </div>
                                                             ))}
                                                         </div>

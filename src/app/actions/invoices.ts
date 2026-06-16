@@ -274,3 +274,113 @@ export async function updateInvoice(
         return { success: false, error: error.message || 'Failed to update invoice.' };
     }
 }
+
+export async function undoInvoice(invoiceId: string, userId?: string) {
+    if (!invoiceId) return { success: false, error: 'Invoice ID is required.' };
+
+    const prisma: PrismaClient = getPrisma();
+
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Get existing invoice with items and customer
+            const existing = await tx.invoice.findUnique({
+                where: { id: invoiceId },
+                include: { items: true, refunds: true }
+            });
+
+            if (!existing) throw new Error('Invoice not found.');
+
+            if (existing.refunds && existing.refunds.length > 0) {
+                throw new Error('Cannot undo an invoice that has associated refunds. Please delete or revert the refunds first.');
+            }
+
+            const loc = await tx.location.findFirst();
+
+            // 2. Restore inventory
+            if (loc) {
+                for (const item of existing.items) {
+                    const inventory = await tx.inventory.findFirst({
+                        where: { productId: item.productId, locationId: loc.id }
+                    });
+                    if (inventory) {
+                        await tx.inventory.update({
+                            where: { id: inventory.id },
+                            data: { quantity: Number(inventory.quantity) + Number(item.quantity) }
+                        });
+                    }
+                }
+            }
+
+            // 3. Revert Customer Balance
+            if (existing.customerId) {
+                const customer = await tx.customer.findUnique({ where: { id: existing.customerId } });
+                if (customer) {
+                    // Reverse the effect of this invoice on the customer's balance
+                    // invoice added (totalAmount - amountPaid) to the balance
+                    const netAddition = Number(existing.totalAmount) - Number(existing.amountPaid || 0);
+                    const newBalance = Number(customer.balance) - netAddition;
+                    await tx.customer.update({
+                        where: { id: existing.customerId },
+                        data: { balance: newBalance }
+                    });
+                }
+            }
+
+            // 4. Create opposite Transaction for Inventory tracking
+            if (loc) {
+                 await tx.transaction.create({
+                    data: {
+                        type: 'RETURN', // Since there's no UNDO, RETURN or REFUND_RESTOCK
+                        toLocationId: loc.id, // items coming back into location
+                        createdById: userId || existing.userId,
+                        notes: `Undo Invoice #${existing.id}`,
+                        items: {
+                            create: existing.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.quantity
+                            }))
+                        }
+                    }
+                });
+            }
+
+            // 5. Delete Invoice Items
+            await tx.invoiceItem.deleteMany({
+                where: { invoiceId }
+            });
+
+            // 6. Delete Invoice
+            await tx.invoice.delete({
+                where: { id: invoiceId }
+            });
+        }, { timeout: 15000 });
+
+        // 7. Audit Log
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity(
+                'DELETE',
+                `Undid invoice #${invoiceId}`,
+                userId
+            );
+        } catch (e) {
+            console.error('Failed to log activity:', e);
+        }
+
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/dashboard');
+        revalidatePath('/invoices');
+        revalidatePath('/analytics');
+        revalidatePath('/profits');
+        revalidatePath('/customers');
+        revalidatePath('/sales');
+        revalidatePath('/inventory');
+        revalidatePath('/inventory/transactions');
+        revalidatePath('/logs');
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to undo invoice:', error);
+        return { success: false, error: error.message || 'Failed to undo invoice.' };
+    }
+}

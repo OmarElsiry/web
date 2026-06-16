@@ -281,30 +281,30 @@ export default function InventoryCountPage() {
                     <table className="w-full text-left">
                         <thead className="bg-secondary/50 text-muted-foreground text-xs uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 font-bold">Product</th>
-                                <th className="px-6 py-4 font-bold">Category</th>
-                                <th className="px-6 py-4 font-bold">SKU</th>
-                                <th className="px-6 py-4 font-bold text-right">Selling Price</th>
-                                <th className="px-6 py-4 font-bold text-right">Total Stock</th>
+                                <th className="px-6 py-4 font-bold text-center">Product</th>
+                                <th className="px-6 py-4 font-bold text-center">Category</th>
+                                <th className="px-6 py-4 font-bold text-center">SKU</th>
+                                <th className="px-6 py-4 font-bold text-center">Selling Price</th>
+                                <th className="px-6 py-4 font-bold text-center">Total Stock</th>
                                 <th className="px-6 py-4 font-bold text-center">Locations</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {filteredAndSortedProducts.map(p => (
                                 <tr key={p.id} className="hover:bg-secondary/20 transition-colors">
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 text-center">
                                         <div className="font-bold">{p.name}</div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                                    <td className="px-6 py-4 text-sm text-muted-foreground text-center">
                                         {p.categoryName}
                                     </td>
-                                    <td className="px-6 py-4 text-sm text-muted-foreground font-mono">
+                                    <td className="px-6 py-4 text-sm text-muted-foreground font-mono text-center">
                                         {p.sku || '-'}
                                     </td>
-                                    <td className="px-6 py-4 text-right font-bold">
+                                    <td className="px-6 py-4 text-center font-bold">
                                         {p.baseSellingPrice.toLocaleString()} EGP
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4 text-center">
                                         <span className={clsx(
                                             "inline-flex px-3 py-1 rounded-full font-bold text-sm",
                                             p.totalStock <= 0 ? "bg-red-100 text-red-600" :
@@ -315,7 +315,7 @@ export default function InventoryCountPage() {
                                             {p.totalStock}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 text-center">
                                         <div className="flex flex-col gap-1 text-sm">
                                             {p.locationBreakdown.map((loc: any) => (
                                                 <div key={loc.locationId} className="flex justify-between items-center px-2 py-1 bg-background rounded border">

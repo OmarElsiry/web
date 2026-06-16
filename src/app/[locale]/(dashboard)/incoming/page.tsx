@@ -103,7 +103,7 @@ export default function IncomingStockPage() {
     return (
         <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
             <div className="flex items-center justify-between">
-                <h2 className={clsx("text-3xl font-black tracking-tighter uppercase", isRtl ? "text-right" : "text-left")}>{t('title')}</h2>
+                <h2 className={clsx("text-3xl font-black tracking-tighter uppercase", 'text-center')}>{t('title')}</h2>
                 <button
                     onClick={handleOpenModal}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl transition-all shadow-sm active:scale-95 font-bold text-sm"
@@ -119,7 +119,7 @@ export default function IncomingStockPage() {
                         <div className="p-3 bg-blue-100 text-blue-700 rounded-xl dark:bg-blue-900/30 dark:text-blue-300 group-hover:scale-110 transition-transform">
                             <Truck size={24} />
                         </div>
-                        <div className={isRtl ? "text-right" : "text-left"}>
+                        <div className={'text-center'}>
                             <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t('metrics.totalShipments')}</div>
                             <div className="text-2xl font-black">{t('metrics.records', { count: items.length.toLocaleString(locale) })}</div>
                         </div>
@@ -132,12 +132,12 @@ export default function IncomingStockPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-secondary/30 text-muted-foreground border-b border-border">
                             <tr>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.product')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.product')}</th>
                                 <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{t('table.quantity')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.supplier')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-left" : "text-right")}>{t('table.totalCost')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.date')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-left" : "text-right")}>{t('table.status')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.supplier')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.totalCost')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.date')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.status')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -163,12 +163,12 @@ export default function IncomingStockPage() {
                             ) : (
                                 items.map(item => (
                                     <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
-                                        <td className={clsx("px-6 py-4 font-bold text-foreground", isRtl ? "text-right" : "text-left")}>{item.productName}</td>
+                                        <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>{item.productName}</td>
                                         <td className="px-6 py-4 font-black text-center tabular-nums">{item.quantity.toLocaleString(locale)}</td>
-                                        <td className={clsx("px-6 py-4 text-muted-foreground truncate max-w-[200px] font-medium", isRtl ? "text-right" : "text-left")}>{item.supplier}</td>
-                                        <td className={clsx("px-6 py-4 font-black text-primary tabular-nums", isRtl ? "text-left" : "text-right")}>{ts('currency')} {item.costPrice.toLocaleString(locale)}</td>
-                                        <td className={clsx("px-6 py-4 text-muted-foreground font-medium", isRtl ? "text-right" : "text-left")}>{item.date ? new Date(item.date).toLocaleDateString(locale) : '-'}</td>
-                                        <td className={clsx("px-6 py-4", isRtl ? "text-left" : "text-right")}>
+                                        <td className={clsx("px-6 py-4 text-muted-foreground truncate max-w-[200px] font-medium", 'text-center')}>{item.supplier}</td>
+                                        <td className={clsx("px-6 py-4 font-black text-primary tabular-nums", 'text-center')}>{ts('currency')} {item.costPrice.toLocaleString(locale)}</td>
+                                        <td className={clsx("px-6 py-4 text-muted-foreground font-medium", 'text-center')}>{item.date ? new Date(item.date).toLocaleDateString(locale) : '-'}</td>
+                                        <td className={clsx("px-6 py-4", 'text-center')}>
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm">
                                                 <Check size={10} />
                                                 {t(`table.statuses.${item.status}`)}
@@ -196,7 +196,7 @@ export default function IncomingStockPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className={clsx("p-6 space-y-4", isRtl ? "text-right" : "text-left")}>
+                        <form onSubmit={handleSubmit} className={clsx("p-6 space-y-4", 'text-center')}>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.product')}</label>
                                 <select

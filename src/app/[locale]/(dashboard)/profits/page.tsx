@@ -75,7 +75,7 @@ export default function ProfitsPage() {
                     <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
                         <TrendingUp size={28} />
                     </div>
-                    <div className={isRtl ? "text-right" : "text-left"}>
+                    <div className={'text-center'}>
                         <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">
                             {t('title')}
                         </h2>
@@ -169,7 +169,7 @@ export default function ProfitsPage() {
             </div>
 
             <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <h3 className={clsx("text-lg font-black uppercase tracking-tighter mb-6 flex items-center gap-2", isRtl ? "text-right" : "text-left")}>
+                <h3 className={clsx("text-lg font-black uppercase tracking-tighter mb-6 flex items-center gap-2", 'text-center')}>
                     <Calendar size={20} className="text-primary" />
                     {t('recentSales')}
                 </h3>
@@ -186,7 +186,7 @@ export default function ProfitsPage() {
                     ) : (
                         filteredInvoices.slice(0, 5).map(inv => (
                             <div key={inv.id} className="flex items-center justify-between p-4 bg-secondary/10 rounded-xl border border-transparent hover:border-border transition-all group">
-                                <div className={isRtl ? "text-right" : "text-left"}>
+                                <div className={'text-center'}>
                                     <div className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{inv.customerName || t('customer')}</div>
                                     <div className="text-[10px] font-mono text-muted-foreground uppercase">{new Date(inv.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                                 </div>

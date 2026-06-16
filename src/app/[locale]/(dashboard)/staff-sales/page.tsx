@@ -175,7 +175,7 @@ export default function StaffSalesPage() {
                     <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
                         <UserCheck size={28} />
                     </div>
-                    <div className={isRtl ? "text-right" : "text-left"}>
+                    <div className={'text-center'}>
                         <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">
                             {t('title')}
                         </h2>
@@ -188,12 +188,12 @@ export default function StaffSalesPage() {
                 <table className="w-full text-sm">
                     <thead className="bg-secondary/30 text-muted-foreground border-b border-border">
                         <tr>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.rank')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.staff')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.phone')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-left" : "text-right")}>{t('table.transactions')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-left" : "text-right")}>{t('table.totalSales', { currency: ts('currency') })}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", isRtl ? "text-right" : "text-left")}>{t('table.actions')}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.rank')}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.staff')}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.phone')}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.transactions')}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.totalSales', { currency: ts('currency') })}</th>
+                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -218,7 +218,7 @@ export default function StaffSalesPage() {
                         ) : (
                             sortedStaff.map((s, index) => (
                                 <tr key={s.id} className="hover:bg-muted/50 transition-colors group">
-                                    <td className={clsx("px-6 py-4", isRtl ? "text-right" : "text-left")}>
+                                    <td className={clsx("px-6 py-4", 'text-center')}>
                                         <div className="flex items-center gap-2">
                                             {index === 0 ? (
                                                 <Trophy className="text-yellow-500 fill-yellow-500/10" size={20} />
@@ -231,18 +231,18 @@ export default function StaffSalesPage() {
                                             )}
                                         </div>
                                     </td>
-                                    <td className={clsx("px-6 py-4 font-bold text-foreground", isRtl ? "text-right" : "text-left")}>
+                                    <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>
                                         <div className="flex flex-col">
                                             <span>{s.name || s.username}</span>
                                             <span className="text-[10px] font-mono text-muted-foreground uppercase">@{s.username}</span>
                                         </div>
                                     </td>
-                                    <td className={clsx("px-6 py-4 text-muted-foreground font-medium", isRtl ? "text-right" : "text-left")}>{s.phone || '—'}</td>
-                                    <td className={clsx("px-6 py-4 font-mono tabular-nums", isRtl ? "text-left" : "text-right")}>{(salesData[s.id]?.count || 0).toLocaleString(locale)}</td>
-                                    <td className={clsx("px-6 py-4 font-mono font-black text-green-600 tabular-nums", isRtl ? "text-left" : "text-right")}>
+                                    <td className={clsx("px-6 py-4 text-muted-foreground font-medium", 'text-center')}>{s.phone || '—'}</td>
+                                    <td className={clsx("px-6 py-4 font-mono tabular-nums", 'text-center')}>{(salesData[s.id]?.count || 0).toLocaleString(locale)}</td>
+                                    <td className={clsx("px-6 py-4 font-mono font-black text-green-600 tabular-nums", 'text-center')}>
                                         {(salesData[s.id]?.total || 0).toLocaleString(locale)}
                                     </td>
-                                    <td className={clsx("px-6 py-4", isRtl ? "text-right" : "text-left")}>
+                                    <td className={clsx("px-6 py-4", 'text-center')}>
                                         <button
                                             data-id={s.id}
                                             onClick={handleOpenModal}
@@ -264,7 +264,7 @@ export default function StaffSalesPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
                     <div className="bg-card w-full max-w-4xl rounded-3xl border border-border shadow-2xl overflow-hidden max-h-[90vh] flex flex-col animate-in zoom-in-95 duration-300">
                         <div className="p-8 border-b border-border flex items-center justify-between bg-secondary/10">
-                            <div className={isRtl ? "text-right" : "text-left"}>
+                            <div className={'text-center'}>
                                 <h3 className="text-2xl font-black tracking-tighter uppercase">{selectedStaff.name || selectedStaff.username}</h3>
                                 {selectedStaff.phone && (
                                     <p className="text-xs font-bold text-muted-foreground flex items-center gap-1 mt-1">
@@ -337,9 +337,9 @@ export default function StaffSalesPage() {
                             <table className="w-full text-sm">
                                 <thead className="sticky top-0 bg-card z-10">
                                     <tr className="border-b border-border">
-                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('modal.date')}</th>
-                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('modal.customer')}</th>
-                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-left" : "text-right")}>{t('modal.amount')}</th>
+                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('modal.date')}</th>
+                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('modal.customer')}</th>
+                                        <th className={clsx("py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('modal.amount')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -362,9 +362,9 @@ export default function StaffSalesPage() {
                                         modalData.invoices.map((inv: Invoice) => (
                                             <Fragment key={inv.id}>
                                                 <tr className="hover:bg-muted/30 transition-colors group">
-                                                    <td className={clsx("py-4 font-bold", isRtl ? "text-right" : "text-left")}>{new Date(inv.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                                    <td className={clsx("py-4 font-medium", isRtl ? "text-right" : "text-left")}>{inv.customerName || '—'}</td>
-                                                    <td className={clsx("py-4 font-black text-green-600 tabular-nums flex items-center gap-1", isRtl ? "justify-end flex-row-reverse" : "justify-end flex-row")}>
+                                                    <td className={clsx("py-4 font-bold", 'text-center')}>{new Date(inv.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                                    <td className={clsx("py-4 font-medium", 'text-center')}>{inv.customerName || '—'}</td>
+                                                    <td className={clsx("py-4 font-black text-green-600 tabular-nums flex items-center gap-1", isRtl ? "justify-end flex-row-reverse" : "justify-end flex-row", 'text-center')}>
                                                         <span className="text-xs">+</span>
                                                         <span className="text-xs font-bold">{ts('currency')}</span>
                                                         <span>{Number(inv.totalAmount).toLocaleString(locale)}</span>
@@ -372,7 +372,7 @@ export default function StaffSalesPage() {
                                                 </tr>
                                                 {/* Detailed Items Row */}
                                                 <tr className="bg-secondary/5">
-                                                    <td colSpan={3} className="p-0">
+                                                    <td colSpan={3} className="p-0 text-center">
                                                         <div className={clsx(
                                                             "mb-4 mt-1 mx-4 p-4 rounded-xl border border-border/50 bg-card/50",
                                                             isRtl ? "border-r-4 border-r-primary/20" : "border-l-4 border-l-primary/20"

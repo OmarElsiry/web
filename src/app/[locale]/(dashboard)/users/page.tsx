@@ -164,11 +164,11 @@ export default function UsersPage() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-secondary/30">
-                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('table.employee')}</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('table.contact')}</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('table.role')}</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('table.joined')}</th>
-                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">{t('table.actions')}</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">{t('table.employee')}</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">{t('table.contact')}</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">{t('table.role')}</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">{t('table.joined')}</th>
+                            <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-center">{t('table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -178,7 +178,7 @@ export default function UsersPage() {
                             </tr>
                         ) : users.map((user) => (
                             <tr key={user.id} className="hover:bg-secondary/20 transition-colors">
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 text-center">
                                     <div className="flex items-center gap-4">
                                         <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black shadow-lg ${user.role === 'ROOT' ? 'bg-purple-500 shadow-purple-500/20' :
                                             user.role === 'ADMIN' ? 'bg-blue-500 shadow-blue-500/20' :
@@ -194,7 +194,7 @@ export default function UsersPage() {
                                         </div>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 text-center">
                                     <div className="space-y-1.5">
                                         {user.phone && (
                                             <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
@@ -211,18 +211,18 @@ export default function UsersPage() {
                                         )}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 text-center">
                                     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${ROLE_COLORS[user.role] || ROLE_COLORS.READ_ONLY}`}>
                                         <Shield size={10} />
                                         {t(`roles.${user.role}` as any)}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 text-center">
                                     <div className="text-[11px] font-black text-muted-foreground/80">
                                         {new Date(user.createdAt).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}
                                     </div>
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-6 py-4 text-center">
                                     <div className="flex items-center justify-end gap-1">
                                         <Link prefetch={false}
                                             href={`/logs?user=${user.id}`}

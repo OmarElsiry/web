@@ -223,7 +223,7 @@ ${report.employees.map(emp => `
                     <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
                         <Receipt size={28} />
                     </div>
-                    <div className={isRtl ? "text-right" : "text-left"}>
+                    <div className={'text-center'}>
                         <h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">
                             {t('title')}
                         </h1>
@@ -447,12 +447,12 @@ ${report.employees.map(emp => `
                     <table className="w-full text-sm">
                         <thead className="bg-secondary/30 border-b border-border">
                             <tr>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('table.date')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('table.description')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('table.category')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('table.spentBy')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-left" : "text-right")}>{t('table.amount')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", isRtl ? "text-right" : "text-left")}>{t('table.actions')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.date')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.description')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.category')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.spentBy')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.amount')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest text-muted-foreground", 'text-center')}>{t('table.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -477,9 +477,9 @@ ${report.employees.map(emp => `
                             ) : (
                                 filteredExpenses.map(exp => (
                                     <tr key={exp.id} className="hover:bg-muted/50 transition-colors group">
-                                        <td className={clsx("px-6 py-4 font-bold text-muted-foreground", isRtl ? "text-right" : "text-left")}>{new Date(exp.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                        <td className={clsx("px-6 py-4 font-bold text-foreground", isRtl ? "text-right" : "text-left")}>{exp.description}</td>
-                                        <td className={clsx("px-6 py-4", isRtl ? "text-right" : "text-left")}>
+                                        <td className={clsx("px-6 py-4 font-bold text-muted-foreground", 'text-center')}>{new Date(exp.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                                        <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>{exp.description}</td>
+                                        <td className={clsx("px-6 py-4", 'text-center')}>
                                             {exp.category && (
                                                 <span className={clsx(
                                                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border",
@@ -490,13 +490,13 @@ ${report.employees.map(emp => `
                                                 </span>
                                             )}
                                         </td>
-                                        <td className={clsx("px-6 py-4 font-medium", isRtl ? "text-right" : "text-left")}>{exp.userName}</td>
-                                        <td className={clsx("px-6 py-4 font-mono font-black text-red-600 tabular-nums flex items-center gap-1", isRtl ? "justify-end flex-row-reverse" : "justify-end flex-row")}>
+                                        <td className={clsx("px-6 py-4 font-medium", 'text-center')}>{exp.userName}</td>
+                                        <td className={clsx("px-6 py-4 font-mono font-black text-red-600 tabular-nums flex items-center gap-1", isRtl ? "justify-end flex-row-reverse" : "justify-end flex-row", 'text-center')}>
                                             <span className="text-xs">-</span>
                                             <span className="text-xs font-bold">{ts('currency')}</span>
                                             <span>{exp.amount.toLocaleString(locale)}</span>
                                         </td>
-                                        <td className={clsx("px-6 py-4", isRtl ? "text-right" : "text-left")}>
+                                        <td className={clsx("px-6 py-4", 'text-center')}>
                                             <button
                                                 data-id={exp.id}
                                                 onClick={handleDeleteExpenseClick}
