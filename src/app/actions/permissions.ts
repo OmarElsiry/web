@@ -50,7 +50,9 @@ export async function getMenuItemsForUser() {
 
     const allMenuItems = [
         { to: '/dashboard', permission: 'dashboard', translationKey: 'dashboard' },
+        { to: '/sales/quick', permission: 'sales', translationKey: 'quick_sale' },
         { to: '/sales', permission: 'sales', translationKey: 'sales' },
+        { to: '/inventory-count', permission: 'stocktake', translationKey: 'inventory_count' },
         { to: '/stocktake', permission: 'stocktake', translationKey: 'stocktake' },
         { to: '/movements', permission: 'movements', translationKey: 'movements' },
         { to: '/incoming', permission: 'movements', translationKey: 'incoming' },

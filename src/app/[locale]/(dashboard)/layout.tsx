@@ -24,7 +24,9 @@ import {
     Download,
     Tags,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    Zap,
+    Calculator
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -32,7 +34,9 @@ import { getMenuItemsForUser, getCurrentUser } from '@/app/actions/permissions';
 
 const iconMap: Record<string, React.ElementType> = {
     '/dashboard': LayoutDashboard,
+    '/sales/quick': Zap,
     '/sales': ShoppingCart,
+    '/inventory-count': Calculator,
     '/stocktake': ClipboardCheck,
     '/movements': ArrowLeftRight,
     '/incoming': Download,

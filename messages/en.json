@@ -22,7 +22,9 @@
       "sales": "Sales & Finance",
       "inventory": "Inventory",
       "management": "Management"
-    }
+    },
+    "quick_sale": "Quick Sale",
+    "inventory_count": "Inventory Count"
   },
   "Login": {
     "title": "Welcome Back",
@@ -414,7 +416,6 @@
     "customer": "Customer",
     "loading": "Loading..."
   },
-
   "StaffSales": {
     "title": "Staff Sales",
     "subtitle": "Performance Tracking",
@@ -455,7 +456,6 @@
       "period": "Period:"
     }
   },
-
   "Pricing": {
     "title": "Pricing",
     "subtitle": "Price Management & Margins",

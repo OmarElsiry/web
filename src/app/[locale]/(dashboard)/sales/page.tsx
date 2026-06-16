@@ -602,7 +602,7 @@ export default function SalesPage() {
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 pt-4 space-y-3">
+                        <div className="border-t border-gray-100 pt-4 space-y-3 pb-8">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
@@ -614,26 +614,6 @@ export default function SalesPage() {
                                     <span>الوحدة</span>
                                 </label>
                             </div>
-                        </div>
-
-                        <div className="border-t border-gray-100 pt-6 pb-8">
-                            <button
-                                onClick={handleCheckoutAndPrint}
-                                disabled={processing || cart.length === 0}
-                                className={clsx(
-                                    "w-full font-bold py-4 px-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg",
-                                    cart.length === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
-                                )}
-                            >
-                                {processing ? (
-                                    <Loader2 className="animate-spin" size={20} />
-                                ) : (
-                                    <>
-                                        <Printer size={20} />
-                                        <span>إصدار وطباعة الفاتورة</span>
-                                    </>
-                                )}
-                            </button>
                         </div>
                     </div>
                 )}
@@ -759,7 +739,109 @@ export default function SalesPage() {
 
                     {/* Line Items */}
                     <div className="min-h-[200px]">
-                        <table className="w-full border-collapse border-2 border-gray-900 text-sm">
+                        {/* Mobile Layout */}
+                        <div className="block md:hidden border-2 border-gray-900 rounded-lg overflow-hidden bg-white print-hidden">
+                            <div className="divide-y-2 divide-gray-200">
+                                {cart.map((item, idx) => {
+                                    const rowTotal = item.priceOverride * item.quantity - (Number(item.discountValue) || 0);
+                                    return (
+                                        <div key={item.id} className="p-4 bg-gray-50/30 relative">
+                                            <button onClick={() => removeFromCart(item.id)} className="absolute top-4 left-4 text-red-500 bg-white rounded-full p-1 shadow-sm border border-red-200">
+                                                <X size={16}/>
+                                            </button>
+                                            
+                                            <div className="flex flex-col gap-3">
+                                                <div>
+                                                    <span className="text-xs text-gray-500 font-bold mb-1 block">الصنف {idx + 1}</span>
+                                                    <input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="font-bold text-lg text-gray-900 bg-white border border-gray-300 rounded p-1 w-[85%]" />
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {showItemCode && (
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 font-bold block">رقم الصنف</span>
+                                                            <input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-mono" />
+                                                        </div>
+                                                    )}
+                                                    {showUnit && (
+                                                        <div>
+                                                            <span className="text-xs text-gray-500 font-bold block">الوحدة</span>
+                                                            <input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="bg-white border border-gray-300 rounded p-1 w-full text-center" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 font-bold block">الكمية</span>
+                                                        <input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold text-black" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs text-gray-500 font-bold block">السعر</span>
+                                                        <input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold" />
+                                                    </div>
+                                                </div>
+
+                                                {(showDiscountPercent || showDiscountValue) && (
+                                                    <div className="grid grid-cols-2 gap-2 p-2 bg-gray-100 rounded">
+                                                        <span className="text-xs text-gray-600 font-bold col-span-2 block">الخصم</span>
+                                                        {showDiscountPercent && (
+                                                            <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-blue-700" placeholder="نسبة %" />
+                                                        )}
+                                                        {showDiscountValue && (
+                                                            <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-red-600" placeholder="قيمة" />
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between items-center bg-gray-100 p-2 rounded mt-1 border border-gray-200">
+                                                    <span className="font-bold text-gray-700">القيمة:</span>
+                                                    <span className="font-black text-lg text-gray-900">{rowTotal.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Mobile Search */}
+                                <div className="p-4 relative">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Plus size={16} className="text-gray-500" />
+                                        <span className="font-bold text-gray-700 text-sm">إضافة صنف</span>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        placeholder="ابحث عن صنف لإضافته..." 
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setShowProductDropdown(true);
+                                        }}
+                                        onFocus={() => setShowProductDropdown(true)}
+                                        className="w-full bg-white border border-gray-300 rounded-lg p-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-gray-900"
+                                    />
+                                    {showProductDropdown && searchQuery && (
+                                        <div className="absolute bottom-full mb-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-2xl z-[100] max-h-[300px] overflow-y-auto">
+                                            {filteredProducts.map(p => (
+                                                <button key={p.id} onClick={() => addToCart(p)} className="w-full text-right p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
+                                                    <div>
+                                                        <div className="font-bold group-hover:text-blue-600 transition-colors">{p.name}</div>
+                                                        <div className="text-xs text-gray-500 mt-0.5">{p.sku} <span className="mx-1">•</span> متوفر: <span className="font-bold text-gray-800">{p.stock}</span></div>
+                                                    </div>
+                                                    <div className="font-black text-blue-600">{p.baseSellingPrice}</div>
+                                                </button>
+                                            ))}
+                                            {filteredProducts.length === 0 && (
+                                                <div className="p-4 text-center text-gray-500 text-sm">لا توجد نتائج مطابقة</div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Desktop Table */}
+                        <table className="w-full border-collapse border-2 border-gray-900 text-sm hidden md:table">
                             <thead>
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
@@ -940,6 +1022,33 @@ export default function SalesPage() {
                         </div>
                     </div>
 
+                </div>
+
+                {/* Sticky Bottom Bar for Mobile/Desktop */}
+                <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 mt-8 -mx-4 md:-mx-8 -mb-4 md:-mb-8 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 print-hidden">
+                    <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+                        <div className="hidden md:flex flex-col">
+                            <span className="text-sm font-bold text-gray-500">الإجمالي العام</span>
+                            <span className="text-2xl font-black text-gray-900">{invoiceTotal.toFixed(2)}</span>
+                        </div>
+                        <button
+                            onClick={handleCheckoutAndPrint}
+                            disabled={processing || cart.length === 0}
+                            className={clsx(
+                                "flex-1 md:flex-none md:w-auto font-black text-lg py-4 px-8 rounded-xl transition-all flex justify-center items-center gap-3 shadow-xl",
+                                cart.length === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30 active:scale-[0.98]"
+                            )}
+                        >
+                            {processing ? (
+                                <Loader2 className="animate-spin" size={24} />
+                            ) : (
+                                <>
+                                    <Printer size={24} />
+                                    <span>إصدار وطباعة الفاتورة</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
 

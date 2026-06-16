@@ -304,7 +304,7 @@ export default function InvoicesPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div className="sticky top-0 z-20 flex items-center gap-4 bg-card/90 backdrop-blur-md p-4 rounded-xl border border-border shadow-sm mb-2">
                 <Search className="text-muted-foreground" size={18} />
                 <input
                     placeholder={t('searchPlaceholder')}
@@ -394,7 +394,7 @@ export default function InvoicesPage() {
                                 <button
                                     data-id={inv.id}
                                     onClick={handlePrintIconClick}
-                                    className="p-2 bg-secondary/50 hover:bg-primary hover:text-primary-foreground rounded-xl text-muted-foreground transition-all opacity-0 group-hover:opacity-100"
+                                    className="p-2 bg-secondary/50 hover:bg-primary hover:text-primary-foreground rounded-xl text-muted-foreground transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                                     title={t('printTooltip')}
                                 >
                                     <Printer size={20} />
@@ -535,7 +535,71 @@ export default function InvoicesPage() {
                                     {t('details.orderItems', { defaultValue: 'LINE ITEMS' })}
                                 </div>
                                 <div className="border border-border/50 rounded-2xl overflow-hidden bg-background shadow-sm">
-                                    <table className="w-full text-sm">
+                                    {/* Mobile Layout */}
+                                    <div className="block md:hidden divide-y divide-border/30">
+                                        {(isEditing ? editItems : selectedInvoice.items)?.map((item: any) => {
+                                            const qty = isEditing ? item.quantity : item.quantity;
+                                            const price = isEditing ? item.unitPrice : item.unitPrice;
+                                            const subtotal = isEditing ? qty * price : item.subtotal;
+                                            const name = isEditing ? item.name : item.product.name;
+                                            const sku = isEditing ? item.sku : item.product.sku;
+
+                                            return (
+                                                <div key={item.id} className="p-4 space-y-3">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div>
+                                                            <div className="font-bold text-base">{name}</div>
+                                                            <div className="text-xs text-muted-foreground mt-0.5 uppercase tracking-wider">{sku}</div>
+                                                        </div>
+                                                        {isEditing && (
+                                                            <button onClick={() => handleRemoveEditItem(item.id)} className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center justify-between bg-secondary/20 p-2 rounded-lg">
+                                                        <div className="text-sm font-medium">{t('details.qty')}</div>
+                                                        {isEditing ? (
+                                                            <input 
+                                                                type="number" 
+                                                                min={0.01} 
+                                                                step="any" 
+                                                                value={qty} 
+                                                                onChange={e => handleEditItemChange(item.id, 'quantity', parseFloat(e.target.value) || 1)} 
+                                                                className="w-20 p-1.5 bg-background border border-border/50 rounded-lg text-center font-black outline-none focus:border-primary/50 tabular-nums" 
+                                                            />
+                                                        ) : <span className="font-black text-lg">{qty.toLocaleString(locale)}</span>}
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between bg-secondary/20 p-2 rounded-lg">
+                                                        <div className="text-sm font-medium">{t('details.price')}</div>
+                                                        {isEditing ? (
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="text-muted-foreground">{ts('currency')}</span>
+                                                                <input 
+                                                                    type="number" 
+                                                                    min={0} 
+                                                                    step={0.01} 
+                                                                    value={price} 
+                                                                    onChange={e => handleEditItemChange(item.id, 'unitPrice', parseFloat(e.target.value) || 0)} 
+                                                                    className="w-24 p-1.5 bg-background border border-border/50 rounded-lg text-right font-bold outline-none focus:border-primary/50 tabular-nums" 
+                                                                />
+                                                            </div>
+                                                        ) : <span className="font-bold text-muted-foreground">{ts('currency')} {price.toLocaleString(locale)}</span>}
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between bg-primary/5 p-2 rounded-lg border border-primary/10">
+                                                        <div className="text-sm font-bold text-primary">{t('details.subtotal')}</div>
+                                                        <div className="font-black text-lg text-primary">{ts('currency')} {subtotal.toLocaleString(locale)}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Desktop Table */}
+                                    <table className="w-full text-sm hidden md:table">
                                         <thead className="bg-muted/30 text-muted-foreground font-bold text-xs uppercase tracking-wider">
                                             <tr>
                                                 <th className={clsx("p-4", isRtl ? "text-right" : "text-left")}>{t('details.item')}</th>
