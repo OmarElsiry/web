@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { getExpenses, createExpense, deleteExpense, getSalaryReport } from '@/app/actions/expenses';
 import { getStaffList } from '@/app/actions/sales';

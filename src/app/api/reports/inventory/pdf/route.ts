@@ -11,10 +11,10 @@ export const dynamic = 'force-dynamic';
 type ProductWithInventory = {
     name: string;
     sku: string;
-    costPrice: string | number;
-    baseSellingPrice: string | number;
+    costPrice: any;
+    baseSellingPrice: any;
     inventoryItems: {
-        quantity: string | number;
+        quantity: any;
         location: { name: string };
     }[];
 };

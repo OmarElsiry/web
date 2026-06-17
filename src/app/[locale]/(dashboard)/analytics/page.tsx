@@ -192,9 +192,7 @@ export default function AnalyticsPage() {
                                                             <td className="p-4 text-center">
                                                                 <span className={clsx(
                                                                     "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
-                                                                    idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
-                                                                        idx === 1 ? "bg-gray-400/20 text-gray-600" :
-                                                                            idx === 2 ? "bg-orange-400/20 text-orange-600" : "bg-secondary text-muted-foreground"
+                                                                    ["bg-yellow-500/20 text-yellow-600", "bg-gray-400/20 text-gray-600", "bg-orange-400/20 text-orange-600"][idx] || "bg-secondary text-muted-foreground"
                                                                 )}>
                                                                     #{(idx + 1).toLocaleString(locale)}
                                                                 </span>
@@ -308,9 +306,7 @@ export default function AnalyticsPage() {
                                                         <td className="p-4 text-center">
                                                             <span className={clsx(
                                                                 "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
-                                                                idx === 0 ? "bg-yellow-500/20 text-yellow-600" :
-                                                                    idx === 1 ? "bg-gray-400/20 text-gray-600" :
-                                                                        idx === 2 ? "bg-orange-400/20 text-orange-600" : "bg-secondary text-muted-foreground"
+                                                                ["bg-yellow-500/20 text-yellow-600", "bg-gray-400/20 text-gray-600", "bg-orange-400/20 text-orange-600"][idx] || "bg-secondary text-muted-foreground"
                                                             )}>
                                                                 #{(idx + 1).toLocaleString(locale)}
                                                             </span>
