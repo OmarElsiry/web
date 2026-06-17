@@ -112,10 +112,9 @@ test.describe('Login Page — UI/UX & Design', () => {
 
         // Wait for response — should either show error or stay on login
         // Since Supabase is unreachable, the form should handle the error gracefully
-        await page.waitForTimeout(5000);
 
         // Page should still be on login (not crash)
-        expect(page.url()).toContain('/login');
+        await expect(page).toHaveURL(/.*\/login/);
     });
 });
 

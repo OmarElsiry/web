@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { login } from '@/app/actions/auth';
 import { useFormStatus } from 'react-dom';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 function SubmitButton() {
@@ -23,6 +23,7 @@ function SubmitButton() {
 
 export default function LoginPage() {
     const t = useTranslations('Login');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     async function clientAction(formData: FormData) {
@@ -68,13 +69,23 @@ export default function LoginPage() {
                                 <label className="text-sm font-medium text-foreground">{t('passwordLabel')}</label>
                                 <a href="#" className="text-xs text-primary hover:underline font-medium">{t('forgotPassword')}</a>
                             </div>
-                            <input
-                                name="password"
-                                type="password"
-                                required
-                                className="w-full px-4 py-2.5 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all placeholder:text-muted-foreground/50"
-                                placeholder={t('passwordPlaceholder')}
-                            />
+                            <div className="relative">
+                                <input
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    className="w-full pl-4 pr-11 py-2.5 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all placeholder:text-muted-foreground/50"
+                                    placeholder={t('passwordPlaceholder')}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-1"
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
 
                         <SubmitButton />

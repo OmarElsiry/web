@@ -91,7 +91,7 @@ export default function QuickSalePage() {
     };
 
     const handleAddToCart = (product: any) => {
-        const stock = product.inventoryItems?.reduce((sum: number, inv: any) => sum + Number(inv.quantity), 0) || 0;
+        const stock = product.stock ?? 0;
         if (stock <= 0) return;
 
         setCart(prev => {
@@ -384,9 +384,9 @@ export default function QuickSalePage() {
                             {isSearchingProduct && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" size={20} />}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 max-h-[40vh] overflow-y-auto pb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 max-h-[60vh] overflow-y-auto pb-4">
                             {productResults.map(p => {
-                                const stock = p.inventoryItems?.reduce((sum: number, inv: any) => sum + Number(inv.quantity), 0) || 0;
+                                const stock = p.stock ?? 0;
                                 const isOutOfStock = stock <= 0;
                                 const inCart = cart.find(i => i.id === p.id)?.quantity || 0;
                                 
@@ -396,7 +396,7 @@ export default function QuickSalePage() {
                                         disabled={isOutOfStock}
                                         onClick={() => handleAddToCart(p)}
                                         className={clsx(
-                                            "p-4 rounded-xl text-left flex flex-col justify-between aspect-square transition-all border",
+                                            "p-4 rounded-xl text-left flex flex-col justify-between min-h-[140px] transition-all border",
                                             isOutOfStock ? "opacity-50 bg-secondary/50 cursor-not-allowed" : "bg-background hover:border-primary hover:shadow-md active:scale-95",
                                             inCart > 0 && "border-primary/50 bg-primary/5"
                                         )}

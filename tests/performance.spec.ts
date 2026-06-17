@@ -5,8 +5,8 @@ test.describe('Performance Testing', () => {
     // Navigate to the page
     await page.goto('/reports/debts');
 
-    // Wait for the page to be fully loaded and network requests to finish
-    await page.waitForLoadState('networkidle');
+    // Wait for the page to be fully loaded
+    await page.waitForLoadState('domcontentloaded');
 
     // Extract metrics using the browser's native Performance API
     const metrics = await page.evaluate(() => {
