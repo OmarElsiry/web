@@ -85,13 +85,7 @@ export default function AnalyticsPage() {
         <div className="space-y-6 max-w-7xl mx-auto" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <BarChart3 className="text-primary" />
-                        {t('title')}
-                    </h2>
-                    <p className="text-muted-foreground">{t('subtitle')}</p>
-                </div>
+                
 
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Date Inputs */}

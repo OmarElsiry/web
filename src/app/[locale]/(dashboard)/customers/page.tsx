@@ -174,17 +174,7 @@ export default function CustomersPage() {
         <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 text-primary rounded-2xl shadow-sm">
-                        <Users size={32} />
-                    </div>
-                    <div>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">
-                            {t('title')}
-                        </h2>
-                        <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
-                    </div>
-                </div>
+                
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="relative group flex-1 md:w-80">

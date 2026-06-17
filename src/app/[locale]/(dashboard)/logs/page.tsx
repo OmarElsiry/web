@@ -84,13 +84,7 @@ function LogsContent() {
     return (
         <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <ScrollText className="text-primary" />
-                        {t('title')}
-                    </h2>
-                    <p className="text-muted-foreground">{t('subtitle')}</p>
-                </div>
+                
                 <button
                     onClick={fetchLogs}
                     disabled={loading}

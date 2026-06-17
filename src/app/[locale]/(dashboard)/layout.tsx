@@ -26,7 +26,8 @@ import {
     ChevronDown,
     ChevronRight,
     Zap,
-    Calculator
+    Calculator,
+    Database
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -51,6 +52,7 @@ const iconMap: Record<string, React.ElementType> = {
     '/users': Users,
     '/expenses': DollarSign,
     '/refunds': RefreshCcw,
+    '/backup': Database,
 };
 
 interface MenuItem {
@@ -139,6 +141,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const toggleLocale = useCallback(() => {
         const nextLocale = locale === 'en' ? 'ar' : 'en';
+        document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
         router.replace(pathname, { locale: nextLocale });
     }, [locale, pathname, router]);
 
@@ -189,7 +192,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="management" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/logs', '/users'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/logs', '/users', '/backup'].includes(i.to))} 
                     />
                 </nav>
 

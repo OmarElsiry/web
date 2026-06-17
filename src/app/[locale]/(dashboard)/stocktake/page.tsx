@@ -121,13 +121,7 @@ export default function StocktakePage() {
     return (
         <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <ClipboardCheck className="text-primary" />
-                        {t('title')}
-                    </h2>
-                    <p className="text-muted-foreground">{t('subtitle')}</p>
-                </div>
+                
                 <div className="flex items-center gap-2">
                     <button
                         onClick={loadData}

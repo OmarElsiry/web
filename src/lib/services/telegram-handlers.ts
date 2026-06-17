@@ -7,7 +7,7 @@
  */
 
 import {
-    sendMessage, editMessage, answerCallback, sendDocument,
+    sendMessage, answerCallback, sendDocument,
     btn, mainMenuKeyboard, navRow,
     type InlineKeyboard,
 } from './telegram';
@@ -93,7 +93,7 @@ async function handleCallbackQuery(query: any): Promise<void> {
             await sendMainMenu(chatId);
             break;
         case 'sale':
-            await handleSaleCallback(chatId, value, query);
+            await handleSaleCallback(chatId, value);
             break;
         case 'inv':
             await handleInvoiceCallback(chatId, value);
@@ -199,88 +199,79 @@ async function handleSaleTextInput(chatId: number, text: string, state: SaleStat
     }
 }
 
-async function handleSaleCallback(chatId: number, value: string, query: any): Promise<void> {
+async function handleSaleCallback(chatId: number, value: string): Promise<void> {
     const state = getState(chatId);
     if (!state || state.flow !== 'sale') {
         await startSaleWizard(chatId);
         return;
     }
     
-    // Parse sale sub-actions
-    if (value === 'browse_cats') {
-        await browseCategoriesStep(chatId);
-    } else if (value.startsWith('cat:')) {
-        await browseProductsInCategory(chatId, value.substring(4));
-    } else if (value.startsWith('prod:')) {
-        await selectProduct(chatId, value.substring(5));
-    } else if (value.startsWith('qty:')) {
-        await handleQuantitySelection(chatId, parseInt(value.substring(4), 10));
-    } else if (value === 'custom_qty') {
-        updateSaleState(chatId, { step: 'quantity' });
-        await sendMessage(chatId, '✏️ اكتب الكمية المطلوبة:', [
-            navRow({ back: 'sale:back_to_search', cancel: true }),
-        ]);
-    } else if (value === 'add_more') {
+    // Prefix matching
+    if (value.startsWith('cat:')) return browseProductsInCategory(chatId, value.substring(4));
+    if (value.startsWith('prod:')) return selectProduct(chatId, value.substring(5));
+    if (value.startsWith('qty:')) return handleQuantitySelection(chatId, parseInt(value.substring(4), 10));
+    if (value.startsWith('cust:')) return selectCustomer(chatId, value.substring(5));
+
+    switch (value) {
+        case 'browse_cats': return browseCategoriesStep(chatId);
+        case 'custom_qty': return handleSaleCustomQty(chatId);
+        case 'add_more': return handleSaleAddMore(chatId);
+        case 'remove_last': return handleSaleRemoveLast(chatId, state as SaleState);
+        case 'checkout': return handleSaleCheckout(chatId);
+        case 'skip_customer': return handleSaleSkipCustomer(chatId);
+        case 'new_customer': return handleSaleNewCustomer(chatId);
+        case 'pay_cash': return handlePaymentMethod(chatId, 'CASH');
+        case 'pay_instapay': return handlePaymentMethod(chatId, 'INSTAPAY');
+        case 'pay_credit': return handlePaymentMethod(chatId, 'CREDIT');
+        case 'pay_full': return handleSalePayFull(chatId, state as SaleState);
+        case 'pay_custom': return handleSalePayCustom(chatId);
+        case 'confirm_sale': return processSaleFromBot(chatId);
+        case 'new_sale': return startSaleWizard(chatId);
+        case 'back_to_search': return handleSaleBackToSearch(chatId);
+        case 'back_to_cart': return sendCartReview(chatId);
+    }
+}
+
+async function handleSaleCustomQty(chatId: number) {
+    updateSaleState(chatId, { step: 'quantity' });
+    await sendMessage(chatId, '✏️ اكتب الكمية المطلوبة:', [navRow({ back: 'sale:back_to_search', cancel: true })]);
+}
+async function handleSaleAddMore(chatId: number) {
+    updateSaleState(chatId, { step: 'product_search' });
+    await sendMessage(chatId, '🛒 ابحث عن منتج آخر لإضافته:', [[btn('📂 تصفح الأصناف', 'sale:browse_cats')], navRow({ cancel: true })]);
+}
+async function handleSaleRemoveLast(chatId: number, state: SaleState) {
+    if (state.cart.length > 0) removeFromCart(chatId, state.cart[state.cart.length - 1].productId);
+    const updated = getState(chatId) as SaleState;
+    if (updated.cart.length === 0) {
         updateSaleState(chatId, { step: 'product_search' });
-        await sendMessage(chatId, '🛒 ابحث عن منتج آخر لإضافته:', [
-            [btn('📂 تصفح الأصناف', 'sale:browse_cats')],
-            navRow({ cancel: true }),
-        ]);
-    } else if (value === 'remove_last') {
-        if (state.cart.length > 0) {
-            const lastItem = state.cart[state.cart.length - 1];
-            removeFromCart(chatId, lastItem.productId);
-        }
-        const updated = getState(chatId) as SaleState;
-        if (updated.cart.length === 0) {
-            updateSaleState(chatId, { step: 'product_search' });
-            await sendMessage(chatId, '🛒 السلة فارغة. ابحث عن منتج:', [
-                [btn('📂 تصفح الأصناف', 'sale:browse_cats')],
-                navRow({ cancel: true }),
-            ]);
-        } else {
-            await sendCartReview(chatId);
-        }
-    } else if (value === 'checkout') {
-        updateSaleState(chatId, { step: 'customer' });
-        await sendCustomerStep(chatId);
-    } else if (value === 'skip_customer') {
-        updateSaleState(chatId, { step: 'payment' });
-        await sendPaymentStep(chatId);
-    } else if (value === 'new_customer') {
-        updateSaleState(chatId, { step: 'customer' });
-        await sendMessage(chatId, '👤 اكتب اسم العميل الجديد:', [
-            navRow({ back: 'sale:checkout', cancel: true }),
-        ]);
-    } else if (value.startsWith('cust:')) {
-        await selectCustomer(chatId, value.substring(5));
-    } else if (value === 'pay_cash') {
-        await handlePaymentMethod(chatId, 'CASH');
-    } else if (value === 'pay_instapay') {
-        await handlePaymentMethod(chatId, 'INSTAPAY');
-    } else if (value === 'pay_credit') {
-        await handlePaymentMethod(chatId, 'CREDIT');
-    } else if (value === 'pay_full') {
-        const s = getState(chatId) as SaleState;
-        await handleAmountPaid(chatId, getCartTotal(s));
-    } else if (value === 'pay_custom') {
-        updateSaleState(chatId, { step: 'amount_paid' });
-        await sendMessage(chatId, '✏️ اكتب المبلغ المدفوع:', [
-            navRow({ back: 'sale:checkout', cancel: true }),
-        ]);
-    } else if (value === 'confirm_sale') {
-        await processSaleFromBot(chatId);
-    } else if (value === 'new_sale') {
-        await startSaleWizard(chatId);
-    } else if (value === 'back_to_search') {
-        updateSaleState(chatId, { step: 'product_search' });
-        await sendMessage(chatId, '🔍 ابحث عن المنتج:', [
-            [btn('📂 تصفح الأصناف', 'sale:browse_cats')],
-            navRow({ cancel: true }),
-        ]);
-    } else if (value === 'back_to_cart') {
+        await sendMessage(chatId, '🛒 السلة فارغة. ابحث عن منتج:', [[btn('📂 تصفح الأصناف', 'sale:browse_cats')], navRow({ cancel: true })]);
+    } else {
         await sendCartReview(chatId);
     }
+}
+async function handleSaleCheckout(chatId: number) {
+    updateSaleState(chatId, { step: 'customer' });
+    await sendCustomerStep(chatId);
+}
+async function handleSaleSkipCustomer(chatId: number) {
+    updateSaleState(chatId, { step: 'payment' });
+    await sendPaymentStep(chatId);
+}
+async function handleSaleNewCustomer(chatId: number) {
+    updateSaleState(chatId, { step: 'customer' });
+    await sendMessage(chatId, '👤 اكتب اسم العميل الجديد:', [navRow({ back: 'sale:checkout', cancel: true })]);
+}
+async function handleSalePayFull(chatId: number, state: SaleState) {
+    await handleAmountPaid(chatId, getCartTotal(state));
+}
+async function handleSalePayCustom(chatId: number) {
+    updateSaleState(chatId, { step: 'amount_paid' });
+    await sendMessage(chatId, '✏️ اكتب المبلغ المدفوع:', [navRow({ back: 'sale:checkout', cancel: true })]);
+}
+async function handleSaleBackToSearch(chatId: number) {
+    updateSaleState(chatId, { step: 'product_search' });
+    await sendMessage(chatId, '🔍 ابحث عن المنتج:', [[btn('📂 تصفح الأصناف', 'sale:browse_cats')], navRow({ cancel: true })]);
 }
 
 async function searchProducts(chatId: number, query: string): Promise<void> {
@@ -318,7 +309,9 @@ async function searchProducts(chatId: number, query: string): Promise<void> {
     const buttons: InlineKeyboard = products.map(p => {
         const stock = stockMap.get(p.id) || 0;
         const price = Number(p.baseSellingPrice);
-        const stockEmoji = stock <= 0 ? '🔴' : stock < 5 ? '🟡' : '🟢';
+        let stockEmoji = '🟢';
+        if (stock <= 0) stockEmoji = '🔴';
+        else if (stock < 5) stockEmoji = '🟡';
         return [btn(`${stockEmoji} ${p.name} — ${price} ج.م (${stock})`, `sale:prod:${p.id}`)];
     });
     
@@ -508,9 +501,11 @@ async function searchCustomersForSale(chatId: number, query: string): Promise<vo
         orderBy: { name: 'asc' },
     });
     
-    const buttons: InlineKeyboard = customers.map(c => [
-        btn(`${c.name}${c.phone ? ` — ${c.phone}` : ''} (رصيد: ${Number(c.balance).toLocaleString('ar-EG')})`, `sale:cust:${c.id}`),
-    ]);
+    const buttons: InlineKeyboard = customers.map(c => {
+        const phoneStr = c.phone ? ` — ${c.phone}` : '';
+        const balanceStr = Number(c.balance).toLocaleString('ar-EG');
+        return [btn(`${c.name}${phoneStr} (رصيد: ${balanceStr})`, `sale:cust:${c.id}`)];
+    });
     
     buttons.push([btn('➕ عميل جديد', 'sale:new_customer')]);
     buttons.push(navRow({ back: 'sale:checkout', cancel: true }));
@@ -601,7 +596,9 @@ async function handleAmountPaid(chatId: number, amount: number): Promise<void> {
         `${i + 1}. ${item.name} × ${item.quantity} = ${(item.unitPrice * item.quantity).toLocaleString('ar-EG')} ج.م`
     ).join('\n');
     
-    const payMethodAr = state.paymentMethod === 'CASH' ? 'كاش' : state.paymentMethod === 'INSTAPAY' ? 'انستاباي' : 'آجل';
+    let payMethodAr = 'آجل';
+    if (state.paymentMethod === 'CASH') payMethodAr = 'كاش';
+    else if (state.paymentMethod === 'INSTAPAY') payMethodAr = 'انستاباي';
     
     let text = `📋 <b>تأكيد الفاتورة</b>\n\n`;
     text += `━━━━━━━━━━━━━━━━━━━\n`;
@@ -654,41 +651,7 @@ async function processSaleFromBot(chatId: number): Promise<void> {
         );
         
         if (result.success && result.invoice) {
-            const invoiceId = result.invoice.id;
-            const shortId = invoiceId.slice(-4).toUpperCase();
-            const total = Number(result.invoice.totalAmount);
-            
-            clearState(chatId);
-            
-            // Send success message
-            let successText = `✅ <b>تم إصدار الفاتورة بنجاح!</b>\n\n`;
-            successText += `━━━━━━━━━━━━━━━━━━━\n`;
-            successText += `📄 فاتورة رقم: #${shortId}\n`;
-            successText += `📅 التاريخ: ${new Date().toLocaleDateString('ar-EG')}\n`;
-            if (state.customer) successText += `👤 العميل: ${state.customer.name}\n`;
-            successText += `💰 الإجمالي: ${total.toLocaleString('ar-EG')} ج.م\n`;
-            successText += `━━━━━━━━━━━━━━━━━━━\n`;
-            
-            await sendMessage(chatId, successText, [
-                [btn('🛒 بيع جديد', 'sale:new_sale'), btn('🏠 القائمة', 'menu:main')],
-            ]);
-            
-            // Try to generate and send PDF
-            try {
-                const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
-                if (appUrl) {
-                    const protocol = appUrl.startsWith('http') ? '' : 'https://';
-                    const pdfUrl = `${protocol}${appUrl}/api/invoices/${invoiceId}/pdf`;
-                    const pdfResponse = await fetch(pdfUrl);
-                    if (pdfResponse.ok) {
-                        const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
-                        await sendDocument(chatId, pdfBuffer, `invoice-${shortId}.pdf`, `📎 فاتورة #${shortId}`);
-                    }
-                }
-            } catch (pdfError) {
-                console.error('PDF generation for Telegram failed:', pdfError);
-                // Not critical — sale was already processed
-            }
+            await handleSuccessfulBotSale(chatId, state, result.invoice);
         } else {
             await sendMessage(chatId, `❌ فشل إصدار الفاتورة\n\n${result.error || 'خطأ غير معروف'}`, [
                 [btn('🔄 إعادة المحاولة', 'sale:confirm_sale'), btn('🏠 القائمة', 'menu:main')],
@@ -699,6 +662,44 @@ async function processSaleFromBot(chatId: number): Promise<void> {
         await sendMessage(chatId, `❌ حدث خطأ في الاتصال\n\n${error.message || ''}`, [
             [btn('🔄 إعادة المحاولة', 'sale:confirm_sale'), btn('🏠 القائمة', 'menu:main')],
         ]);
+    }
+}
+
+async function handleSuccessfulBotSale(chatId: number, state: SaleState, invoice: any): Promise<void> {
+    const invoiceId = invoice.id;
+    const shortId = invoiceId.slice(-4).toUpperCase();
+    const total = Number(invoice.totalAmount);
+    
+    clearState(chatId);
+    
+    // Send success message
+    let successText = `✅ <b>تم إصدار الفاتورة بنجاح!</b>\n\n`;
+    successText += `━━━━━━━━━━━━━━━━━━━\n`;
+    successText += `📄 فاتورة رقم: #${shortId}\n`;
+    successText += `📅 التاريخ: ${new Date().toLocaleDateString('ar-EG')}\n`;
+    if (state.customer) successText += `👤 العميل: ${state.customer.name}\n`;
+    successText += `💰 الإجمالي: ${total.toLocaleString('ar-EG')} ج.م\n`;
+    successText += `━━━━━━━━━━━━━━━━━━━\n`;
+    
+    await sendMessage(chatId, successText, [
+        [btn('🛒 بيع جديد', 'sale:new_sale'), btn('🏠 القائمة', 'menu:main')],
+    ]);
+    
+    // Try to generate and send PDF
+    try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL;
+        if (appUrl) {
+            const protocol = appUrl.startsWith('http') ? '' : 'https://';
+            const pdfUrl = `${protocol}${appUrl}/api/invoices/${invoiceId}/pdf`;
+            const pdfResponse = await fetch(pdfUrl);
+            if (pdfResponse.ok) {
+                const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer());
+                await sendDocument(chatId, pdfBuffer, `invoice-${shortId}.pdf`, `📎 فاتورة #${shortId}`);
+            }
+        }
+    } catch (pdfError) {
+        console.error('PDF generation for Telegram failed:', pdfError);
+        // Not critical — sale was already processed
     }
 }
 
@@ -808,7 +809,9 @@ async function sendInvoiceDetail(chatId: number, invoiceId: string): Promise<voi
         `${i + 1}. ${item.product.name} × ${Number(item.quantity)} — ${Number(item.subtotal).toLocaleString('ar-EG')} ج.م`
     ).join('\n');
     
-    const payMethodAr = invoice.paymentMethod === 'CASH' ? 'كاش' : invoice.paymentMethod === 'INSTAPAY' ? 'انستاباي' : 'آجل';
+    let payMethodAr = 'آجل';
+    if (invoice.paymentMethod === 'CASH') payMethodAr = 'كاش';
+    else if (invoice.paymentMethod === 'INSTAPAY') payMethodAr = 'انستاباي';
     const seller = invoice.user?.name || invoice.user?.username || 'N/A';
     
     let text = `📄 <b>فاتورة #${shortId}</b>\n\n`;
@@ -923,7 +926,9 @@ async function handleStockTextInput(chatId: number, text: string): Promise<void>
     
     const buttons: InlineKeyboard = products.map(p => {
         const stock = stockMap.get(p.id) || 0;
-        const emoji = stock <= 0 ? '🔴' : stock < 5 ? '🟡' : '🟢';
+        let emoji = '🟢';
+        if (stock <= 0) emoji = '🔴';
+        else if (stock < 5) emoji = '🟡';
         return [btn(`${emoji} ${p.name} (${stock})`, `stk:prod:${p.id}`)];
     });
     buttons.push(navRow({ back: 'menu:stock', home: true }));
@@ -994,7 +999,9 @@ async function sendLowStock(chatId: number): Promise<void> {
     
     const lines = lowItems.map(inv => {
         const qty = Number(inv.quantity);
-        const emoji = qty <= 1 ? '🔴' : qty <= 3 ? '🟠' : '🟡';
+        let emoji = '🟡';
+        if (qty <= 1) emoji = '🔴';
+        else if (qty <= 3) emoji = '🟠';
         return `${emoji} ${inv.product.name} — ${qty} قطعة`;
     });
     

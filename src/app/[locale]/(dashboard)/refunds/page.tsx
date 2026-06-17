@@ -107,8 +107,8 @@ export default function RefundHistoryPage() {
                         <RefreshCcw size={28} />
                     </div>
                     <div className={'text-center'}>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase">{t('title')}</h2>
-                        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+                        
+                        
                     </div>
                 </div>
                 <div className="flex gap-2">

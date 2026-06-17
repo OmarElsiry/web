@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 const prisma = getPrisma();
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   // Auth check
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

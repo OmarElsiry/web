@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tag, Edit, Percent, Loader2 } from 'lucide-react';
-import { getInventory } from '@/app/actions/inventory';
+import { Tag, Edit, Percent, Loader2, X, Check } from 'lucide-react';
+import { getInventory, updateProduct, bulkUpdatePricing } from '@/app/actions/inventory';
 import { useTranslations, useLocale } from 'next-intl';
 import clsx from 'clsx';
 
@@ -12,15 +12,74 @@ export default function PricingPage() {
     const locale = useLocale();
     const isRtl = locale === 'ar';
     
-    const [products, setProducts] = useState<any[]>([]);
+    const [products, setProducts] = useState<Array<{ id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }>>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    // Single Edit State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<{ id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } | null>(null);
+    const [editCost, setEditCost] = useState(0);
+    const [editSell, setEditSell] = useState(0);
+    const [editSubmitting, setEditSubmitting] = useState(false);
+
+    // Bulk Update State
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkPercentage, setBulkPercentage] = useState<number | ''>('');
+    const [bulkType, setBulkType] = useState<'markup' | 'increase'>('markup');
+    const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+    const loadData = () => {
+        setLoading(true);
         getInventory().then(data => {
             setProducts(data);
             setLoading(false);
         });
+    };
+
+    useEffect(() => {
+        loadData();
     }, []);
+
+    const handleEditClick = (item: { id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }) => {
+        setEditingProduct(item.product);
+        setEditCost(Number(item.product.costPrice));
+        setEditSell(Number(item.product.baseSellingPrice));
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingProduct) return;
+        setEditSubmitting(true);
+        try {
+            await updateProduct(editingProduct.id, {
+                name: editingProduct.name,
+                sku: editingProduct.sku,
+                categoryId: editingProduct.categoryId,
+                costPrice: editCost,
+                baseSellingPrice: editSell
+            });
+            setIsEditModalOpen(false);
+            loadData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setEditSubmitting(false);
+        }
+    };
+
+    const handleSaveBulk = async () => {
+        if (!bulkPercentage) return;
+        setBulkSubmitting(true);
+        try {
+            await bulkUpdatePricing(Number(bulkPercentage), bulkType);
+            setIsBulkModalOpen(false);
+            loadData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setBulkSubmitting(false);
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -30,13 +89,18 @@ export default function PricingPage() {
                         <Tag size={28} />
                     </div>
                     <div className={'text-center'}>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">
-                            {t('title')}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+                        
+                        
                     </div>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95">
+                <button 
+                    onClick={() => {
+                        setBulkPercentage('');
+                        setBulkType('markup');
+                        setIsBulkModalOpen(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95"
+                >
                     <Percent size={16} />
                     {t('bulkUpdate')}
                 </button>
@@ -54,7 +118,7 @@ export default function PricingPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {loading ? (
+                        {loading && (
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                     <div className="flex flex-col items-center justify-center gap-3">
@@ -63,7 +127,8 @@ export default function PricingPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : products.length === 0 ? (
+                        )}
+                        {!loading && products.length === 0 && (
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                     <div className="flex flex-col items-center gap-2">
@@ -72,38 +137,216 @@ export default function PricingPage() {
                                     </div>
                                 </td>
                             </tr>
-                        ) : (
-                            products.map((item) => {
-                                const cost = Number(item.product.costPrice);
-                                const sell = Number(item.product.baseSellingPrice);
-                                const margin = sell > 0 ? ((sell - cost) / sell * 100) : 0;
-                                return (
-                                    <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
-                                        <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>
-                                            <div className="flex flex-col">
-                                                <span>{item.product.name}</span>
-                                                <span className="text-[10px] font-mono text-muted-foreground uppercase">{item.product.sku}</span>
-                                            </div>
-                                        </td>
-                                        <td className={clsx("px-6 py-4 font-mono tabular-nums", 'text-center')}>{cost.toLocaleString(locale)}</td>
-                                        <td className={clsx("px-6 py-4 font-mono font-black text-foreground tabular-nums", 'text-center')}>{sell.toLocaleString(locale)}</td>
-                                        <td className={clsx("px-6 py-4", 'text-center')}>
-                                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm tabular-nums">
-                                                {margin.toLocaleString(locale, { maximumFractionDigits: 1 })}%
-                                            </span>
-                                        </td>
-                                        <td className={clsx("px-6 py-4", 'text-center')}>
-                                            <button className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-primary">
-                                                <Edit size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })
                         )}
+                        {!loading && products.length > 0 && products.map((item) => {
+                            const cost = Number(item.product.costPrice);
+                            const sell = Number(item.product.baseSellingPrice);
+                            const margin = sell > 0 ? ((sell - cost) / sell * 100) : 0;
+                            return (
+                                <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
+                                    <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>
+                                        <div className="flex flex-col">
+                                            <span>{item.product.name}</span>
+                                            <span className="text-[10px] font-mono text-muted-foreground uppercase">{item.product.sku}</span>
+                                        </div>
+                                    </td>
+                                    <td className={clsx("px-6 py-4 font-mono tabular-nums", 'text-center')}>{cost.toLocaleString(locale)}</td>
+                                    <td className={clsx("px-6 py-4 font-mono font-black text-foreground tabular-nums", 'text-center')}>{sell.toLocaleString(locale)}</td>
+                                    <td className={clsx("px-6 py-4", 'text-center')}>
+                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-black dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800 shadow-sm tabular-nums">
+                                            {margin.toLocaleString(locale, { maximumFractionDigits: 1 })}%
+                                        </span>
+                                    </td>
+                                    <td className={clsx("px-6 py-4", 'text-center')}>
+                                        <button onClick={() => handleEditClick(item)} className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-primary">
+                                            <Edit size={16} />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
+
+            {/* Single Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-border animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/30">
+                            <div>
+                                <h3 className="text-xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
+                                    <Edit size={20} className="text-primary" />
+                                    {t('editPrice')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-1 font-mono">{editingProduct?.name}</p>
+                            </div>
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    {t('table.cost', { currency: ts('currency') })}
+                                </label>
+                                <input
+                                    type="number"
+                                    value={editCost}
+                                    onChange={(e) => setEditCost(Number(e.target.value))}
+                                    className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    {t('table.selling', { currency: ts('currency') })}
+                                </label>
+                                <input
+                                    type="number"
+                                    value={editSell}
+                                    onChange={(e) => setEditSell(Number(e.target.value))}
+                                    className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold"
+                                    step="0.01"
+                                />
+                            </div>
+                            
+                            <div className="pt-2">
+                                <div className="p-3 bg-secondary/50 rounded-xl flex items-center justify-between">
+                                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t('table.margin')}</span>
+                                    {(() => {
+                                        const margin = editSell > 0 ? ((editSell - editCost) / editSell * 100) : 0;
+                                        let marginClass = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800";
+                                        if (margin >= 20) {
+                                            marginClass = "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800";
+                                        } else if (margin >= 10) {
+                                            marginClass = "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800";
+                                        }
+                                        return (
+                                            <span className={clsx("px-2 py-1 rounded-full text-xs font-black shadow-sm tabular-nums", marginClass)}>
+                                                {margin.toLocaleString(locale, { maximumFractionDigits: 1 })}%
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
+                            >
+                                {ts('cancel')}
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={editSubmitting}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
+                            >
+                                {editSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                {ts('save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Update Modal */}
+            {isBulkModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-border animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5">
+                            <div>
+                                <h3 className="text-xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
+                                    <Percent size={20} className="text-primary" />
+                                    {t('bulkUpdate')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-1">Apply a bulk percentage to all products</p>
+                            </div>
+                            <button
+                                onClick={() => setIsBulkModalOpen(false)}
+                                className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    Update Type
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button 
+                                        onClick={() => setBulkType('markup')}
+                                        className={clsx(
+                                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
+                                            bulkType === 'markup' 
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                                                : "bg-background text-muted-foreground border-border hover:bg-secondary"
+                                        )}
+                                    >
+                                        Markup on Cost
+                                    </button>
+                                    <button 
+                                        onClick={() => setBulkType('increase')}
+                                        className={clsx(
+                                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
+                                            bulkType === 'increase' 
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                                                : "bg-background text-muted-foreground border-border hover:bg-secondary"
+                                        )}
+                                    >
+                                        Increase Sell Price
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1 h-4">
+                                    {bulkType === 'markup' 
+                                        ? 'Selling Price = Cost Price + X% margin' 
+                                        : 'Selling Price = Current Selling Price + X%'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    Percentage (%)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={bulkPercentage}
+                                        onChange={(e) => setBulkPercentage(e.target.value ? Number(e.target.value) : '')}
+                                        className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold pr-10"
+                                        placeholder="e.g. 10"
+                                        step="0.1"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">
+                                        %
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
+                            <button
+                                onClick={() => setIsBulkModalOpen(false)}
+                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
+                            >
+                                {ts('cancel')}
+                            </button>
+                            <button
+                                onClick={handleSaveBulk}
+                                disabled={bulkSubmitting || bulkPercentage === ''}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
+                            >
+                                {bulkSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                Apply Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

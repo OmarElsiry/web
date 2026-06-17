@@ -24,7 +24,8 @@
       "management": "Management"
     },
     "quick_sale": "Quick Sale",
-    "inventory_count": "Inventory Count"
+    "inventory_count": "Inventory Count",
+    "backup": "Backup Data"
   },
   "Login": {
     "title": "Welcome Back",
@@ -272,7 +273,8 @@
       "saving": "Saving...",
       "cancelEdit": "Cancel Edit",
       "editWarning": "Editing will adjust inventory and revenue.",
-      "amountPaid": "Amount Paid"
+      "amountPaid": "Amount Paid",
+      "undoOrder": "Undo Invoice"
     },
     "errors": {
       "updateFailed": "Failed to update invoice."

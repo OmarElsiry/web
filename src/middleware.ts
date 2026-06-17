@@ -2,8 +2,58 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
+import { User } from '@supabase/supabase-js';
 
 const handleI18nRouting = createMiddleware(routing);
+
+// Helper to check if pathname matches protected routes (with or without locale)
+function isProtectedPath(path: string): boolean {
+    const unprotectedPaths = ['/login', '/api', '/_next', '/favicon.ico'];
+    const pathWithoutLocale = path.replace(/^\/(en|ar)(\/|$)/, '/');
+    
+    if (unprotectedPaths.some(p => pathWithoutLocale.startsWith(p))) return false;
+    
+    const protectedRoots = ['/dashboard', '/inventory', '/sales', '/invoices', '/profits', '/staff-sales', '/logs', '/users', '/expenses', '/refunds'];
+    return pathWithoutLocale === '/' || protectedRoots.some(p => pathWithoutLocale.startsWith(p));
+}
+
+function handleAuthRedirect(pathname: string, request: NextRequest, user: User | null): NextResponse | null {
+    const isProtectedRoute = isProtectedPath(pathname);
+    const pathWithoutLocale = pathname.replace(/^\/(en|ar)(\/|$)/, '/');
+    const isLoginPage = pathWithoutLocale === '/login';
+
+    const localeMatch = pathname.match(/^\/(en|ar)/);
+    const localePrefix = localeMatch ? localeMatch[0] : '';
+
+    if (isProtectedRoute && !user) {
+        return NextResponse.redirect(new URL(`${localePrefix}/login`, request.url))
+    }
+
+    if (isLoginPage && user) {
+        return NextResponse.redirect(new URL(`${localePrefix}/dashboard`, request.url))
+    }
+
+    return null;
+}
+
+function handleDeviceRouting(pathname: string, request: NextRequest, userAgent: string): NextResponse | null {
+    const isAndroid = /Android/i.test(userAgent);
+    const pathWithoutLocale = pathname.replace(/^\/(en|ar)(\/|$)/, '/');
+    const localeMatch = pathname.match(/^\/(en|ar)/);
+    const localePrefix = localeMatch ? localeMatch[0] : '';
+
+    if (pathWithoutLocale === '/sales' || pathWithoutLocale === '/sales/') {
+        if (isAndroid) {
+            return NextResponse.redirect(new URL(`${localePrefix}/sales/quick`, request.url));
+        }
+    } else if (pathWithoutLocale === '/sales/quick' || pathWithoutLocale === '/sales/quick/') {
+        if (!isAndroid) {
+            return NextResponse.redirect(new URL(`${localePrefix}/sales`, request.url));
+        }
+    }
+
+    return null;
+}
 
 export async function middleware(request: NextRequest) {
     // 1. Handle i18n routing first
@@ -48,53 +98,12 @@ export async function middleware(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname;
     
-    // Helper to check if pathname matches protected routes (with or without locale)
-    const isProtectedPath = (path: string) => {
-        const unprotectedPaths = ['/login', '/api', '/_next', '/favicon.ico'];
-        // Remove locale prefix for checking
-        const pathWithoutLocale = path.replace(/^\/(en|ar)(\/|$)/, '/');
-        
-        if (unprotectedPaths.some(p => pathWithoutLocale.startsWith(p))) return false;
-        
-        const protectedRoots = ['/dashboard', '/inventory', '/sales', '/invoices', '/profits', '/staff-sales', '/logs', '/users', '/expenses', '/refunds'];
-        return pathWithoutLocale === '/' || protectedRoots.some(p => pathWithoutLocale.startsWith(p));
-    };
+    const authRedirect = handleAuthRedirect(pathname, request, user);
+    if (authRedirect) return authRedirect;
 
-    const isProtectedRoute = isProtectedPath(pathname);
-    const isLoginPage = pathname.replace(/^\/(en|ar)(\/|$)/, '/') === '/login';
-
-    if (isProtectedRoute && !user) {
-        // Redirect to login with current locale if possible
-        const localeMatch = pathname.match(/^\/(en|ar)/);
-        const locale = localeMatch ? localeMatch[0] : '';
-        return NextResponse.redirect(new URL(`${locale}/login`, request.url))
-    }
-
-    if (isLoginPage && user) {
-        const localeMatch = pathname.match(/^\/(en|ar)/);
-        const locale = localeMatch ? localeMatch[0] : '';
-        return NextResponse.redirect(new URL(`${locale}/dashboard`, request.url))
-    }
-
-    // Device-based routing for sales
     const userAgent = request.headers.get('user-agent') || '';
-    // Check for Android or other mobile devices if needed. The user specified "android devices" and "pc".
-    // We'll treat Android (and optionally iOS) as mobile/Android, and everything else as PC.
-    const isAndroid = /Android/i.test(userAgent);
-    
-    const pathWithoutLocale = pathname.replace(/^\/(en|ar)(\/|$)/, '/');
-    const localeMatch = pathname.match(/^\/(en|ar)/);
-    const localePrefix = localeMatch ? localeMatch[0] : '';
-
-    if (pathWithoutLocale === '/sales' || pathWithoutLocale === '/sales/') {
-        if (isAndroid) {
-            return NextResponse.redirect(new URL(`${localePrefix}/sales/quick`, request.url));
-        }
-    } else if (pathWithoutLocale === '/sales/quick' || pathWithoutLocale === '/sales/quick/') {
-        if (!isAndroid) {
-            return NextResponse.redirect(new URL(`${localePrefix}/sales`, request.url));
-        }
-    }
+    const deviceRedirect = handleDeviceRouting(pathname, request, userAgent);
+    if (deviceRedirect) return deviceRedirect;
 
     return supabaseResponse;
 }

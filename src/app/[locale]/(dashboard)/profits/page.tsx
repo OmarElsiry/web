@@ -76,10 +76,8 @@ export default function ProfitsPage() {
                         <TrendingUp size={28} />
                     </div>
                     <div className={'text-center'}>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">
-                            {t('title')}
-                        </h2>
-                        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+                        
+                        
                     </div>
                 </div>
                 <button

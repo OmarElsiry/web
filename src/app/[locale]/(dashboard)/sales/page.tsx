@@ -48,6 +48,30 @@ interface CustomerSearch {
 
 type PaymentMethodType = 'CASH' | 'CREDIT' | 'INSTAPAY';
 
+const loadSavedDefaults = () => {
+    if (typeof window === 'undefined') return null;
+    const savedDefaults = localStorage.getItem('sales_print_defaults');
+    if (!savedDefaults) return null;
+    try {
+        return JSON.parse(savedDefaults);
+    } catch (e) {
+        console.error("Failed to parse sales_print_defaults", e);
+        return null;
+    }
+};
+
+const loadAutocompleteHistory = () => {
+    if (typeof window === 'undefined') return null;
+    const savedHistory = localStorage.getItem('sales_autocomplete_history');
+    if (!savedHistory) return null;
+    try {
+        return JSON.parse(savedHistory);
+    } catch (e) {
+        console.error("Failed to parse sales_autocomplete_history", e);
+        return null;
+    }
+};
+
 export default function SalesPage() {
     const locale = useLocale();
     const isRtl = locale === 'ar';
@@ -72,6 +96,9 @@ export default function SalesPage() {
 
     // Sidebar Editable Info
     const [sequenceId, setSequenceId] = useState("");
+    useEffect(() => {
+        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
+    }, []);
     const [warehouseName, setWarehouseName] = useState("");
     
     // Customer Info
@@ -84,7 +111,7 @@ export default function SalesPage() {
     const saveDefaults = () => {
         const defaults = {
             showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
-            sequenceId, warehouseName
+            warehouseName
         };
         localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
         alert('تم حفظ الإعدادات الافتراضية بنجاح');
@@ -144,31 +171,21 @@ export default function SalesPage() {
     useEffect(() => {
         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
 
-        const savedDefaults = localStorage.getItem('sales_print_defaults');
-        if (savedDefaults) {
-            try {
-                const d = JSON.parse(savedDefaults);
-                if (d.sequenceId !== undefined) setSequenceId(d.sequenceId);
-                if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
-                // if (d.showWarehouse !== undefined) setShowWarehouse(d.showWarehouse);
-                // if (d.showCustomerCode !== undefined) setShowCustomerCode(d.showCustomerCode);
-                if (d.showCity !== undefined) setShowCity(d.showCity);
-                if (d.showAddress !== undefined) setShowAddress(d.showAddress);
-                if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
-                setShowPhone2(false); // always hide
-                if (d.showItemCode !== undefined) setShowItemCode(d.showItemCode);
-                if (d.showUnit !== undefined) setShowUnit(d.showUnit);
-                setShowDiscountPercent(false); // always hide
-                setShowDiscountValue(false); // always hide
-            } catch (e) {}
+        const d = loadSavedDefaults();
+        if (d) {
+            if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
+            if (d.showCity !== undefined) setShowCity(d.showCity);
+            if (d.showAddress !== undefined) setShowAddress(d.showAddress);
+            if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
+            setShowPhone2(false); 
+            if (d.showItemCode !== undefined) setShowItemCode(d.showItemCode);
+            if (d.showUnit !== undefined) setShowUnit(d.showUnit);
+            setShowDiscountPercent(false); 
+            setShowDiscountValue(false); 
         }
         
-        const savedHistory = localStorage.getItem('sales_autocomplete_history');
-        if (savedHistory) {
-            try {
-                setHistory(JSON.parse(savedHistory));
-            } catch (e) {}
-        }
+        const h = loadAutocompleteHistory();
+        if (h) setHistory(h);
 
         Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
             setProducts(prods);
@@ -359,15 +376,8 @@ export default function SalesPage() {
                         setPhone2('');
                         setAddress('');
                         
-                        const savedDefaults = localStorage.getItem('sales_print_defaults');
-                        if (savedDefaults) {
-                            try {
-                                const d = JSON.parse(savedDefaults);
-                                setSequenceId(d.sequenceId || "");
-                            } catch { setSequenceId(""); }
-                        } else {
-                            setSequenceId("");
-                        }
+                        
+                        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
                         
                         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
                         setAmountPaid('');
@@ -547,14 +557,7 @@ export default function SalesPage() {
 
                 {showSettings && (
                     <div className="p-5 overflow-y-auto flex-1 space-y-4">
-                        <div className="space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
-                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
-                            </div>
-                            {/* Warehouse Field Hidden */}
-                        </div>
+
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
@@ -655,7 +658,7 @@ export default function SalesPage() {
                                 <tbody>
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الرقم</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg"><input value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="bg-transparent outline-none w-16 text-center" /></td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">التاريخ</td>
@@ -929,12 +932,6 @@ export default function SalesPage() {
                         {/* Summary & Word Amount */}
                         <div className="flex-1 flex flex-col justify-between space-y-4">
                             <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
-                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
-                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
-                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
-                                        {totalQty}
-                                    </span>
-                                </div>
                                 <div className="flex-1 flex items-center justify-between">
                                     <span className="font-bold text-gray-700">الإجمالي العام</span>
                                     <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">

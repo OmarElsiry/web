@@ -1,8 +1,58 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { Prisma } from '@/generated/client';
 import { revalidatePath } from 'next/cache';
+
+async function deductStock(tx: Prisma.TransactionClient, items: { productId: string, quantity: number }[], locId: string) {
+    for (const item of items) {
+        const inventory = await tx.inventory.findFirst({
+            where: { productId: item.productId, locationId: locId }
+        });
+
+        const available = inventory ? Number(inventory.quantity) : 0;
+        if (available < item.quantity) {
+            const product = await tx.product.findUnique({ where: { id: item.productId } });
+            throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
+        }
+
+        await tx.inventory.update({
+            where: { id: inventory!.id },
+            data: { quantity: { decrement: item.quantity } }
+        });
+    }
+}
+
+async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerId?: string, buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string }) {
+    let finalCustomerId = customerId;
+    let previousBalance = 0;
+
+    if (!finalCustomerId && buyerInfo?.customerName) {
+        const name = buyerInfo.customerName;
+        const phone = buyerInfo.customerPhone || null;
+
+        let customer = await tx.customer.findFirst({
+            where: { name, phone }
+        });
+
+        if (!customer) {
+            customer = await tx.customer.create({
+                data: {
+                    name,
+                    phone,
+                    address: buyerInfo.customerAddress || null
+                }
+            });
+        }
+        finalCustomerId = customer.id;
+        previousBalance = Number(customer.balance);
+    } else if (finalCustomerId) {
+        const customer = await tx.customer.findUnique({ where: { id: finalCustomerId } });
+        previousBalance = customer ? Number(customer.balance) : 0;
+    }
+
+    return { finalCustomerId, previousBalance };
+}
 
 export async function getProducts() {
     const prisma = getPrisma();
@@ -98,57 +148,10 @@ export async function processSale(
             }
 
             // A. VALIDATE STOCK & PREPARE UPDATES
-            for (const item of items) {
-                const inventory = await tx.inventory.findFirst({
-                    where: { productId: item.productId, locationId: loc.id }
-                });
-
-                const available = inventory ? Number(inventory.quantity) : 0;
-                if (available < item.quantity) {
-                    const product = await tx.product.findUnique({ where: { id: item.productId } });
-                    throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
-                }
-
-                // Update Inventory (Decrement)
-                await tx.inventory.update({
-                    where: { id: inventory!.id },
-                    data: { quantity: { decrement: item.quantity } }
-                });
-            }
+            await deductStock(tx, items, loc.id);
 
             // B. RESOLVE CUSTOMER & BALANCE
-            let finalCustomerId = customerId;
-            let previousBalance = 0;
-
-            if (!finalCustomerId && buyerInfo?.customerName) {
-                const name = buyerInfo.customerName as string;
-                const phone = buyerInfo.customerPhone || null;
-
-                // Try to resolve customer by name/phone, or create if not found.
-                // Since @@unique([name, phone]) constraint fails in Prisma when phone is null (under upsert),
-                // we safely check with findFirst first.
-                let customer = await tx.customer.findFirst({
-                    where: {
-                        name,
-                        phone: phone ? phone : null
-                    }
-                });
-
-                if (!customer) {
-                    customer = await tx.customer.create({
-                        data: {
-                            name,
-                            phone: phone ? phone : null,
-                            address: buyerInfo.customerAddress || null
-                        }
-                    });
-                }
-                finalCustomerId = customer.id;
-                previousBalance = Number(customer.balance);
-            } else if (finalCustomerId) {
-                const customer = await tx.customer.findUnique({ where: { id: finalCustomerId } });
-                previousBalance = customer ? Number(customer.balance) : 0;
-            }
+            const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
 
             const paid = amountPaid ?? (paymentMethod === 'CREDIT' ? 0 : totalAmount);
             const currentBalance = previousBalance + totalAmount - paid;
@@ -238,11 +241,12 @@ export async function processSale(
                 }))
             }
         };
-    } catch (error: any) {
-        console.error("Sale processing failed:", error);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : "An unexpected error occurred during the sale.";
+        console.error("Sale processing failed:", message);
         return {
             success: false,
-            error: error.message || "An unexpected error occurred during the sale."
+            error: message
         };
     }
 }

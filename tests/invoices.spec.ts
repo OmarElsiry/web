@@ -15,6 +15,7 @@ async function login(page: Page) {
         await page.locator('button[type="submit"]').click();
         await page.waitForURL(/\/(dashboard|sales)/, { timeout: 5000 });
     } catch (e) {
+        console.log('Login timeout or already logged in:', e);
     }
 }
 

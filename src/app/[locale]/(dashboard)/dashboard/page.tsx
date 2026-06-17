@@ -16,7 +16,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
     return (
         <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-1">{t('title')}</h2>
+            
             <h1 className="text-3xl font-black mb-8">{t('subtitle')}</h1>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

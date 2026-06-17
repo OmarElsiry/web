@@ -205,14 +205,7 @@ export default function InvoicePrintPage() {
 
                 {showSettings && (
                     <div className="p-5 overflow-y-auto flex-1 space-y-4">
-                        <div className="space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
-                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            {/* Warehouse Field Hidden */}
-                        </div>
+
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
@@ -431,13 +424,6 @@ export default function InvoicePrintPage() {
                         {/* Summary & Word Amount */}
                         <div className="flex-1 flex flex-col justify-between space-y-4">
                             <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
-                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
-                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
-                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
-                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                        {invoice.items.reduce((acc: number, item: any) => acc + item.quantity, 0)}
-                                    </span>
-                                </div>
                                 <div className="flex-1 flex items-center justify-between">
                                     <span className="font-bold text-gray-700">الإجمالي العام</span>
                                     <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">

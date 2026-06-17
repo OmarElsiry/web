@@ -19,6 +19,7 @@ async function login(page: Page) {
         await page.waitForURL(/\/(dashboard|sales)/, { timeout: 5000 });
     } catch (e) {
         // Login failed or timed out, gracefully continue to allow tests to handle state
+        console.log('Login timeout or already logged in:', e);
     }
 }
 

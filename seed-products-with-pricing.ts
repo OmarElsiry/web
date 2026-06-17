@@ -176,7 +176,7 @@ async function main() {
 
   let createdCount = 0;
   let updatedCount = 0;
-  let skippedCount = 0;
+  const skippedCount = 0;
 
   for (const [categoryName, products] of Object.entries(productData)) {
     // Upsert category

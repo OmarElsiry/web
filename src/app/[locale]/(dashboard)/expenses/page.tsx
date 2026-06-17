@@ -50,10 +50,6 @@ export default function ExpensesPage() {
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [generatingPdf, setGeneratingPdf] = useState(false);
 
-    useEffect(() => {
-        loadData();
-    }, []);
-
     const loadData = useCallback(async () => {
         setLoading(true);
         const [expData, staff] = await Promise.all([
@@ -71,20 +67,9 @@ export default function ExpensesPage() {
         setLoading(false);
     }, [dateRange.start, dateRange.end]);
 
-    // Refresh when filters change
     useEffect(() => {
-        if (!loading) {
-            getExpenses(dateRange.start, dateRange.end).then(data => {
-                setExpenses(data.expenses);
-                setSalaryMetrics({
-                    salaryTotal: data.salaryTotal,
-                    nonSalaryTotal: data.nonSalaryTotal,
-                    grandTotal: data.grandTotal,
-                    salaryPercent: data.salaryPercent
-                });
-            });
-        }
-    }, [dateRange]);
+        void loadData();
+    }, [loadData]);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -210,11 +195,11 @@ ${report.employees.map(emp => `
         }
     }, [dateRange, locale, t, ts, isRtl]);
 
-    const filteredExpenses = categoryFilter === 'ALL'
-        ? expenses
-        : categoryFilter === 'SALARY'
-            ? expenses.filter(e => e.category?.toUpperCase() === 'SALARY')
-            : expenses.filter(e => e.category?.toUpperCase() !== 'SALARY');
+    const filteredExpenses = useMemo(() => {
+        if (categoryFilter === 'ALL') return expenses;
+        if (categoryFilter === 'SALARY') return expenses.filter(e => e.category?.toUpperCase() === 'SALARY');
+        return expenses.filter(e => e.category?.toUpperCase() !== 'SALARY');
+    }, [categoryFilter, expenses]);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -227,7 +212,7 @@ ${report.employees.map(emp => `
                         <h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">
                             {t('title')}
                         </h1>
-                        <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+                        
                     </div>
                 </div>
                 <button
@@ -285,7 +270,7 @@ ${report.employees.map(emp => `
                     <div className="flex items-end gap-3">
                         <span className="text-2xl font-black text-purple-600 tabular-nums">{salaryMetrics.salaryPercent.toLocaleString(locale)}%</span>
                         <div className="flex-1 h-1.5 bg-secondary rounded-full overflow-hidden mb-2">
-                            <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={{ width: `${salaryMetrics.salaryPercent}%` }} />
+                            <div className="h-full bg-purple-500 rounded-full transition-all duration-1000" style={useMemo(() => ({ width: `${salaryMetrics.salaryPercent}%` }), [salaryMetrics.salaryPercent])} />
                         </div>
                     </div>
                 </div>
@@ -456,7 +441,7 @@ ${report.employees.map(emp => `
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {loading ? (
+                            {loading && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center gap-3">
@@ -465,7 +450,8 @@ ${report.employees.map(emp => `
                                         </div>
                                     </td>
                                 </tr>
-                            ) : filteredExpenses.length === 0 ? (
+                            )}
+                            {!loading && filteredExpenses.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
@@ -474,9 +460,9 @@ ${report.employees.map(emp => `
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
-                                filteredExpenses.map(exp => (
-                                    <tr key={exp.id} className="hover:bg-muted/50 transition-colors group">
+                            )}
+                            {!loading && filteredExpenses.length > 0 && filteredExpenses.map(exp => (
+                                <tr key={exp.id} className="hover:bg-muted/50 transition-colors group">
                                         <td className={clsx("px-6 py-4 font-bold text-muted-foreground", 'text-center')}>{new Date(exp.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                                         <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>{exp.description}</td>
                                         <td className={clsx("px-6 py-4", 'text-center')}>
@@ -486,7 +472,7 @@ ${report.employees.map(emp => `
                                                     exp.category?.toUpperCase() === 'SALARY' ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" : "bg-secondary/50 text-muted-foreground border-border"
                                                 )}>
                                                     {exp.category?.toUpperCase() === 'SALARY' ? '💰 ' : ''}
-                                                    {t(`categoriesList.${exp.category}` as any, { defaultValue: exp.category })}
+                                                    {t(`categoriesList.${exp.category}` as 'categoriesList.SALARY', { defaultValue: exp.category })}
                                                 </span>
                                             )}
                                         </td>
@@ -507,7 +493,7 @@ ${report.employees.map(emp => `
                                         </td>
                                     </tr>
                                 ))
-                            )}
+                            }
                         </tbody>
                     </table>
                 </div>

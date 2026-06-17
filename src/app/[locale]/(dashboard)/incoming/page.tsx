@@ -103,7 +103,7 @@ export default function IncomingStockPage() {
     return (
         <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
             <div className="flex items-center justify-between">
-                <h2 className={clsx("text-3xl font-black tracking-tighter uppercase", 'text-center')}>{t('title')}</h2>
+                
                 <button
                     onClick={handleOpenModal}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl transition-all shadow-sm active:scale-95 font-bold text-sm"

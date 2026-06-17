@@ -43,7 +43,7 @@ export default function DebtsReportPage() {
   }, [selectedGov]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     fetchDebts(false);
   }, [fetchDebts]);
 
@@ -51,9 +51,9 @@ export default function DebtsReportPage() {
     c.name.toLowerCase().includes(searchName.toLowerCase())
   );
 
-  const handlePrintTable = () => {
+  const handlePrintTable = useCallback(() => {
     window.print();
-  };
+  }, []);
 
   const handlePrintSingle = useCallback(() => {
     // In a real app, this might navigate to an invoice print view
@@ -160,21 +160,27 @@ export default function DebtsReportPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    جاري التحميل...
-                  </td>
-                </tr>
-              ) : filteredCustomers.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
-                    لا يوجد عملاء
-                  </td>
-                </tr>
-              ) : (
-                filteredCustomers.map(customer => (
+              {(() => {
+                if (isLoading) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        جاري التحميل...
+                      </td>
+                    </tr>
+                  );
+                }
+                if (filteredCustomers.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                        لا يوجد عملاء
+                      </td>
+                    </tr>
+                  );
+                }
+                return filteredCustomers.map(customer => (
                   <tr key={customer.id} className="hover:bg-blue-50/30 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="font-semibold text-gray-800">{customer.name}</div>
@@ -202,8 +208,8 @@ export default function DebtsReportPage() {
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })()}
             </tbody>
             {/* Total Footer */}
             {!isLoading && filteredCustomers.length > 0 && (

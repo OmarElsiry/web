@@ -24,7 +24,8 @@
       "management": "الإدارة"
     },
     "quick_sale": "بيع سريع",
-    "inventory_count": "جرد المخزون"
+    "inventory_count": "جرد المخزون",
+    "backup": "نسخ احتياطي"
   },
   "Login": {
     "title": "مرحباً بعودتك",
@@ -272,7 +273,8 @@
       "saving": "جاري الحفظ...",
       "cancelEdit": "إلغاء التعديل",
       "editWarning": "التعديل سيؤثر على المخزون والإيرادات.",
-      "amountPaid": "المبلغ المدفوع"
+      "amountPaid": "المبلغ المدفوع",
+      "undoOrder": "إلغاء الفاتورة"
     },
     "errors": {
       "updateFailed": "فشل تحديث الفاتورة."

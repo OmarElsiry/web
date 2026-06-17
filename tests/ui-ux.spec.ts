@@ -114,7 +114,7 @@ test.describe('Login Page — UI/UX & Design', () => {
         // Since Supabase is unreachable, the form should handle the error gracefully
 
         // Page should still be on login (not crash)
-        await expect(page).toHaveURL(/.*\/login/);
+        await expect(page).toHaveURL(/\/login/);
     });
 });
 

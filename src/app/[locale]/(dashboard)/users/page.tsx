@@ -139,7 +139,7 @@ export default function UsersPage() {
         <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-1">{t('title')}</h2>
+                    
                     <h1 className="text-3xl font-black">{t('subtitle')}</h1>
                 </div>
                 <button

@@ -1,10 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Package, Search, Plus, RefreshCcw, Loader2, X, Check, Edit, Trash2, AlertCircle, FolderPlus, Settings, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, ChevronDown, MapPin } from 'lucide-react';
+import { Loader2, Plus, Trash2, Search, AlertCircle, ChevronDown, Package, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, RefreshCcw, Settings, Edit, MapPin } from 'lucide-react';
 import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct } from '@/app/actions/inventory';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
+import { ProductModal } from '@/components/products/ProductModal';
+import { CategoryModal } from '@/components/products/CategoryModal';
+
+export const dynamic = 'force-dynamic';
 
 type SortField = 'name' | 'sku' | 'category' | 'stock' | 'cost' | 'sell' | 'margin' | 'percent';
 type SortOrder = 'asc' | 'desc';
@@ -37,6 +41,12 @@ interface Category {
 }
 
 const ITEMS_PER_PAGE = 15;
+
+const getMarginColor = (margin: number) => {
+    if (margin >= 20) return "bg-green-100 text-green-700";
+    if (margin >= 10) return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
+};
 
 export default function ProductsPage() {
     const t = useTranslations('Products');
@@ -331,13 +341,7 @@ export default function ProductsPage() {
     return (
         <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <Package className="text-primary" />
-                        {t('title')}
-                    </h2>
-                    <p className="text-muted-foreground">{t('subtitle')}</p>
-                </div>
+                
                 <div className="flex gap-2">
                     <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
                         <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
@@ -410,11 +414,13 @@ export default function ProductsPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {loading ? (
+                            {loading && (
                                 <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
-                            ) : paginatedItems.length === 0 ? (
+                            )}
+                            {!loading && paginatedItems.length === 0 && (
                                 <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">{t('noProducts')}</td></tr>
-                            ) : (
+                            )}
+                            {!loading && paginatedItems.length > 0 && (
                                 paginatedItems.map((p) => {
                                     const margin = p.baseSellingPrice > 0 ? ((p.baseSellingPrice - p.costPrice) / p.baseSellingPrice * 100).toFixed(1) : '0';
                                     const isExpanded = expandedRow === p.id;
@@ -435,13 +441,13 @@ export default function ProductsPage() {
                                                 <td className="px-4 py-3 font-semibold text-center">{p.name}</td>
                                                 <td className="px-4 py-3 font-mono text-xs text-center">{p.sku}</td>
                                                 <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{p.categoryName}</span></td>
-                                                <td className="px-4 py-3 text-xs capitalize text-muted-foreground text-center">{t(`units.${p.unit}` as any)}</td>
+                                                <td className="px-4 py-3 text-xs capitalize text-muted-foreground text-center">{t(`units.${p.unit}` as Parameters<typeof t>[0])}</td>
                                                 <td className={clsx("px-4 py-3 font-mono text-xs", 'text-center')}>{ts('currency')} {p.costPrice.toLocaleString(locale)}</td>
                                                 <td className={clsx("px-4 py-3 font-mono text-xs font-bold", 'text-center')}>{ts('currency')} {p.baseSellingPrice.toLocaleString(locale)}</td>
                                                 <td className={clsx("px-4 py-3", 'text-center')}>
                                                     <span className={clsx(
                                                         "px-2 py-0.5 rounded text-[10px] font-bold",
-                                                        Number(margin) >= 20 ? "bg-green-100 text-green-700" : Number(margin) >= 10 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"
+                                                        getMarginColor(Number(margin))
                                                     )}>
                                                         {Number(margin).toLocaleString(locale)}%
                                                     </span>
@@ -557,136 +563,39 @@ export default function ProductsPage() {
             </div>
 
             {/* Product Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5">
-                            <h3 className="text-xl font-bold">{isEditMode ? t('modal.editTitle') : t('modal.addTitle')}</h3>
-                            <button onClick={handleCloseModal} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2"><AlertCircle size={16} />{error}</div>}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.nameLabel')}</label>
-                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.name} onChange={handleFormNameChange} />
-                                </div>
-                                <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.skuLabel')}</label>
-                                    <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.sku} onChange={handleFormSkuChange} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.categoryLabel')}</label>
-                                    <select className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.categoryId} onChange={handleFormCategoryChange}>
-                                        <option value="">{t('modal.selectCategory')}</option>
-                                        {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.unitLabel')}</label>
-                                    <select className="w-full p-3 rounded-xl border border-border bg-background" value={formData.unit} onChange={handleFormUnitChange}>
-                                        <option value="piece">{t('units.piece')}</option>
-                                        <option value="kg">{t('units.kg')}</option>
-                                        <option value="carton">{t('units.carton')}</option>
-                                        <option value="liter">{t('units.liter')}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.costLabel')}</label>
-                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.costPrice} onChange={handleFormCostChange} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.sellLabel')}</label>
-                                    <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.baseSellingPrice} onChange={handleFormPriceChange} />
-                                </div>
-                            </div>
-                            {!isEditMode && (
-                                <div className="space-y-1.5 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                                    <label className="text-xs font-bold uppercase text-primary">{t('modal.openingStock')}</label>
-                                    <input type="number" className="w-full p-3 rounded-lg border border-border bg-background" required min="0" value={formData.initialQuantity} onChange={handleFormQtyChange} />
-                                </div>
-                            )}
-                            <div className="pt-6 flex gap-3">
-                                <button type="button" onClick={handleCloseModal} className="flex-1 px-4 py-3 rounded-xl border border-border hover:bg-secondary font-semibold">{t('modal.cancel')}</button>
-                                <button type="submit" disabled={submitting} className="flex-1 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
-                                    {submitting ? <Loader2 className="animate-spin" size={18} /> : (isEditMode ? <Check size={18} /> : <Plus size={18} />)}
-                                    {isEditMode ? t('modal.update') : t('modal.create')}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <ProductModal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                t={t}
+                isEditMode={isEditMode}
+                error={error}
+                formData={formData}
+                categories={categories}
+                submitting={submitting}
+                handleSubmit={handleSubmit}
+                handleFormNameChange={handleFormNameChange}
+                handleFormSkuChange={handleFormSkuChange}
+                handleFormCategoryChange={handleFormCategoryChange}
+                handleFormUnitChange={handleFormUnitChange}
+                handleFormCostChange={handleFormCostChange}
+                handleFormPriceChange={handleFormPriceChange}
+                handleFormQtyChange={handleFormQtyChange}
+            />
 
             {/* Category Management Modal */}
-            {isCategoryModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5">
-                            <h3 className="text-xl font-bold flex items-center gap-2">
-                                <FolderPlus size={20} />
-                                {t('manageCategories.title')}
-                            </h3>
-                            <button onClick={handleCloseCategoryModal} className="p-1 hover:bg-secondary rounded-full"><X size={20} /></button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            {categoryError && (
-                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2"><AlertCircle size={16} />{categoryError}</div>
-                            )}
-
-                            {/* Add New Category Form */}
-                            <form onSubmit={handleAddCategory} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    placeholder={t('manageCategories.newPlaceholder')}
-                                    value={newCategoryName}
-                                    onChange={handleNewCategoryNameChange}
-                                    className="flex-1 p-3 rounded-xl border border-border bg-background"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={categorySubmitting || !newCategoryName.trim()}
-                                    className="px-4 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
-                                >
-                                    {categorySubmitting ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
-                                    {t('manageCategories.add')}
-                                </button>
-                            </form>
-
-                            {/* Existing Categories List */}
-                            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                                {categories.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground">{t('manageCategories.noCategories')}</div>
-                                ) : (
-                                    categories.map(cat => (
-                                        <div key={cat.id} className="flex items-center justify-between p-3 bg-secondary/30 rounded-xl group transition-all hover:bg-secondary/50">
-                                            <div>
-                                                <span className="font-semibold">{cat.name}</span>
-                                                <span className="mx-2 text-xs text-muted-foreground">
-                                                    ({cat._count?.products?.toLocaleString(locale) || 0} {t('table.product').toLowerCase()})
-                                                </span>
-                                            </div>
-                                            <button
-                                                data-id={cat.id}
-                                                onClick={handleDeleteCategoryClick}
-                                                disabled={categorySubmitting}
-                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-                                                title={t('manageCategories.deleteTooltip')}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <CategoryModal
+                isOpen={isCategoryModalOpen}
+                onClose={handleCloseCategoryModal}
+                t={t}
+                locale={locale}
+                categoryError={categoryError}
+                newCategoryName={newCategoryName}
+                onNewCategoryNameChange={handleNewCategoryNameChange}
+                handleAddCategory={handleAddCategory}
+                categorySubmitting={categorySubmitting}
+                categories={categories}
+                handleDeleteCategoryClick={handleDeleteCategoryClick}
+            />
         </div>
     );
 }

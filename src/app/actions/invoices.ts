@@ -1,7 +1,63 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { PrismaClient } from '@/generated/client';
+import { PrismaClient, Prisma } from '@/generated/client';
+
+async function updateInventoryStock(tx: Prisma.TransactionClient, productId: string, locId: string, quantityDelta: number) {
+    if (!locId || quantityDelta === 0) return;
+    const inventory = await tx.inventory.findFirst({ where: { productId, locationId: locId } });
+    if (inventory) {
+        const newStock = Number(inventory.quantity) + quantityDelta;
+        if (newStock < 0) {
+            const product = await tx.product.findUnique({ where: { id: productId } });
+            throw new Error(`Insufficient stock for ${product?.name || productId}. Available: ${Number(inventory.quantity)}`);
+        }
+        await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
+    }
+}
+
+async function handleInvoiceItemsUpdate(
+    tx: Prisma.TransactionClient, 
+    invoiceId: string, 
+    existingItems: Array<{ id: string, productId: string, quantity: any }>, 
+    incomingItems: Array<{ id: string, productId: string, quantity: number, unitPrice: number }>, 
+    locId?: string
+) {
+    let newTotalAmount = 0;
+    const incomingExistingIds = incomingItems.filter(i => !i.id.startsWith('new-')).map(i => i.id);
+
+    const removedItems = existingItems.filter(ei => !incomingExistingIds.includes(ei.id));
+    for (const removed of removedItems) {
+        if (locId) await updateInventoryStock(tx, removed.productId, locId, Number(removed.quantity));
+        await tx.invoiceItem.delete({ where: { id: removed.id } });
+    }
+
+    for (const updatedItem of incomingItems.filter(i => !i.id.startsWith('new-'))) {
+        const existingItem = existingItems.find(i => i.id === updatedItem.id);
+        if (!existingItem) continue;
+
+        const qtyDelta = Number(existingItem.quantity) - updatedItem.quantity;
+        if (locId) await updateInventoryStock(tx, updatedItem.productId, locId, qtyDelta);
+
+        const subtotal = updatedItem.quantity * updatedItem.unitPrice;
+        await tx.invoiceItem.update({
+            where: { id: updatedItem.id },
+            data: { quantity: updatedItem.quantity, unitPrice: updatedItem.unitPrice, subtotal }
+        });
+        newTotalAmount += subtotal;
+    }
+
+    for (const newItem of incomingItems.filter(i => i.id.startsWith('new-'))) {
+        if (locId) await updateInventoryStock(tx, newItem.productId, locId, -newItem.quantity);
+        const subtotal = newItem.quantity * newItem.unitPrice;
+        await tx.invoiceItem.create({
+            data: { invoiceId, productId: newItem.productId, quantity: newItem.quantity, unitPrice: newItem.unitPrice, subtotal }
+        });
+        newTotalAmount += subtotal;
+    }
+
+    return newTotalAmount;
+}
 
 // Update type definition if not global, but for now we'll imply it from usage
 export async function getInvoices() {
@@ -143,66 +199,8 @@ export async function updateInvoice(
             let newTotalAmount = Number(existing.totalAmount);
 
             if (data.items !== undefined) {
-                newTotalAmount = 0;
-                const incomingItems = data.items;
                 const loc = await tx.location.findFirst();
-                const incomingExistingIds = incomingItems.filter(i => !i.id.startsWith('new-')).map(i => i.id);
-
-                // --- REMOVED items: delete + restore stock ---
-                const removedItems = existing.items.filter(ei => !incomingExistingIds.includes(ei.id));
-                for (const removed of removedItems) {
-                    if (loc) {
-                        const inv = await tx.inventory.findFirst({ where: { productId: removed.productId, locationId: loc.id } });
-                        if (inv) await tx.inventory.update({ where: { id: inv.id }, data: { quantity: Number(inv.quantity) + Number(removed.quantity) } });
-                    }
-                    await tx.invoiceItem.delete({ where: { id: removed.id } });
-                }
-
-                // --- EXISTING items: update qty/price + adjust stock ---
-                for (const updatedItem of incomingItems.filter(i => !i.id.startsWith('new-'))) {
-                    const existingItem = existing.items.find(i => i.id === updatedItem.id);
-                    if (!existingItem) continue;
-
-                    const qtyDelta = Number(existingItem.quantity) - updatedItem.quantity;
-                    if (qtyDelta !== 0 && loc) {
-                        const inventory = await tx.inventory.findFirst({ where: { productId: updatedItem.productId, locationId: loc.id } });
-                        if (inventory) {
-                            const newStock = Number(inventory.quantity) + qtyDelta;
-                            if (newStock < 0) {
-                                const product = await tx.product.findUnique({ where: { id: updatedItem.productId } });
-                                throw new Error(`Insufficient stock for ${product?.name || updatedItem.productId}. Available: ${Number(inventory.quantity)}`);
-                            }
-                            await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
-                        }
-                    }
-
-                    const newSubtotal = updatedItem.quantity * updatedItem.unitPrice;
-                    await tx.invoiceItem.update({
-                        where: { id: updatedItem.id },
-                        data: { quantity: updatedItem.quantity, unitPrice: updatedItem.unitPrice, subtotal: newSubtotal }
-                    });
-                    newTotalAmount += newSubtotal;
-                }
-
-                // --- NEW items: create + deduct stock ---
-                for (const newItem of incomingItems.filter(i => i.id.startsWith('new-'))) {
-                    if (loc) {
-                        const inventory = await tx.inventory.findFirst({ where: { productId: newItem.productId, locationId: loc.id } });
-                        if (inventory) {
-                            const newStock = Number(inventory.quantity) - newItem.quantity;
-                            if (newStock < 0) {
-                                const product = await tx.product.findUnique({ where: { id: newItem.productId } });
-                                throw new Error(`Insufficient stock for ${product?.name || newItem.productId}. Available: ${Number(inventory.quantity)}`);
-                            }
-                            await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
-                        }
-                    }
-                    const subtotal = newItem.quantity * newItem.unitPrice;
-                    await tx.invoiceItem.create({
-                        data: { invoiceId, productId: newItem.productId, quantity: newItem.quantity, unitPrice: newItem.unitPrice, subtotal }
-                    });
-                    newTotalAmount += subtotal;
-                }
+                newTotalAmount = await handleInvoiceItemsUpdate(tx, invoiceId, existing.items, data.items, loc?.id);
             }
 
             // 3. Calculate balance
@@ -269,9 +267,10 @@ export async function updateInvoice(
                 }))
             }
         };
-    } catch (error: any) {
-        console.error('Failed to update invoice:', error);
-        return { success: false, error: error.message || 'Failed to update invoice.' };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to update invoice:', message);
+        return { success: false, error: message || 'Failed to update invoice.' };
     }
 }
 
@@ -379,8 +378,9 @@ export async function undoInvoice(invoiceId: string, userId?: string) {
         revalidatePath('/logs');
 
         return { success: true };
-    } catch (error: any) {
-        console.error('Failed to undo invoice:', error);
-        return { success: false, error: error.message || 'Failed to undo invoice.' };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to undo invoice:', message);
+        return { success: false, error: message || 'Failed to undo invoice.' };
     }
 }

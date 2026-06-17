@@ -375,6 +375,49 @@ export async function deleteProduct(id: string) {
 
         return { success: true };
     } catch (error) {
+        console.error('Failed to delete product:', error);
         return { success: false, error: 'Failed to delete product.' };
+    }
+}
+
+export async function bulkUpdatePricing(percentage: number, type: 'markup' | 'increase') {
+    const prisma = getPrisma();
+    try {
+        const products = await prisma.product.findMany();
+
+        await prisma.$transaction(
+            products.map((product) => {
+                let newSellingPrice = Number(product.baseSellingPrice);
+                const cost = Number(product.costPrice);
+
+                if (type === 'markup') {
+                    newSellingPrice = cost * (1 + percentage / 100);
+                } else if (type === 'increase') {
+                    newSellingPrice = newSellingPrice * (1 + percentage / 100);
+                }
+
+                return prisma.product.update({
+                    where: { id: product.id },
+                    data: { baseSellingPrice: newSellingPrice }
+                });
+            })
+        );
+
+        try {
+            const { logActivity } = await import('./audit');
+            await logActivity('BULK_UPDATE_PRICING', `Applied ${percentage}% ${type} to all products`);
+        } catch (e) {
+            console.error('Audit log failed', e);
+        }
+
+        revalidatePath('/pricing');
+        revalidatePath('/products');
+        revalidatePath('/inventory');
+        revalidatePath('/sales');
+        
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to bulk update pricing:', error);
+        return { success: false, error: 'Failed to bulk update pricing.' };
     }
 }
