@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw, Pencil, Save, AlertCircle, Eye, EyeOff, Plus, Minus, Trash2 } from 'lucide-react';
+import { FileText, Filter, Search, Calendar, Loader2, X, Printer, RefreshCcw, Pencil, Save, AlertCircle, Eye, EyeOff, Plus, Minus, Trash2, Download } from 'lucide-react';
 import { getInvoices, updateInvoice, undoInvoice } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
 import RefundModal from '@/components/RefundModal';
@@ -98,6 +98,14 @@ export default function InvoicesPage() {
         const dateRangeStr = startDate || endDate ? `<p>${t('report.period', { start: startDate || 'Start', end: endDate || 'Now' })}</p>` : '';
         printElement(t('report.title'), 'print-invoice-list', dateRangeStr, locale);
     }, [startDate, endDate, t, locale]);
+
+    const handleDownloadZip = useCallback(() => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('startDate', startDate);
+        if (endDate) params.append('endDate', endDate);
+        
+        window.open(`/api/invoices/export-zip?${params.toString()}`, '_blank');
+    }, [startDate, endDate]);
 
     const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
@@ -317,6 +325,13 @@ export default function InvoicesPage() {
                     >
                         <Calendar size={16} />
                         {t('dateRange')}
+                    </button>
+                    <button
+                        onClick={handleDownloadZip}
+                        className="flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg border border-border"
+                    >
+                        <Download size={16} />
+                        {t('downloadZip', { defaultValue: 'Download ZIP' })}
                     </button>
                     <button
                         onClick={handlePrintReport}

@@ -76,6 +76,26 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL(`${locale}/dashboard`, request.url))
     }
 
+    // Device-based routing for sales
+    const userAgent = request.headers.get('user-agent') || '';
+    // Check for Android or other mobile devices if needed. The user specified "android devices" and "pc".
+    // We'll treat Android (and optionally iOS) as mobile/Android, and everything else as PC.
+    const isAndroid = /Android/i.test(userAgent);
+    
+    const pathWithoutLocale = pathname.replace(/^\/(en|ar)(\/|$)/, '/');
+    const localeMatch = pathname.match(/^\/(en|ar)/);
+    const localePrefix = localeMatch ? localeMatch[0] : '';
+
+    if (pathWithoutLocale === '/sales' || pathWithoutLocale === '/sales/') {
+        if (isAndroid) {
+            return NextResponse.redirect(new URL(`${localePrefix}/sales/quick`, request.url));
+        }
+    } else if (pathWithoutLocale === '/sales/quick' || pathWithoutLocale === '/sales/quick/') {
+        if (!isAndroid) {
+            return NextResponse.redirect(new URL(`${localePrefix}/sales`, request.url));
+        }
+    }
+
     return supabaseResponse;
 }
 
