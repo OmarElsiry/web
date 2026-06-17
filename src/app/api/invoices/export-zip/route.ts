@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', compressionOptions: { level: 9 } });
+        const zipBuffer = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
 
-        return new NextResponse(zipBuffer, {
+        return new NextResponse(zipBuffer as any, {
             headers: {
                 'Content-Type': 'application/zip',
                 'Content-Disposition': `attachment; filename="invoices-export-${new Date().toISOString().split('T')[0]}.zip"`,

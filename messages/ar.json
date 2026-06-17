@@ -285,7 +285,8 @@
       "generatedOn": "تم الإنشاء في {date}",
       "period": "الفترة: من {start} إلى {end}",
       "total": "الإجمالي"
-    }
+    },
+    "downloadZip": "تحميل ZIP"
   },
   "Common": {
     "loading": "جاري التحميل...",

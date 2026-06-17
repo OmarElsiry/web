@@ -285,7 +285,8 @@
       "generatedOn": "Generated on {date}",
       "period": "Period: {start} to {end}",
       "total": "TOTAL"
-    }
+    },
+    "downloadZip": "Download ZIP"
   },
   "Common": {
     "loading": "Loading...",
