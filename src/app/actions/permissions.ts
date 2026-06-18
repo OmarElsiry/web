@@ -67,6 +67,7 @@ export async function getMenuItemsForUser() {
         { to: '/logs', permission: 'logs', translationKey: 'logs' },
         { to: '/users', permission: 'users', translationKey: 'users' },
         { to: '/expenses', permission: 'expenses', translationKey: 'expenses' },
+        { to: '/backup', permission: 'backup', translationKey: 'backup' },
     ];
 
     return allMenuItems.filter(item => permissions.includes(item.permission));
