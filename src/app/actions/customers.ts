@@ -2,6 +2,7 @@
 
 import getPrisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getCurrentUser } from './permissions';
 
 export async function searchCustomers(query: string) {
     if (!query || query.length < 2) return [];
@@ -33,16 +34,29 @@ export async function searchCustomers(query: string) {
     }));
 }
 
-export async function getCustomersList() {
+export async function getCustomersList(page: number = 1, limit: number = 50) {
     const prisma = getPrisma();
+    const skip = (page - 1) * limit;
 
-    return prisma.customer.findMany({
-        include: {
-            group: true,
-            parent: true
-        },
-        orderBy: { name: 'asc' }
-    });
+    const [totalCount, customers] = await Promise.all([
+        prisma.customer.count(),
+        prisma.customer.findMany({
+            skip,
+            take: limit,
+            include: {
+                group: true,
+                parent: true
+            },
+            orderBy: { name: 'asc' }
+        })
+    ]);
+
+    return {
+        data: customers,
+        totalCount,
+        page,
+        totalPages: Math.ceil(totalCount / limit)
+    };
 }
 
 export async function getCustomerProfile(id: string) {
@@ -54,11 +68,18 @@ export async function getCustomerProfile(id: string) {
             group: true,
             parent: true,
             invoices: {
+                where: { status: 'ACCEPTED' },
                 include: {
                     items: {
                         include: { product: true }
                     },
                     user: { select: { name: true } }
+                },
+                orderBy: { date: 'desc' }
+            },
+            payments: {
+                include: {
+                    user: { select: { name: true, username: true } }
                 },
                 orderBy: { date: 'desc' }
             }
@@ -93,6 +114,13 @@ export async function getCustomerProfile(id: string) {
                 price: Number(it.unitPrice),
                 subtotal: Number(it.subtotal)
             }))
+        })),
+        payments: customer.payments.map(p => ({
+            id: p.id,
+            date: p.date,
+            amount: Number(p.amount),
+            note: p.note,
+            recordedBy: p.user?.name || p.user?.username || 'Unknown'
         }))
     };
 }
@@ -201,7 +229,7 @@ export async function deleteCustomer(id: string) {
     try {
         // Check if customer has any invoices
         const invoiceCount = await prisma.invoice.count({
-            where: { customerId: id },
+            where: { customerId: id, status: 'ACCEPTED' },
         });
 
         if (invoiceCount > 0) {
@@ -220,4 +248,163 @@ export async function deleteCustomer(id: string) {
         console.error('Failed to delete customer:', error);
         return { success: false, error: 'Failed to delete customer. Please try again.' };
     }
+}
+
+export async function recordCustomerPayment(
+    customerId: string,
+    amount: number,
+    note?: string
+) {
+    if (!customerId) return { success: false, error: 'Customer ID is required.' };
+    if (!amount || amount <= 0) return { success: false, error: 'Payment amount must be greater than zero.' };
+
+    const prisma = getPrisma();
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) return { success: false, error: 'Unauthorized. Please sign in.' };
+
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const customer = await tx.customer.findUnique({ where: { id: customerId } });
+            if (!customer) throw new Error('Customer not found.');
+
+            const payment = await tx.customerPayment.create({
+                data: {
+                    customerId,
+                    amount,
+                    userId: currentUser.id,
+                    note: note?.trim() || null,
+                }
+            });
+
+            const newBalance = Number(customer.balance) - amount;
+            await tx.customer.update({
+                where: { id: customerId },
+                data: { balance: newBalance }
+            });
+
+            return { payment, newBalance, customerName: customer.name };
+        });
+
+        try {
+            const { logActivity } = await import('./audit');
+            const noteSuffix = note ? `. Note: ${note}` : '';
+            const logDetails = `Customer "${result.customerName}" paid ${amount}. Recorded by ${currentUser.name || currentUser.username}. New balance: ${result.newBalance}${noteSuffix}`;
+            await logActivity(
+                'PAYMENT',
+                logDetails,
+                currentUser.id
+            );
+        } catch (e) {
+            console.error('Failed to log payment activity:', e);
+        }
+
+        revalidatePath('/customers');
+        revalidatePath('/customers/profile');
+        revalidatePath('/dashboard');
+
+        return { success: true, newBalance: result.newBalance };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Failed to record payment.';
+        console.error('Failed to record payment:', message);
+        return { success: false, error: message };
+    }
+}
+
+export async function getCustomerStatement(customerId: string) {
+    if (!customerId) throw new Error('Customer ID is required.');
+
+    const prisma = getPrisma();
+
+    const customer = await prisma.customer.findUnique({
+        where: { id: customerId },
+        include: {
+            invoices: {
+                include: {
+                    items: { include: { product: true } },
+                    user: { select: { name: true } }
+                },
+                orderBy: { date: 'asc' }
+            },
+            payments: {
+                include: {
+                    user: { select: { name: true, username: true } }
+                },
+                orderBy: { date: 'asc' }
+            }
+        }
+    });
+
+    if (!customer) throw new Error('Customer not found');
+
+    type StatementEntry = {
+        id: string;
+        date: Date;
+        type: 'INVOICE' | 'PAYMENT';
+        description: string;
+        debit: number;
+        credit: number;
+        balance: number;
+        recordedBy?: string;
+        items?: { product: string; quantity: number; price: number; subtotal: number }[];
+    };
+
+    const entries: StatementEntry[] = [];
+
+    for (const inv of customer.invoices) {
+        entries.push({
+            id: inv.id,
+            date: inv.date,
+            type: 'INVOICE',
+            description: `Invoice #${inv.id.slice(-6).toUpperCase()}`,
+            debit: Number(inv.totalAmount),
+            credit: Number(inv.amountPaid),
+            balance: Number(inv.currentBalance),
+            recordedBy: inv.user?.name || 'Unknown',
+            items: inv.items.map(it => ({
+                product: it.product.name,
+                quantity: Number(it.quantity),
+                price: Number(it.unitPrice),
+                subtotal: Number(it.subtotal)
+            }))
+        });
+    }
+
+    for (const p of customer.payments) {
+        entries.push({
+            id: p.id,
+            date: p.date,
+            type: 'PAYMENT',
+            description: p.note ? `Payment - ${p.note}` : 'Payment',
+            debit: 0,
+            credit: Number(p.amount),
+            balance: 0,
+            recordedBy: p.user?.name || p.user?.username || 'Unknown'
+        });
+    }
+
+    entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let runningBalance = 0;
+    for (const entry of entries) {
+        if (entry.type === 'INVOICE') {
+            runningBalance = runningBalance + entry.debit - entry.credit;
+        } else {
+            runningBalance = runningBalance - entry.credit;
+        }
+        entry.balance = runningBalance;
+    }
+
+    return {
+        profile: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone || 'N/A',
+            address: customer.address || 'N/A',
+            balance: Number(customer.balance),
+            joinedAt: customer.createdAt
+        },
+        statement: entries,
+        finalBalance: Number(customer.balance)
+    };
 }

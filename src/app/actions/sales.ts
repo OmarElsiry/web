@@ -1,8 +1,11 @@
+/* eslint-disable sonarjs/cognitive-complexity */
 'use server';
 
 import getPrisma from '@/lib/prisma';
 import { Prisma } from '@/generated/client';
 import { revalidatePath } from 'next/cache';
+import { SaleSchema } from '@/lib/validations';
+import { getCurrentUser } from '@/app/actions/permissions';
 
 async function deductStock(tx: Prisma.TransactionClient, items: { productId: string, quantity: number }[], locId: string) {
     for (const item of items) {
@@ -10,7 +13,7 @@ async function deductStock(tx: Prisma.TransactionClient, items: { productId: str
             where: { productId: item.productId, locationId: locId }
         });
 
-        const available = inventory ? Number(inventory.quantity) : 0;
+        const available = inventory ? Number(inventory.quantity) - Number(inventory.reservedQuantity) : 0;
         if (available < item.quantity) {
             const product = await tx.product.findUnique({ where: { id: item.productId } });
             throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
@@ -54,24 +57,39 @@ async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerI
     return { finalCustomerId, previousBalance };
 }
 
-export async function getProducts() {
+export async function getProducts(search?: string, limit: number = 200) {
     const prisma = getPrisma();
 
     // Get default location for stock lookup
     const location = await prisma.location.findFirst();
 
-    // Get all products with category
+    const whereClause = search ? {
+        OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { sku: { contains: search, mode: 'insensitive' as const } }
+        ]
+    } : {};
+
+    // Get products with category
     const products = await prisma.product.findMany({
-        include: { category: true }
+        where: whereClause,
+        include: { category: true },
+        take: limit,
+        orderBy: { name: 'asc' }
     });
 
-    // Get inventory for all products at once
-    const inventories = location ? await prisma.inventory.findMany({
-        where: { locationId: location.id }
+    const productIds = products.map(p => p.id);
+
+    // Get inventory just for those products
+    const inventories = location && productIds.length > 0 ? await prisma.inventory.findMany({
+        where: { 
+            locationId: location.id,
+            productId: { in: productIds }
+        }
     }) : [];
 
-    // Map inventory to a lookup
-    const stockMap = new Map(inventories.map(inv => [inv.productId, Number(inv.quantity)]));
+    // Map inventory to a lookup (available = quantity - reserved)
+    const stockMap = new Map(inventories.map(inv => [inv.productId, Number(inv.quantity) - Number(inv.reservedQuantity)]));
 
     return products.map(p => ({
         id: p.id,
@@ -101,22 +119,50 @@ export async function getStaffList() {
 }
 
 export async function processSale(
-    items: { productId: string, quantity: number, unitPrice?: number }[],
+    items: { productId: string, quantity: number, unitPrice?: number, discountValue?: number }[],
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
     buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string },
     userId?: string,
     staffId?: string,
     amountPaid?: number,
-    customerId?: string
+    customerId?: string,
+    reviewerEditOf?: string
 ) {
+    // Validate inputs using Zod
+    const parsed = SaleSchema.safeParse({
+        items,
+        paymentMethod,
+        buyerInfo,
+        userId,
+        staffId,
+        amountPaid,
+        customerId,
+        reviewerEditOf
+    });
+
+    if (!parsed.success) {
+        return { success: false, error: `Validation Error: ${(parsed.error as any).errors.map((e: any) => e.message).join(', ')}` };
+    }
+
     const prisma = getPrisma();
 
     // Determine who gets credit for the sale (Staff ID if selected, otherwise logged-in user)
     const sellerId = staffId || userId;
 
-    // 1. Calculate Total & Validate Stock
+    // Check if the current user is a reviewer (permission-based review trigger)
+    const currentUser = await getCurrentUser();
+    const isReviewer = !!currentUser && (
+        currentUser.role === 'ROOT' || currentUser.role === 'ADMIN' ||
+        (currentUser.permissions || []).includes('review')
+    );
+
+    // Reviewer editing on behalf of a salesperson → always accepted, no review
+    const isReviewerEdit = !!reviewerEditOf && isReviewer;
+
+    // 1. Calculate Total & Detect Price Overrides
     let totalAmount = 0;
     const invoiceItemsData: { productId: string, quantity: number, unitPrice: number, subtotal: number }[] = [];
+    let hasPriceOverride = false;
 
     for (const item of items) {
         const product = await prisma.product.findUnique({
@@ -125,16 +171,26 @@ export async function processSale(
 
         if (!product) throw new Error(`Product ${item.productId} not found`);
 
-        const price = item.unitPrice !== undefined ? item.unitPrice : Number(product.baseSellingPrice);
-        totalAmount += price * item.quantity;
+        const manualPrice = item.unitPrice !== undefined ? item.unitPrice : Number(product.baseSellingPrice);
+        const discount = Number(item.discountValue) || 0;
+        const effectivePrice = manualPrice - discount / item.quantity;
+        const lineTotal = manualPrice * item.quantity - discount;
+        totalAmount += lineTotal;
+
+        if (item.unitPrice !== undefined && Number(item.unitPrice) !== Number(product.baseSellingPrice)) {
+            hasPriceOverride = true;
+        }
 
         invoiceItemsData.push({
             productId: item.productId,
             quantity: item.quantity,
-            unitPrice: price,
-            subtotal: price * item.quantity
+            unitPrice: effectivePrice,
+            subtotal: lineTotal
         });
     }
+
+    // Non-reviewers with a price override → pending review; reviewers (including edit flow) → accepted
+    const needsReview = !isReviewerEdit && !isReviewer && hasPriceOverride;
 
     // 2. Transaction
     try {
@@ -147,16 +203,56 @@ export async function processSale(
                 });
             }
 
-            // A. VALIDATE STOCK & PREPARE UPDATES
+            if (needsReview) {
+                // PENDING REVIEW: reserve stock (don't deduct), don't update customer balance, no SALE transaction
+                for (const item of items) {
+                    const inv = await tx.inventory.findFirst({
+                        where: { productId: item.productId, locationId: loc.id }
+                    });
+                    const available = inv ? Number(inv.quantity) - Number(inv.reservedQuantity) : 0;
+                    if (available < item.quantity) {
+                        const product = await tx.product.findUnique({ where: { id: item.productId } });
+                        throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
+                    }
+                    if (inv) {
+                        await tx.inventory.update({
+                            where: { id: inv.id },
+                            data: { reservedQuantity: { increment: item.quantity } }
+                        });
+                    }
+                }
+
+                const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
+
+                const newInvoice = await tx.invoice.create({
+                    data: {
+                        totalAmount,
+                        paymentMethod,
+                        status: 'PENDING_REVIEW',
+                        customerName: buyerInfo?.customerName || null,
+                        customerPhone: buyerInfo?.customerPhone || null,
+                        customerAddress: buyerInfo?.customerAddress || null,
+                        customerId: finalCustomerId || null,
+                        previousBalance,
+                        amountPaid: 0,
+                        currentBalance: previousBalance,
+                        userId: sellerId || null,
+                        items: { create: invoiceItemsData }
+                    },
+                    include: { items: true }
+                });
+
+                return newInvoice;
+            }
+
+            // ACCEPTED: deduct stock, update customer balance, create SALE transaction
             await deductStock(tx, items, loc.id);
 
-            // B. RESOLVE CUSTOMER & BALANCE
             const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
 
             const paid = amountPaid ?? (paymentMethod === 'CREDIT' ? 0 : totalAmount);
             const currentBalance = previousBalance + totalAmount - paid;
 
-            // Update Customer Balance
             if (finalCustomerId) {
                 await tx.customer.update({
                     where: { id: finalCustomerId },
@@ -164,11 +260,11 @@ export async function processSale(
                 });
             }
 
-            // C. CREATE INVOICE with AR metrics
             const newInvoice = await tx.invoice.create({
                 data: {
                     totalAmount,
                     paymentMethod,
+                    status: 'ACCEPTED',
                     customerName: buyerInfo?.customerName || null,
                     customerPhone: buyerInfo?.customerPhone || null,
                     customerAddress: buyerInfo?.customerAddress || null,
@@ -177,21 +273,17 @@ export async function processSale(
                     amountPaid: paid,
                     currentBalance,
                     userId: sellerId || null,
-                    items: {
-                        create: invoiceItemsData
-                    }
+                    ...(isReviewerEdit && { revisedFromInvoiceId: reviewerEditOf }),
+                    items: { create: invoiceItemsData }
                 },
-                include: {
-                    items: true
-                }
+                include: { items: true }
             });
 
-            // C. CREATE TRANSACTION (Stock Movement Log)
             await tx.transaction.create({
                 data: {
                     type: 'SALE',
                     fromLocationId: loc.id,
-                    createdById: sellerId, // Attribute to Staff or User
+                    createdById: sellerId,
                     items: {
                         create: items.map(item => ({
                             productId: item.productId,
@@ -207,18 +299,26 @@ export async function processSale(
             timeout: 10000
         });
 
-        // 3. Audit Log (Async, non-blocking)
+        // 3. Audit Log
         try {
             const { logActivity } = await import('./audit');
             const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
             const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
-            const actionDetails = `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`;
+            const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
 
-            await logActivity(
-                'SALE',
-                actionDetails,
-                userId
-            );
+            if (needsReview) {
+                await logActivity(
+                    'SALE_PENDING',
+                    `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
+                    currentUser?.id || userId
+                );
+            } else {
+                await logActivity(
+                    'SALE',
+                    `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
+                    currentUser?.id || userId
+                );
+            }
         } catch (e) {
             console.error('Failed to log activity:', e);
         }
@@ -227,10 +327,13 @@ export async function processSale(
         revalidatePath('/inventory');
         revalidatePath('/sales');
         revalidatePath('/logs');
+        revalidatePath('/reviews');
+        revalidatePath('/portfolio');
         revalidatePath('/inventory/transactions');
 
         return {
             success: true,
+            needsReview,
             invoice: {
                 ...invoice,
                 totalAmount: Number(invoice.totalAmount),

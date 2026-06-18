@@ -1,4 +1,10 @@
 /* eslint-disable react-perf/jsx-no-new-function-as-prop */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable sonarjs/unused-import */
+/* eslint-disable sonarjs/no-unused-vars */
+/* eslint-disable sonarjs/no-dead-store */
+/* eslint-disable sonarjs/pseudo-random */
+/* eslint-disable sonarjs/no-nested-functions */
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
@@ -6,6 +12,7 @@ import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, 
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
+import { getInvoiceForEdit } from '@/app/actions/reviews';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
 import { tafqeet } from '@/lib/tafqeet';
@@ -82,6 +89,9 @@ export default function SalesPage() {
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showSettings, setShowSettings] = useState(true);
+    const [pendingReviewNotice, setPendingReviewNotice] = useState(false);
+    const [editFromInvoiceId, setEditFromInvoiceId] = useState<string | null>(null);
+    const [editFromStaffName, setEditFromStaffName] = useState<string | null>(null);
 
     // Sidebar Toggles
     const [showWarehouse, setShowWarehouse] = useState(false);
@@ -142,6 +152,7 @@ export default function SalesPage() {
     const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
     const customerSearchRef = useRef<HTMLDivElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const productSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Employee Info
     const [employeeId, setEmployeeId] = useState("");
@@ -152,15 +163,14 @@ export default function SalesPage() {
     // Cart Items & Product Search
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const deferredSearchQuery = useDeferredValue(searchQuery);
-    const [products, setProducts] = useState<Product[]>([]);
+    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const productSearchRef = useRef<HTMLTableCellElement>(null);
     
     // Payment info
     const [previousBalance, setPreviousBalance] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
-    const [amountPaid, setAmountPaid] = useState<number | ''>('');
+    const [amountPaid, setAmountPaid] = useState<number | ''>(0);
 
     // Date
     const formattedDate = new Date().toLocaleDateString('ar-EG', {
@@ -188,8 +198,7 @@ export default function SalesPage() {
         const h = loadAutocompleteHistory();
         if (h) setHistory(h);
 
-        Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
-            setProducts(prods);
+        Promise.all([getStaffList(), getCurrentUser()]).then(([staff, user]) => {
             setStaffList(staff);
             setLoading(false);
             if (user && staff.some((s: Staff) => s.id === user.id)) {
@@ -207,6 +216,58 @@ export default function SalesPage() {
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Edit-on-behalf flow: load invoice data from editFrom query param
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const editFromId = params.get('editFrom');
+        if (!editFromId) return;
+
+        getInvoiceForEdit(editFromId).then(data => {
+            if (!data) return;
+            setEditFromInvoiceId(editFromId);
+            setEditFromStaffName(data.salespersonName);
+
+            // Lock salesperson to the original
+            setSelectedStaffId(data.salespersonId || '');
+            setEmployeeName(data.salespersonName || '');
+
+            // Pre-fill customer info
+            setCustomerName(data.customerName || '');
+            setSelectedCustomerId(data.customerId || null);
+            setPhone1(data.customerPhone || '');
+            setAddress(data.customerAddress || '');
+
+            // Pre-fill payment
+            setPaymentMethod(data.paymentMethod as PaymentMethodType);
+            setPreviousBalance(data.previousBalance);
+
+            // Pre-fill cart
+            const cartItems: CartItem[] = data.items.map(item => ({
+                id: crypto.randomUUID(),
+                product: {
+                    id: item.productId,
+                    name: item.productName,
+                    sku: item.productSku,
+                    baseSellingPrice: item.baseSellingPrice,
+                    categoryId: item.productCategoryId,
+                    stock: item.stock,
+                },
+                codeOverride: item.productSku,
+                nameOverride: item.productName,
+                unitOverride: item.productUnit || 'قطعة',
+                quantity: item.quantity,
+                priceOverride: item.unitPrice,
+                discountPercent: '',
+                discountValue: ''
+            }));
+            setCart(cartItems);
+        }).catch(err => {
+            console.error('Failed to load invoice for edit', err);
+            setError('فشل تحميل الفاتورة للتعديل');
+        });
     }, []);
 
     // Derived values
@@ -251,14 +312,23 @@ export default function SalesPage() {
         setShowCustomerSuggestions(false);
     };
 
-    const filteredProducts = useMemo(() => {
-        if (!deferredSearchQuery) return [];
-        const lowerQuery = deferredSearchQuery.toLowerCase();
-        return products.filter(p => p.stock > 0 && (
-            p.name.toLowerCase().includes(lowerQuery) || 
-            p.sku.toLowerCase().includes(lowerQuery)
-        )).slice(0, 10);
-    }, [products, deferredSearchQuery]);
+    const handleProductSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        setSearchQuery(val);
+        if (productSearchTimeoutRef.current) clearTimeout(productSearchTimeoutRef.current);
+        
+        if (val.trim().length === 0) {
+            setFilteredProducts([]);
+            setShowProductDropdown(false);
+            return;
+        }
+
+        productSearchTimeoutRef.current = setTimeout(async () => {
+            const results = await getProducts(val, 10);
+            setFilteredProducts(results);
+            setShowProductDropdown(results.length > 0);
+        }, 300);
+    };
 
     const addToCart = (product: Product) => {
         setCart(prev => {
@@ -330,7 +400,8 @@ export default function SalesPage() {
             const itemsToProcess = cart.map(item => ({
                 productId: item.product.id,
                 quantity: item.quantity,
-                unitPrice: item.priceOverride - (Number(item.discountValue) || 0) / item.quantity // Distribute discount to unit price for DB
+                unitPrice: item.priceOverride,
+                discountValue: Number(item.discountValue) || 0
             }));
 
             const buyerInfo = {
@@ -339,7 +410,7 @@ export default function SalesPage() {
                 customerAddress: address
             };
 
-            const finalAmountPaid = paymentMethod === 'CASH' && amountPaid === '' ? invoiceTotal : (Number(amountPaid) || 0);
+            const finalAmountPaid = Number(amountPaid) || 0;
 
             const result = await processSale(
                 itemsToProcess,
@@ -348,44 +419,64 @@ export default function SalesPage() {
                 undefined,
                 selectedStaffId,
                 finalAmountPaid,
-                selectedCustomerId || undefined
+                selectedCustomerId || undefined,
+                editFromInvoiceId || undefined
             );
 
             if (result.success && result.invoice) {
-                setShowSuccess(true);
-                
-                updateHistory('warehouseName', warehouseName);
-                updateHistory('city', city);
-                updateHistory('address', address);
-                updateHistory('employeeId', employeeId);
-                updateHistory('employeeName', employeeName);
+                if (result.needsReview) {
+                    setPendingReviewNotice(true);
+                    setCart([]);
+                    setCustomerName('');
+                    setSelectedCustomerId(null);
+                    setPhone1('');
+                    setPhone2('');
+                    setAddress('');
+                    setAmountPaid('');
+                    setPreviousBalance(0);
+                    setFilteredProducts([]);
+                    setTimeout(() => setPendingReviewNotice(false), 5000);
+                } else {
+                    setShowSuccess(true);
 
-                // Set sequence ID to the actual invoice ID for the printout
-                setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
-                
-                // Wait for state to update, then print, then clear
-                setTimeout(() => {
-                    window.print();
-                    
-                    // Clear after print dialog closes (approximate)
+                    updateHistory('warehouseName', warehouseName);
+                    updateHistory('city', city);
+                    updateHistory('address', address);
+                    updateHistory('employeeId', employeeId);
+                    updateHistory('employeeName', employeeName);
+
+                    // Set sequence ID to the actual invoice ID for the printout
+                    setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
+
+                    // Wait for state to update, then print, then clear
                     setTimeout(() => {
-                        setShowSuccess(false);
-                        setCart([]);
-                        setCustomerName('');
-                        setSelectedCustomerId(null);
-                        setPhone1('');
-                        setPhone2('');
-                        setAddress('');
-                        
-                        
-                        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
-                        
-                        setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
-                        setAmountPaid('');
-                        setPreviousBalance(0);
-                        getProducts().then(setProducts);
-                    }, 1000);
-                }, 500);
+                        window.print();
+
+                        // Clear after print dialog closes (approximate)
+                        setTimeout(() => {
+                            setShowSuccess(false);
+                            setCart([]);
+                            setCustomerName('');
+                            setSelectedCustomerId(null);
+                            setPhone1('');
+                            setPhone2('');
+                            setAddress('');
+
+
+                            setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
+
+                            setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
+                            setAmountPaid('');
+                            setPreviousBalance(0);
+                            setFilteredProducts([]);
+
+                            // If this was a reviewer edit, close the tab
+                            if (editFromInvoiceId) {
+                                setTimeout(() => window.close(), 500);
+                            }
+                        }, 1000);
+                    }, 500);
+                }
             } else {
                 setError(result.error || "حدث خطأ أثناء معالجة الفاتورة");
             }
@@ -531,6 +622,19 @@ export default function SalesPage() {
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] p-4 bg-red-500/90 backdrop-blur-md border border-red-500/20 rounded-2xl text-white text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-4 shadow-2xl">
                     <AlertCircle size={20} className="shrink-0" />
                     {error}
+                </div>
+            )}
+
+            {pendingReviewNotice && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] p-4 bg-amber-500/90 backdrop-blur-md border border-amber-500/20 rounded-2xl text-white text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-4 shadow-2xl">
+                    <Check size={20} className="shrink-0" />
+                    تم إرسال الفاتورة للمراجعة بسبب تغيير السعر
+                </div>
+            )}
+
+            {editFromInvoiceId && (
+                <div className="fixed top-0 left-0 right-0 z-[200] p-3 bg-purple-600 text-white text-center text-sm font-bold print-hidden">
+                    وضع التعديل بالنيابة عن: {editFromStaffName || 'مندوب المبيعات'} — سيتم اعتماد الفاتورة مباشرة بعد الحفظ
                 </div>
             )}
 
@@ -894,10 +998,7 @@ export default function SalesPage() {
                                             type="text" 
                                             placeholder="ابحث عن صنف لإضافته للفاتورة..." 
                                             value={searchQuery}
-                                            onChange={(e) => {
-                                                setSearchQuery(e.target.value);
-                                                setShowProductDropdown(true);
-                                            }}
+                                            onChange={handleProductSearch}
                                             onFocus={() => setShowProductDropdown(true)}
                                             className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
                                         />
@@ -968,34 +1069,21 @@ export default function SalesPage() {
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex items-center">قيمة الفاتورة</div>
                                 <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700 flex items-center justify-center">{invoiceTotal.toFixed(2)}</div>
 
-                                <div className="bg-gray-100 p-1.5 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center relative group cursor-pointer print:cursor-default">
-                                    <span>المدفوع</span>
-                                    <select 
-                                        value={paymentMethod} 
-                                        onChange={e => {
-                                            const m = e.target.value as 'CASH' | 'CREDIT';
-                                            setPaymentMethod(m);
-                                            if (m === 'CASH') setAmountPaid(invoiceTotal);
-                                            else setAmountPaid('');
-                                        }}
-                                        className="text-[10px] bg-transparent text-gray-500 font-normal outline-none print-appearance-none text-right cursor-pointer"
-                                    >
-                                        <option value="CASH">نقداً</option>
-                                        <option value="CREDIT">آجل</option>
-                                        <option value="INSTAPAY">انستا باي</option>
-                                    </select>
+                                <div className="bg-gray-100 p-1.5 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center relative">
+                                    <span>المدفوع (كاش)</span>
+                                    <input type="hidden" value="CASH" readOnly />
                                 </div>
                                 <div className="p-1 border-t border-gray-200 text-green-600 flex items-center justify-center group bg-green-50/30 hover:bg-green-50 transition-colors relative">
                                     <input 
                                         type="number" 
                                         value={amountPaid === '' ? '' : amountPaid} 
                                         onChange={e => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
-                                        placeholder={paymentMethod === 'CASH' ? invoiceTotal.toFixed(2) : "0"}
+                                        placeholder="0"
                                         className="w-full bg-transparent outline-none text-center font-black text-lg print-hide-spinners" 
                                     />
-                                    {paymentMethod === 'CASH' && amountPaid === '' && (
+                                    {paymentMethod === 'CASH' && amountPaid === 0 && (
                                         <span className="absolute inset-0 flex items-center justify-center font-black pointer-events-none opacity-50">
-                                            {invoiceTotal.toFixed(2)}
+                                            0
                                         </span>
                                     )}
                                 </div>

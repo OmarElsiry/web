@@ -1,9 +1,10 @@
+/* eslint-disable sonarjs/cognitive-complexity */
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Loader2 } from 'lucide-react';
-import { getInvoices } from '@/app/actions/invoices';
-import { getInventory } from '@/app/actions/inventory';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Loader2, Wallet } from 'lucide-react';
+import { getProfitReport } from '@/app/actions/profits';
 import { useTranslations, useLocale } from 'next-intl';
 import clsx from 'clsx';
 
@@ -12,14 +13,6 @@ interface Invoice {
     date: string | Date;
     customerName?: string | null;
     totalAmount: number | string;
-    items?: { productId: string; quantity: number }[];
-}
-
-interface InventoryProduct {
-    product?: {
-        id: string;
-        costPrice?: number | string;
-    };
 }
 
 export default function ProfitsPage() {
@@ -28,8 +21,12 @@ export default function ProfitsPage() {
     const locale = useLocale();
     const isRtl = locale === 'ar';
 
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [inventory, setInventory] = useState<InventoryProduct[]>([]);
+    const [recentSales, setRecentSales] = useState<Invoice[]>([]);
+    const [totalRevenue, setTotalRevenue] = useState(0);
+    const [estimatedCost, setEstimatedCost] = useState(0);
+    const [totalExpenses, setTotalExpenses] = useState(0);
+    const [profit, setProfit] = useState(0);
+    const [margin, setMargin] = useState(0);
     const [loading, setLoading] = useState(true);
 
     // Date Filter
@@ -38,30 +35,17 @@ export default function ProfitsPage() {
     const [endDate, setEndDate] = useState('');
 
     useEffect(() => {
-        Promise.all([getInvoices(), getInventory()]).then(([inv, stock]) => {
-            setInvoices(inv);
-            setInventory(stock);
+        setLoading(true);
+        getProfitReport({ startDate, endDate }).then((data) => {
+            setTotalRevenue(data.totalRevenue);
+            setEstimatedCost(data.totalCost);
+            setTotalExpenses(data.totalExpenses || 0);
+            setProfit(data.netProfit);
+            setMargin(data.totalRevenue > 0 ? (data.netProfit / data.totalRevenue * 100) : 0);
+            setRecentSales(data.recentSales);
             setLoading(false);
         });
-    }, []);
-
-    const filteredInvoices = invoices.filter(inv => {
-        const invDate = new Date(inv.date);
-        return (!startDate || invDate >= new Date(startDate)) &&
-            (!endDate || invDate <= new Date(new Date(endDate).setHours(23, 59, 59)));
-    });
-
-    const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
-    const estimatedCost = filteredInvoices.reduce((sum, inv) => {
-        const invItems = inv.items || [];
-        return sum + invItems.reduce((itemSum: number, item: { productId: string; quantity: number }) => {
-            const prod = inventory.find(i => i.product?.id === item.productId);
-            const cost = prod ? Number(prod.product?.costPrice || 0) : 0;
-            return itemSum + (cost * item.quantity);
-        }, 0);
-    }, 0);
-    const profit = totalRevenue - estimatedCost;
-    const margin = totalRevenue > 0 ? (profit / totalRevenue * 100) : 0;
+    }, [startDate, endDate]);
 
     const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
     const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
@@ -122,7 +106,7 @@ export default function ProfitsPage() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-green-500/50 transition-all">
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-green-50 text-green-600 rounded-lg dark:bg-green-950/20 group-hover:scale-110 transition-transform">
@@ -149,6 +133,19 @@ export default function ProfitsPage() {
                     </div>
                 </div>
 
+                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-orange-500/50 transition-all">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-2 bg-orange-50 text-orange-600 rounded-lg dark:bg-orange-950/20 group-hover:scale-110 transition-transform">
+                            <Wallet size={20} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('stats.totalExpenses')}</span>
+                    </div>
+                    <div className={clsx("text-3xl font-black text-orange-600 tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
+                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
+                        <span>{loading ? '...' : totalExpenses.toLocaleString(locale)}</span>
+                    </div>
+                </div>
+
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-primary/50 transition-all relative overflow-hidden">
                     <div className={clsx("absolute top-0 w-1 h-full bg-primary opacity-20", isRtl ? "right-0" : "left-0")} />
                     <div className="flex items-center gap-3 mb-2">
@@ -162,6 +159,9 @@ export default function ProfitsPage() {
                     <div className={clsx("text-3xl font-black text-primary tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
                         <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
                         <span>{loading ? '...' : profit.toLocaleString(locale)}</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-border text-[10px] font-bold text-muted-foreground tabular-nums">
+                        {totalRevenue.toLocaleString(locale)} - {estimatedCost.toLocaleString(locale)} - {totalExpenses.toLocaleString(locale)} = {profit.toLocaleString(locale)}
                     </div>
                 </div>
             </div>
@@ -178,12 +178,12 @@ export default function ProfitsPage() {
                             {t('loading')}
                         </div>
                     // eslint-disable-next-line sonarjs/no-nested-conditional
-                    ) : filteredInvoices.length === 0 ? (
+                    ) : recentSales.length === 0 ? (
                         <div className="flex items-center justify-center p-8 text-muted-foreground font-bold uppercase text-xs tracking-widest">
                             {t('empty')}
                         </div>
                     ) : (
-                        filteredInvoices.slice(0, 5).map(inv => (
+                        recentSales.map(inv => (
                             <div key={inv.id} className="flex items-center justify-between p-4 bg-secondary/10 rounded-xl border border-transparent hover:border-border transition-all group">
                                 <div className={'text-center'}>
                                     <div className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{inv.customerName || t('customer')}</div>

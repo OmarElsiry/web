@@ -1,8 +1,9 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Phone, MapPin, UserCircle, History, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle } from 'lucide-react';
-import { getCustomersList, createCustomer, updateCustomer, deleteCustomer } from '@/app/actions/customers';
+import { Users, Search, Phone, MapPin, UserCircle, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle, HandCoins } from 'lucide-react';
+import { getCustomersList, createCustomer, updateCustomer, deleteCustomer, recordCustomerPayment } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
@@ -56,15 +57,30 @@ export default function CustomersPage() {
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
 
-    const loadCustomers = useCallback(async (showLoading = false) => {
+    // Payment state
+    const [paymentTarget, setPaymentTarget] = useState<Customer | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentNote, setPaymentNote] = useState('');
+    const [recordingPayment, setRecordingPayment] = useState(false);
+    const [paymentError, setPaymentError] = useState<string | null>(null);
+
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 50;
+
+    const loadCustomers = useCallback(async (showLoading = false, pageNum = page) => {
         if (showLoading) setLoading(true);
-        const data = await getCustomersList();
-        setCustomers(data);
+        const response = await getCustomersList(pageNum, limit);
+        setCustomers(response.data as any); // Ignoring strict typing on the paginated nested relation for now
+        setTotalPages(response.totalPages);
+        setPage(response.page);
         setLoading(false);
-    }, []);
+    }, [page, limit]);
 
     useEffect(() => {
-        loadCustomers(false);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void loadCustomers(false);
     }, [loadCustomers]);
 
     // --- Add Modal ---
@@ -162,6 +178,42 @@ export default function CustomersPage() {
     }, [deleteTarget, loadCustomers, handleCloseDelete, t]);
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
+
+    // --- Payment ---
+    const handleOpenPayment = useCallback((e: React.MouseEvent, customer: Customer) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setPaymentTarget(customer);
+        setPaymentAmount('');
+        setPaymentNote('');
+        setPaymentError(null);
+    }, []);
+
+    const handleClosePayment = useCallback(() => {
+        setPaymentTarget(null);
+        setPaymentError(null);
+        setPaymentAmount('');
+        setPaymentNote('');
+    }, []);
+
+    const handleConfirmPayment = useCallback(async () => {
+        if (!paymentTarget) return;
+        const amt = parseFloat(paymentAmount);
+        if (!amt || amt <= 0) {
+            setPaymentError(t('paymentModal.amountRequired'));
+            return;
+        }
+        setRecordingPayment(true);
+        setPaymentError(null);
+        const result = await recordCustomerPayment(paymentTarget.id, amt, paymentNote || undefined);
+        if (result.success) {
+            handleClosePayment();
+            loadCustomers(true);
+        } else {
+            setPaymentError(result.error || t('paymentModal.failed'));
+        }
+        setRecordingPayment(false);
+    }, [paymentTarget, paymentAmount, paymentNote, loadCustomers, handleClosePayment, t]);
 
     const filtered = customers.filter(c =>
         c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -279,7 +331,7 @@ export default function CustomersPage() {
                             </div>
 
                             <div className="mt-auto pt-6 border-t border-border flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap">
                                     <button
                                         onClick={(e) => handleOpenEditModal(e, customer)}
                                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
@@ -288,13 +340,22 @@ export default function CustomersPage() {
                                         <Pencil size={13} />
                                         {t('editCustomer')}
                                     </button>
+                                    {Number(customer.balance) > 0 && (
+                                        <button
+                                            onClick={(e) => handleOpenPayment(e, customer)}
+                                            className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
+                                            title={t('paymentModal.recordPayment')}
+                                        >
+                                            <HandCoins size={13} />
+                                            {t('paymentModal.recordPayment')}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={(e) => handleOpenDelete(e, customer)}
                                         className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
                                         title={t('deleteCustomer')}
                                     >
                                         <Trash2 size={13} />
-                                        {t('deleteCustomer')}
                                     </button>
                                 </div>
                                 <Link prefetch={false}
@@ -315,6 +376,29 @@ export default function CustomersPage() {
                             <p className="text-sm text-muted-foreground font-medium">{t('empty.description')}</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1 || loading}
+                        className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
+                    >
+                        {t('previousPage', { defaultValue: 'Previous' })}
+                    </button>
+                    <span className="font-medium text-sm text-muted-foreground">
+                        {t('pageOf', { current: page, total: totalPages, defaultValue: `Page ${page} of ${totalPages}` })}
+                    </span>
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages || loading}
+                        className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
+                    >
+                        {t('nextPage', { defaultValue: 'Next' })}
+                    </button>
                 </div>
             )}
 
@@ -483,6 +567,103 @@ export default function CustomersPage() {
                                     <>
                                         <Trash2 size={18} strokeWidth={3} />
                                         {t('deleteConfirm.confirm')}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Modal */}
+            {paymentTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-card w-full max-w-md rounded-[2.5rem] border border-green-500/30 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+                        <button
+                            onClick={handleClosePayment}
+                            className={clsx(
+                                "absolute top-6 p-2 text-muted-foreground hover:bg-secondary rounded-full transition-all",
+                                isRtl ? "left-6" : "right-6"
+                            )}
+                        >
+                            <X size={24} />
+                        </button>
+
+                        <div className="p-10 pb-8 flex flex-col items-center text-center gap-4">
+                            <div className="w-20 h-20 bg-green-500/10 rounded-3xl flex items-center justify-center text-green-600">
+                                <HandCoins size={40} strokeWidth={2.5} />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black tracking-tighter uppercase mb-2">{t('paymentModal.title')}</h3>
+                                <p className="text-muted-foreground font-bold text-sm">{t('paymentModal.description')}</p>
+                            </div>
+                            <div className="mt-2 p-4 bg-secondary/30 rounded-2xl w-full">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('paymentModal.customer')}</div>
+                                <div className="text-lg font-black">{paymentTarget.name}</div>
+                                <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('paymentModal.currentBalance')}</div>
+                                <div className={clsx("text-2xl font-black tabular-nums", Number(paymentTarget.balance) > 0 ? "text-red-600" : "text-green-600")}>
+                                    <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
+                                    {Number(paymentTarget.balance).toLocaleString(locale)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-10 pb-8 space-y-6">
+                            {paymentError && (
+                                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-600 text-xs font-black uppercase tracking-widest flex items-center gap-3 animate-in shake duration-500">
+                                    <AlertCircle size={20} className="shrink-0" />
+                                    {paymentError}
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">{t('paymentModal.amountLabel')}</label>
+                                <div className="flex items-center gap-3 border border-border rounded-2xl p-4 bg-secondary/10 focus-within:ring-2 ring-green-500/20 transition-all">
+                                    <HandCoins size={18} className="text-green-600" />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        className="flex-1 bg-transparent outline-none text-sm font-bold tabular-nums"
+                                        autoFocus
+                                    />
+                                    <span className="text-sm font-bold text-muted-foreground">{ts('currency')}</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-1">{t('paymentModal.noteLabel')}</label>
+                                <input
+                                    type="text"
+                                    placeholder={t('paymentModal.notePlaceholder')}
+                                    value={paymentNote}
+                                    onChange={(e) => setPaymentNote(e.target.value)}
+                                    className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-green-500/20 focus:border-green-500/50 transition-all placeholder:font-normal"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-secondary/20 flex gap-4">
+                            <button
+                                onClick={handleClosePayment}
+                                className="flex-1 py-4 bg-card border border-border rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-secondary transition-all active:scale-95 shadow-sm"
+                            >
+                                {t('paymentModal.cancel')}
+                            </button>
+                            <button
+                                onClick={handleConfirmPayment}
+                                disabled={recordingPayment}
+                                className="flex-1 py-4 bg-green-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-green-600/20 hover:bg-green-700 hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
+                            >
+                                {recordingPayment ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <HandCoins size={18} strokeWidth={3} />
+                                        {t('paymentModal.confirm')}
                                     </>
                                 )}
                             </button>

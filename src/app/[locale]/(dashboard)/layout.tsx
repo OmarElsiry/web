@@ -27,7 +27,10 @@ import {
     ChevronRight,
     Zap,
     Calculator,
-    Database
+    Database,
+    ClipboardList,
+    FolderOpen,
+    Landmark
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -48,10 +51,13 @@ const iconMap: Record<string, React.ElementType> = {
     '/analytics': BarChart3,
     '/profits': TrendingUp,
     '/staff-sales': UserCheck,
+    '/reviews': ClipboardList,
+    '/portfolio': FolderOpen,
     '/logs': ScrollText,
     '/users': Users,
     '/expenses': DollarSign,
     '/refunds': RefreshCcw,
+    '/debts': Landmark,
     '/backup': Database,
 };
 
@@ -95,6 +101,7 @@ const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], 
     return (
         <div className="space-y-1 mb-2">
             <button 
+                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
             >
@@ -163,6 +170,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="w-[46px] h-[46px] overflow-hidden flex-shrink-0 flex items-center justify-center rounded-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover rounded-full" />
                     </div>
                     <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
@@ -182,7 +190,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="sales" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/sales', '/invoices', '/refunds', '/customers', '/profits', '/expenses', '/staff-sales'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/sales', '/invoices', '/refunds', '/customers', '/profits', '/expenses', '/staff-sales', '/debts', '/reviews', '/portfolio'].includes(i.to))} 
                     />
                     <SidebarGroup 
                         id="inventory" 

@@ -1,10 +1,11 @@
+/* eslint-disable sonarjs/cognitive-complexity */
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { getExpenses, createExpense, deleteExpense, getSalaryReport } from '@/app/actions/expenses';
+import { getExpenses, createExpense, deleteExpense, getSalaryReport, getMonthlyExpenseSummary } from '@/app/actions/expenses';
 import { getStaffList } from '@/app/actions/sales';
-import { Plus, Trash2, Calendar, User, DollarSign, Tag, Search, Loader2, FileText, Percent, Briefcase, Receipt, X } from 'lucide-react';
+import { Plus, Trash2, Calendar, User, DollarSign, Tag, Search, Loader2, FileText, Percent, Briefcase, Receipt, X, ChevronLeft, ChevronRight, BarChart3 } from 'lucide-react';
 import clsx from 'clsx';
 
 interface Expense {
@@ -35,6 +36,10 @@ export default function ExpensesPage() {
     const [submitting, setSubmitting] = useState(false);
     const [salaryMetrics, setSalaryMetrics] = useState({ salaryTotal: 0, nonSalaryTotal: 0, grandTotal: 0, salaryPercent: 0 });
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalServerItems, setTotalServerItems] = useState(0);
+    const ITEMS_PER_PAGE = 50;
+
     // New Expense State
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -50,13 +55,19 @@ export default function ExpensesPage() {
     const [categoryFilter, setCategoryFilter] = useState('ALL');
     const [generatingPdf, setGeneratingPdf] = useState(false);
 
+    // Monthly Summary
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [monthlySummary, setMonthlySummary] = useState<{ year: number; months: { month: number; monthName: string; total: number; categories: Record<string, number> }[]; grandTotal: number } | null>(null);
+    const [loadingMonthly, setLoadingMonthly] = useState(false);
+
     const loadData = useCallback(async () => {
         setLoading(true);
         const [expData, staff] = await Promise.all([
-            getExpenses(dateRange.start, dateRange.end),
+            getExpenses(currentPage, ITEMS_PER_PAGE, dateRange.start, dateRange.end),
             getStaffList()
         ]);
         setExpenses(expData.expenses);
+        setTotalServerItems(expData.totalCount);
         setSalaryMetrics({
             salaryTotal: expData.salaryTotal,
             nonSalaryTotal: expData.nonSalaryTotal,
@@ -65,11 +76,22 @@ export default function ExpensesPage() {
         });
         setUsers(staff);
         setLoading(false);
-    }, [dateRange.start, dateRange.end]);
+    }, [currentPage, dateRange.start, dateRange.end]);
 
     useEffect(() => {
         void loadData();
     }, [loadData]);
+
+    useEffect(() => {
+        setLoadingMonthly(true);
+        getMonthlyExpenseSummary(selectedYear).then(data => {
+            setMonthlySummary(data);
+            setLoadingMonthly(false);
+        });
+    }, [selectedYear]);
+
+    const handlePrevYear = useCallback(() => setSelectedYear(y => y - 1), []);
+    const handleNextYear = useCallback(() => setSelectedYear(y => y + 1), []);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -322,6 +344,80 @@ ${report.employees.map(emp => `
                 </div>
             </div>
 
+            {/* Monthly Summary */}
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/20">
+                    <h3 className="font-black text-lg uppercase tracking-tighter flex items-center gap-2">
+                        <BarChart3 size={20} className="text-primary" />
+                        {t('monthly.title')}
+                    </h3>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handlePrevYear}
+                            className="p-2 hover:bg-secondary rounded-lg transition-all active:scale-90"
+                        >
+                            <ChevronLeft size={18} className={clsx(isRtl && "rotate-180")} />
+                        </button>
+                        <span className="font-black text-xl tabular-nums">{selectedYear}</span>
+                        <button
+                            onClick={handleNextYear}
+                            className="p-2 hover:bg-secondary rounded-lg transition-all active:scale-90"
+                        >
+                            <ChevronRight size={18} className={clsx(isRtl && "rotate-180")} />
+                        </button>
+                    </div>
+                </div>
+
+                {loadingMonthly ? (
+                    <div className="p-12 text-center">
+                        <Loader2 className="animate-spin text-primary mx-auto mb-3" size={32} />
+                        <span className="font-bold uppercase text-xs tracking-widest text-muted-foreground">{t('table.loading')}</span>
+                    </div>
+                ) : monthlySummary && (
+                    <div className="p-6">
+                        {/* Month Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+                            {monthlySummary.months.map(m => (
+                                <div
+                                    key={m.month}
+                                    className={clsx(
+                                        "p-4 rounded-2xl border transition-all hover:scale-[1.02]",
+                                        m.total > 0
+                                            ? "bg-card border-border hover:border-primary/50 shadow-sm"
+                                            : "bg-secondary/10 border-dashed border-border opacity-50"
+                                    )}
+                                >
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{m.monthName}</div>
+                                    <div className={clsx("text-lg font-black tabular-nums", m.total > 0 ? "text-orange-600" : "text-muted-foreground")}>
+                                        <span className="text-[10px] font-bold opacity-60">{ts('currency')}</span>
+                                        {m.total > 0 ? m.total.toLocaleString(locale) : '—'}
+                                    </div>
+                                    {m.total > 0 && (
+                                        <div className="mt-2 space-y-1">
+                                            {Object.entries(m.categories).map(([cat, amt]) => (
+                                                <div key={cat} className="flex items-center justify-between text-[9px] font-bold">
+                                                    <span className="text-muted-foreground uppercase">{t(`categoriesList.${cat}` as 'categoriesList.SALARY', { defaultValue: cat })}</span>
+                                                    <span className="tabular-nums text-muted-foreground">{amt.toLocaleString(locale)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Grand Total */}
+                        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('monthly.grandTotal')}</span>
+                            <div className={clsx("text-2xl font-black text-orange-600 tabular-nums flex items-center gap-1", isRtl ? "flex-row-reverse" : "flex-row")}>
+                                <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
+                                <span>{monthlySummary.grandTotal.toLocaleString(locale)}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Form */}
             {showForm && (
                 <div className="bg-card border border-border p-8 rounded-3xl animate-in slide-in-from-top-4 shadow-xl relative overflow-hidden">
@@ -498,6 +594,29 @@ ${report.employees.map(emp => `
                     </table>
                 </div>
             </div>
+
+            {/* Pagination Controls */}
+            {totalServerItems > ITEMS_PER_PAGE && (
+                <div className="flex items-center justify-between p-4 bg-card rounded-2xl border border-border shadow-sm mt-4">
+                    <button 
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {t('buttons.previous')}
+                    </button>
+                    <span className="text-sm font-bold text-muted-foreground">
+                        Page {currentPage} of {Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
+                    </span>
+                    <button 
+                        disabled={currentPage >= Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {t('buttons.next')}
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

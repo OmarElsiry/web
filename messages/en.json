@@ -25,7 +25,10 @@
     },
     "quick_sale": "Quick Sale",
     "inventory_count": "Inventory Count",
-    "backup": "Backup Data"
+    "backup": "Backup Data",
+    "debts": "Debts",
+    "reviews": "Price Reviews",
+    "portfolio": "Portfolio"
   },
   "Login": {
     "title": "Welcome Back",
@@ -226,6 +229,10 @@
       "period": "Period: {start} to {end}",
       "totalSalaries": "Total Salaries",
       "employees": "Employees"
+    },
+    "monthly": {
+      "title": "Monthly Summary",
+      "grandTotal": "Annual Grand Total"
     }
   },
   "Invoices": {
@@ -358,6 +365,20 @@
     "success": {
       "updated": "Customer updated successfully.",
       "deleted": "Customer deleted successfully."
+    },
+    "paymentModal": {
+      "title": "Record Payment",
+      "description": "Record a payment from the customer to settle debt",
+      "customer": "Customer",
+      "currentBalance": "Current Balance",
+      "amountLabel": "Amount Paid",
+      "noteLabel": "Note (Optional)",
+      "notePlaceholder": "Note about this payment...",
+      "amountRequired": "Amount must be greater than zero.",
+      "failed": "Failed to record payment.",
+      "cancel": "Cancel",
+      "confirm": "Record Payment",
+      "recordPayment": "Record Payment"
     }
   },
   "Analytics": {
@@ -413,6 +434,7 @@
     "stats": {
       "totalRevenue": "Total Revenue",
       "estimatedCost": "Estimated Cost",
+      "totalExpenses": "Total Expenses",
       "netProfit": "Net Profit ({margin}%)"
     },
     "recentSales": "Recent Sales",
@@ -526,7 +548,10 @@
       "logs": "Security Audit Logs",
       "users": "User Management",
       "expenses": "Expense Control",
-      "customers": "Customer CRM"
+      "customers": "Customer CRM",
+      "debts": "Debts Report",
+      "review": "Review Price Changes",
+      "portfolio": "Sales Portfolio"
     },
     "alerts": {
       "deleteConfirm": "Are you absolutely sure? This will permanently revoke all access for this user.",
@@ -607,13 +632,32 @@
       "table": {
         "index": "#",
         "date": "Date",
+        "type": "Type",
+        "description": "Description",
         "invoice": "Invoice ID",
         "total": "Total",
         "paid": "Paid",
+        "debit": "Debit",
+        "credit": "Credit",
         "balance": "Balance"
       },
       "totalPurchases": "Total Purchases",
+      "totalPayments": "Total Payments",
       "totalDue": "Total Due Balance"
+    },
+    "statement": {
+      "title": "Account Statement",
+      "colDate": "Date",
+      "colType": "Type",
+      "colDescription": "Description",
+      "colDebit": "Debit",
+      "colCredit": "Credit",
+      "colBalance": "Balance",
+      "typeInvoice": "Invoice",
+      "typePayment": "Payment",
+      "recordedBy": "By {name}",
+      "finalBalance": "Final Balance",
+      "empty": "No transactions found for this customer."
     }
   },
   "Refunds": {
@@ -756,5 +800,44 @@
     "alerts": {
       "failed": "Failed to add purchase record. Please try again."
     }
+  },
+  "Reviews": {
+    "pending": "Pending Review",
+    "accepted": "Accepted",
+    "declined": "Declined",
+    "empty": "No invoices pending review",
+    "walkIn": "Walk-in Customer",
+    "priceChanges": "Price Changes Detected",
+    "basePrice": "Base Price",
+    "overridePrice": "Override Price",
+    "deviation": "Deviation",
+    "accept": "Accept",
+    "decline": "Decline",
+    "edit": "Edit",
+    "declineTitle": "Decline Invoice",
+    "declineReasonPlaceholder": "Optional: Add a reason for declining...",
+    "cancel": "Cancel",
+    "confirmDecline": "Confirm Decline"
+  },
+  "Portfolio": {
+    "filterAll": "All Statuses",
+    "statusAccepted": "Accepted",
+    "statusPending": "Pending",
+    "statusDeclined": "Declined",
+    "periodAll": "All Time",
+    "periodDay": "Today",
+    "periodWeek": "This Week",
+    "periodMonth": "This Month",
+    "totalInvoices": "Total Invoices",
+    "acceptedTotal": "Accepted Total",
+    "pendingCount": "Pending",
+    "declinedCount": "Declined",
+    "empty": "No invoices found for this salesperson",
+    "walkIn": "Walk-in Customer",
+    "reviewedBy": "Reviewed by",
+    "revisedBadge": "Revised",
+    "revisedFrom": "Revised from invoice",
+    "revisedTo": "Replaced by invoice",
+    "declineReason": "Decline reason"
   }
 }

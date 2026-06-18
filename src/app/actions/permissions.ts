@@ -64,11 +64,20 @@ export async function getMenuItemsForUser() {
         { to: '/analytics', permission: 'dashboard', translationKey: 'analytics' },
         { to: '/profits', permission: 'profits', translationKey: 'profits' },
         { to: '/staff-sales', permission: 'staff_sales', translationKey: 'staff_sales' },
+        { to: '/reviews', permission: 'review', translationKey: 'reviews' },
+        { to: '/portfolio', permission: 'portfolio', translationKey: 'portfolio' },
         { to: '/logs', permission: 'logs', translationKey: 'logs' },
         { to: '/users', permission: 'users', translationKey: 'users' },
         { to: '/expenses', permission: 'expenses', translationKey: 'expenses' },
+        { to: '/debts', permission: 'debts', translationKey: 'debts' },
         { to: '/backup', permission: 'backup', translationKey: 'backup' },
     ];
 
     return allMenuItems.filter(item => permissions.includes(item.permission));
+}
+
+export async function canEditDebts() {
+    const user = await getCurrentUser();
+    if (!user) return false;
+    return user.role === 'ROOT' || user.role === 'ADMIN';
 }

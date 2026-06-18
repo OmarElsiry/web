@@ -37,6 +37,13 @@ enum PaymentMethod {
   CREDIT
 }
 
+enum InvoiceStatus {
+  ACCEPTED
+  PENDING_REVIEW
+  DECLINED
+  APPROVED
+}
+
 // Models
 model User {
   id          String   @id @default(uuid())
@@ -53,11 +60,13 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  // Relations
-  sales           Invoice[]
-  inventoryLogs   AuditLog[]
-  expenses        Expense[] @relation("UserExpenses")
-  processedRefunds Refund[]
+   // Relations
+   sales           Invoice[]
+   inventoryLogs   AuditLog[]
+   expenses        Expense[] @relation("UserExpenses")
+   processedRefunds Refund[]
+   recordedPayments CustomerPayment[] @relation("RecordedPayments")
+   reviewedInvoices Invoice[] @relation("InvoiceReviewer")
 }
 
 model Category {
@@ -108,8 +117,10 @@ model Inventory {
   locationId String
   location   Location @relation(fields: [locationId], references: [id])
   quantity   Decimal  @default(0)
+  reservedQuantity Decimal @default(0)
 
   @@unique([productId, locationId])
+  @@index([locationId])
 }
 
 model Transaction {
@@ -151,6 +162,9 @@ model TransactionItem {
   productId     String
   product       Product     @relation(fields: [productId], references: [id])
   quantity      Decimal
+
+  @@index([transactionId])
+  @@index([productId])
 }
 
 model Invoice {
@@ -158,12 +172,13 @@ model Invoice {
   date            DateTime      @default(now())
   totalAmount     Decimal
   paymentMethod   PaymentMethod
-  
+  status          InvoiceStatus @default(ACCEPTED)
+
   // Legacy fields (kept for compatibility during migration)
   customerName    String?
   customerPhone   String?
   customerAddress String?
-  
+
   // New AR Fields
   customerId      String?
   customer        Customer?     @relation(fields: [customerId], references: [id])
@@ -172,12 +187,27 @@ model Invoice {
   currentBalance  Decimal       @default(0)
   discountType    String?       // "PERCENTAGE" or "FIXED"
   discountValue   Decimal       @default(0)
-  
+
   userId          String?
   user            User?         @relation(fields: [userId], references: [id])
-  
+
+  // Review system fields
+  reviewerId      String?
+  reviewer        User?         @relation("InvoiceReviewer", fields: [reviewerId], references: [id])
+  reviewedAt      DateTime?
+  reviewNote      String?
+  revisedFromInvoiceId String?
+  revisedFrom     Invoice?      @relation("InvoiceRevisions", fields: [revisedFromInvoiceId], references: [id])
+  revisedBy       Invoice[]     @relation("InvoiceRevisions")
+
   items           InvoiceItem[]
   refunds         Refund[]
+
+  @@index([date])
+  @@index([customerId])
+  @@index([userId])
+  @@index([status])
+  @@index([date, paymentMethod])
 }
 
 model Customer {
@@ -195,11 +225,12 @@ model Customer {
   parent    Customer?  @relation("CustomerHierarchy", fields: [parentId], references: [id])
   children  Customer[] @relation("CustomerHierarchy")
   
-  invoices  Invoice[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+   invoices  Invoice[]
+   payments  CustomerPayment[]
+   createdAt DateTime @default(now())
+   updatedAt DateTime @updatedAt
 
-  @@unique([name, phone])
+   @@unique([name, phone])
 }
 
 model CustomerGroup {
@@ -219,6 +250,9 @@ model InvoiceItem {
   quantity  Decimal
   unitPrice Decimal
   subtotal  Decimal
+
+  @@index([invoiceId])
+  @@index([productId])
 }
 
 // Refund System Models
@@ -235,6 +269,9 @@ model Refund {
   user        User         @relation(fields: [userId], references: [id])
   
   items       RefundItem[]
+
+  @@index([createdAt])
+  @@index([invoiceId])
 }
 
 model RefundItem {
@@ -264,20 +301,41 @@ model AuditLog {
   status    Boolean  @default(true)
   reason    String?
   timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([timestamp])
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  description String
-  amount      Decimal
-  date        DateTime @default(now())
-  category    String? 
-  
-  userId      String
-  user        User     @relation("UserExpenses", fields: [userId], references: [id])
-  
-  createdById String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+   id          String   @id @default(uuid())
+   description String
+   amount      Decimal
+   date        DateTime @default(now())
+   category    String? 
+   
+   userId      String
+   user        User     @relation("UserExpenses", fields: [userId], references: [id])
+   
+   createdById String?
+   
+   createdAt   DateTime @default(now())
+   updatedAt   DateTime @updatedAt
+
+   @@index([userId])
+   @@index([date])
+}
+
+model CustomerPayment {
+   id          String   @id @default(uuid())
+   customerId  String
+   customer    Customer @relation(fields: [customerId], references: [id])
+   amount      Decimal
+   date        DateTime @default(now())
+   userId      String
+   user        User     @relation("RecordedPayments", fields: [userId], references: [id])
+   note        String?
+   createdAt   DateTime @default(now())
+
+   @@index([customerId])
+   @@index([date])
 }

@@ -47,7 +47,7 @@ export default function QuickSalePage() {
 
     // Step 3: Payment
     const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'INSTAPAY' | 'CREDIT'>('CASH');
-    const [amountPaid, setAmountPaid] = useState<string>('');
+    const [amountPaid, setAmountPaid] = useState<string>('0');
 
     // Step 4: Submission
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +59,7 @@ export default function QuickSalePage() {
 
     useEffect(() => {
         if (step === 3 && paymentMethod === 'CASH') {
-            setAmountPaid(totalAmount.toString());
+            setAmountPaid('0');
         }
     }, [step, totalAmount, paymentMethod]);
 
@@ -78,27 +78,22 @@ export default function QuickSalePage() {
     }, [customerQuery]);
 
     useEffect(() => {
-        const fetchInitialProducts = async () => {
-            setIsSearchingProduct(true);
-            const products = await getProducts();
-            setProductResults(products || []);
-            setIsSearchingProduct(false);
-        };
-        fetchInitialProducts();
+        // We no longer fetch all products upfront to prevent memory issues.
+        // Products will be fetched on demand as the user types.
+        setProductResults([]);
     }, []);
 
     useEffect(() => {
-        if (productQuery.length > 1) {
+        if (productQuery.length >= 1) {
             setIsSearchingProduct(true);
             const timer = setTimeout(async () => {
-                const products = await getProducts();
-                // Filter locally since getProducts doesn't take a query
-                const q = productQuery.toLowerCase();
-                const filtered = products.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q)));
-                setProductResults(filtered || []);
+                const products = await getProducts(productQuery, 10);
+                setProductResults(products?.map((p: any) => ({ ...p, price: p.baseSellingPrice })) || []);
                 setIsSearchingProduct(false);
-            }, 500);
+            }, 300);
             return () => clearTimeout(timer);
+        } else {
+            setProductResults([]);
         }
     }, [productQuery]);
 
@@ -162,7 +157,7 @@ export default function QuickSalePage() {
             } : undefined;
 
             const customerId = selectedCustomer && selectedCustomer.id !== 'new' ? selectedCustomer.id : undefined;
-            const paid = paymentMethod === 'CREDIT' ? 0 : Number(amountPaid);
+            const paid = Number(amountPaid) || 0;
 
             const result = await processSale(
                 items,
@@ -180,7 +175,7 @@ export default function QuickSalePage() {
                 setError(result.error || 'Failed to process sale');
             }
         } catch (e: unknown) {
-            setError(e.message || 'An error occurred');
+            setError(e instanceof Error ? e.message : 'An error occurred');
         } finally {
             setIsSubmitting(false);
         }
@@ -191,7 +186,7 @@ export default function QuickSalePage() {
         setCustomerQuery('');
         setSelectedCustomer(null);
         setCart([]);
-        setAmountPaid('');
+        setAmountPaid('0');
         setPaymentMethod('CASH');
         setInvoiceId(null);
     };
@@ -465,54 +460,43 @@ export default function QuickSalePage() {
 
                         <div className="space-y-4 mb-8">
                             <label className="block text-sm font-medium">Payment Method</label>
-                            <div className="grid grid-cols-3 gap-3">
-                                {[
-                                    { id: 'CASH', label: 'Cash', icon: '💵' },
-                                    { id: 'INSTAPAY', label: 'InstaPay', icon: '📱' },
-                                    { id: 'CREDIT', label: 'Credit (آجل)', icon: '💳' }
-                                ].map(method => (
-                                    <button
-                                        key={method.id}
-                                        onClick={() => setPaymentMethod(method.id as "CASH" | "CARD" | "CREDIT")}
-                                        className={clsx(
-                                            "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2",
-                                            paymentMethod === method.id 
-                                                ? "border-primary bg-primary/10 text-primary" 
-                                                : "border-border bg-background hover:bg-secondary text-muted-foreground"
-                                        )}
-                                    >
-                                        <span className="text-2xl">{method.icon}</span>
-                                        <span className="font-bold text-sm">{method.label}</span>
-                                    </button>
-                                ))}
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-primary bg-primary/10 text-primary gap-2">
+                                    <span className="text-2xl">💵</span>
+                                    <span className="font-bold text-sm">Cash</span>
+                                </div>
                             </div>
                         </div>
 
-                        {paymentMethod !== 'CREDIT' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-sm font-medium">Amount Paid (EGP)</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">EGP</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        className="w-full pl-16 pr-4 py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black"
-                                        value={amountPaid}
-                                        onChange={(e) => setAmountPaid(e.target.value)}
-                                        onFocus={(e) => e.target.select()}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => setAmountPaid(totalAmount.toString())}
-                                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
-                                    >
-                                        Exact Amount
-                                    </button>
-                                </div>
+                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                            <label className="block text-sm font-medium">Amount Paid (EGP)</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">EGP</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className="w-full pl-16 pr-4 py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black"
+                                    value={amountPaid}
+                                    onChange={(e) => setAmountPaid(e.target.value)}
+                                    onFocus={(e) => e.target.select()}
+                                />
                             </div>
-                        )}
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setAmountPaid(totalAmount.toString())}
+                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                >
+                                    Exact Amount
+                                </button>
+                                <button 
+                                    onClick={() => setAmountPaid('0')}
+                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                >
+                                    Unpaid
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -568,15 +552,15 @@ export default function QuickSalePage() {
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Amount Paid</span>
                                 <span className="font-bold text-green-600">
-                                    {paymentMethod === 'CREDIT' ? 0 : Number(amountPaid).toLocaleString()} EGP
+                                    {Number(amountPaid).toLocaleString()} EGP
                                 </span>
                             </div>
                             
-                            {selectedCustomer && (paymentMethod === 'CREDIT' || Number(amountPaid) < totalAmount) && (
+                            {selectedCustomer && Number(amountPaid) < totalAmount && (
                                 <div className="mt-4 pt-4 border-t border-primary/20 flex justify-between items-center">
                                     <span className="font-bold text-red-500">New Balance</span>
                                     <span className="font-black text-red-500">
-                                        {(selectedCustomer.balance + totalAmount - (paymentMethod === 'CREDIT' ? 0 : Number(amountPaid))).toLocaleString()} EGP
+                                        {(selectedCustomer.balance + totalAmount - Number(amountPaid)).toLocaleString()} EGP
                                     </span>
                                 </div>
                             )}

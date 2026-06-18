@@ -36,7 +36,7 @@ export async function createExpense(data: {
     }
 }
 
-export async function getExpenses(startDate?: string, endDate?: string) {
+export async function getExpenses(page: number = 1, limit: number = 50, startDate?: string, endDate?: string) {
     const prisma = getPrisma();
 
     const where: any = {};
@@ -47,15 +47,30 @@ export async function getExpenses(startDate?: string, endDate?: string) {
         };
     }
 
-    const expenses = await prisma.expense.findMany({
-        where,
-        include: {
-            user: {
-                select: { name: true, username: true }
-            }
-        },
-        orderBy: { date: 'desc' }
-    });
+    const skip = (page - 1) * limit;
+
+    const [totalCount, expenses, salaryAgg, nonSalaryAgg] = await Promise.all([
+        prisma.expense.count({ where }),
+        prisma.expense.findMany({
+            where,
+            include: {
+                user: {
+                    select: { name: true, username: true }
+                }
+            },
+            orderBy: { date: 'desc' },
+            skip,
+            take: limit
+        }),
+        prisma.expense.aggregate({
+            _sum: { amount: true },
+            where: { ...where, category: 'SALARY' }
+        }),
+        prisma.expense.aggregate({
+            _sum: { amount: true },
+            where: { ...where, category: { not: 'SALARY' } }
+        })
+    ]);
 
     const mapped = expenses.map(e => ({
         ...e,
@@ -64,13 +79,13 @@ export async function getExpenses(startDate?: string, endDate?: string) {
         userName: e.user.name || e.user.username
     }));
 
-    // Compute salary vs non-salary aggregates server-side
-    const salaryTotal = mapped.filter(e => e.category?.toUpperCase() === 'SALARY').reduce((s, e) => s + e.amount, 0);
-    const nonSalaryTotal = mapped.filter(e => e.category?.toUpperCase() !== 'SALARY').reduce((s, e) => s + e.amount, 0);
+    const salaryTotal = Number(salaryAgg._sum.amount || 0);
+    const nonSalaryTotal = Number(nonSalaryAgg._sum.amount || 0);
     const grandTotal = salaryTotal + nonSalaryTotal;
     const salaryPercent = grandTotal > 0 ? Number(((salaryTotal / grandTotal) * 100).toFixed(1)) : 0;
 
     return {
+        totalCount,
         expenses: mapped,
         salaryTotal,
         nonSalaryTotal,
@@ -122,4 +137,45 @@ export async function deleteExpense(id: string) {
     await prisma.expense.delete({ where: { id } });
     revalidatePath('/expenses');
     return { success: true };
+}
+
+export async function getMonthlyExpenseSummary(year: number) {
+    const prisma = getPrisma();
+
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31, 23, 59, 59);
+
+    const expenses = await prisma.expense.findMany({
+        where: {
+            date: { gte: startDate, lte: endDate }
+        },
+        select: {
+            amount: true,
+            category: true,
+            date: true
+        }
+    });
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const monthlyData = Array.from({ length: 12 }, (_, i) => ({
+        month: i,
+        monthName: monthNames[i],
+        total: 0,
+        categories: {} as Record<string, number>
+    }));
+
+    for (const exp of expenses) {
+        const month = new Date(exp.date).getMonth();
+        const amount = Number(exp.amount);
+        monthlyData[month].total += amount;
+        const cat = exp.category || 'Other';
+        monthlyData[month].categories[cat] = (monthlyData[month].categories[cat] || 0) + amount;
+    }
+
+    return {
+        year,
+        months: monthlyData,
+        grandTotal: monthlyData.reduce((sum, m) => sum + m.total, 0)
+    };
 }

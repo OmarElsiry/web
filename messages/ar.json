@@ -25,7 +25,10 @@
     },
     "quick_sale": "بيع سريع",
     "inventory_count": "جرد المخزون",
-    "backup": "نسخ احتياطي"
+    "backup": "نسخ احتياطي",
+    "debts": "المديونيات",
+    "reviews": "مراجعة الأسعار",
+    "portfolio": "معرض الفواتير"
   },
   "Login": {
     "title": "مرحباً بعودتك",
@@ -226,6 +229,10 @@
       "period": "الفترة: من {start} إلى {end}",
       "totalSalaries": "إجمالي الرواتب",
       "employees": "الموظفون"
+    },
+    "monthly": {
+      "title": "ملخص شهري",
+      "grandTotal": "إجمالي المصروفات السنوية"
     }
   },
   "Invoices": {
@@ -358,6 +365,20 @@
     "success": {
       "updated": "تم تحديث العميل بنجاح.",
       "deleted": "تم حذف العميل بنجاح."
+    },
+    "paymentModal": {
+      "title": "تسجيل دفعة",
+      "description": "تسجيل دفعة من العميل وتسديد جزء من المديونية",
+      "customer": "العميل",
+      "currentBalance": "الرصيد الحالي",
+      "amountLabel": "المبلغ المدفوع",
+      "noteLabel": "ملاحظة (اختياري)",
+      "notePlaceholder": "ملاحظة عن الدفعة...",
+      "amountRequired": "يجب إدخال مبلغ أكبر من صفر.",
+      "failed": "فشل تسجيل الدفعة.",
+      "cancel": "إلغاء",
+      "confirm": "تسجيل الدفعة",
+      "recordPayment": "تسجيل دفعة"
     }
   },
   "Analytics": {
@@ -413,6 +434,7 @@
     "stats": {
       "totalRevenue": "إجمالي الإيرادات",
       "estimatedCost": "التكلفة التقديرية",
+      "totalExpenses": "إجمالي المصروفات",
       "netProfit": "صافي الربح ({margin}%)"
     },
     "recentSales": "المبيعات الأخيرة",
@@ -526,7 +548,10 @@
       "logs": "سجلات التدقيق الأمني",
       "users": "إدارة المستخدمين",
       "expenses": "التحكم في المصروفات",
-      "customers": "إدارة العملاء (CRM)"
+      "customers": "إدارة العملاء (CRM)",
+      "debts": "تقرير المديونيات",
+      "review": "مراجعة تغييرات الأسعار",
+      "portfolio": "معرض فواتير المندوب"
     },
     "alerts": {
       "deleteConfirm": "هل أنت متأكد تماماً؟ سيؤدي هذا لسحب كل الصلاحيات نهائياً عن هذا المستخدم.",
@@ -607,13 +632,32 @@
       "table": {
         "index": "#",
         "date": "التاريخ",
+        "type": "النوع",
+        "description": "البيان",
         "invoice": "رقم الفاتورة",
         "total": "الإجمالي",
         "paid": "المدفوع",
-        "balance": "الرصيد المتبقي"
+        "debit": "مدين",
+        "credit": "دائن",
+        "balance": "الرصيد"
       },
       "totalPurchases": "إجمالي المشتريات",
+      "totalPayments": "إجمالي المدفوعات",
       "totalDue": "إجمالي الرصيد المستحق"
+    },
+    "statement": {
+      "title": "كشف حساب",
+      "colDate": "التاريخ",
+      "colType": "النوع",
+      "colDescription": "البيان",
+      "colDebit": "مدين",
+      "colCredit": "دائن",
+      "colBalance": "الرصيد",
+      "typeInvoice": "فاتورة",
+      "typePayment": "دفعة",
+      "recordedBy": "بواسطة {name}",
+      "finalBalance": "الرصيد النهائي",
+      "empty": "لا توجد حركات لهذا العميل."
     }
   },
   "Refunds": {
@@ -756,5 +800,44 @@
     "alerts": {
       "failed": "فشل إضافة سجل التوريد. يرجى المحاولة مرة أخرى."
     }
+  },
+  "Reviews": {
+    "pending": "بانتظار المراجعة",
+    "accepted": "مقبول",
+    "declined": "مرفوض",
+    "empty": "لا توجد فواتير بانتظار المراجعة",
+    "walkIn": "عميل نقدي",
+    "priceChanges": "تم رصد تغييرات في الأسعار",
+    "basePrice": "السعر الأساسي",
+    "overridePrice": "السعر المعدل",
+    "deviation": "الفرق",
+    "accept": "قبول",
+    "decline": "رفض",
+    "edit": "تعديل",
+    "declineTitle": "رفض الفاتورة",
+    "declineReasonPlaceholder": "اختياري: أضف سبب الرفض...",
+    "cancel": "إلغاء",
+    "confirmDecline": "تأكيد الرفض"
+  },
+  "Portfolio": {
+    "filterAll": "كل الحالات",
+    "statusAccepted": "مقبول",
+    "statusPending": "قيد المراجعة",
+    "statusDeclined": "مرفوض",
+    "periodAll": "كل الفترات",
+    "periodDay": "اليوم",
+    "periodWeek": "هذا الأسبوع",
+    "periodMonth": "هذا الشهر",
+    "totalInvoices": "إجمالي الفواتير",
+    "acceptedTotal": "إجمالي المقبول",
+    "pendingCount": "قيد المراجعة",
+    "declinedCount": "مرفوض",
+    "empty": "لا توجد فواتير لهذا المندوب",
+    "walkIn": "عميل نقدي",
+    "reviewedBy": "راجعها",
+    "revisedBadge": "تم تعديله",
+    "revisedFrom": "معدل من فاتورة",
+    "revisedTo": "استبدلت بفاتورة",
+    "declineReason": "سبب الرفض"
   }
 }
