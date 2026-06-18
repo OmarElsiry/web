@@ -9,7 +9,7 @@ import { Invoice } from './types';
 
 interface InvoiceDetailsModalProps {
     invoice: Invoice;
-    availableProducts?: any[]; // Kept for interface compatibility but we don't need it
+    availableProducts?: unknown[]; // Kept for interface compatibility but we don't need it
     onClose: () => void;
     onUpdate: () => void;
     onOpenRefund: () => void;

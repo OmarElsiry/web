@@ -72,7 +72,7 @@ const SidebarItem = ({ to, icon: Icon, translationKey, active }: { to: string, i
     const t = useTranslations('Navigation');
     return (
         <Link prefetch={false}
-            href={to as any}
+            href={to as import('react').ComponentProps<typeof Link>['href']}
             className={clsx(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mx-2",
                 active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -129,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     useEffect(() => {
         // Load menu items based on user permissions
-        getMenuItemsForUser().then(setMenuItems as any);
+        getMenuItemsForUser().then((items) => setMenuItems(items as MenuItem[]));
         getCurrentUser().then(setCurrentUser);
     }, []);
 
@@ -227,11 +227,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                         <div className={clsx(
                             "w-8 h-8 rounded-full flex items-center justify-center font-bold text-white",
-                            currentUser?.role === 'ROOT' ? 'bg-purple-500' :
-                                currentUser?.role === 'ADMIN' ? 'bg-blue-500' :
-                                    currentUser?.role === 'ACCOUNTANT' ? 'bg-green-500' :
-                                        currentUser?.role === 'SALESPERSON' ? 'bg-orange-500' :
-                                            'bg-gray-500'
+                            (({ ROOT: 'bg-purple-500', ADMIN: 'bg-blue-500', ACCOUNTANT: 'bg-green-500', SALESPERSON: 'bg-orange-500' } as Record<string, string>)[currentUser?.role || ''] || 'bg-gray-500')
                         )}>
                             {(currentUser?.name || currentUser?.username || 'U')[0].toUpperCase()}
                         </div>

@@ -56,7 +56,7 @@ export default function StaffSalesPage() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -160,7 +160,7 @@ export default function StaffSalesPage() {
             printWindow.document.close();
             printWindow.print();
         }
-    }, [selectedStaff, modalPeriod, modalData, isRtl, locale]);
+    }, [selectedStaff, modalPeriod, modalData, isRtl, locale, t, ts]);
 
     const sortedStaff = [...staff].sort((a, b) => {
         const aTotal = salesData[a.id]?.total || 0;
@@ -195,38 +195,41 @@ export default function StaffSalesPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                        {loading ? (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                    <div className="flex flex-col items-center justify-center gap-3">
-                                        <Loader2 className="animate-spin text-primary" size={32} />
-                                        <span className="font-bold uppercase text-xs tracking-widest">{t('loading')}</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : sortedStaff.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                    <div className="flex flex-col items-center gap-2">
-                                        <Award size={40} className="mb-2 opacity-20" />
-                                        <p className="text-lg font-black uppercase tracking-tight">{t('empty')}</p>
-                                    </div>
-                                </td>
-                            </tr>
-                        ) : (
-                            sortedStaff.map((s, index) => (
+                        {(() => {
+                            if (loading) {
+                                return (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                                            <div className="flex flex-col items-center justify-center gap-3">
+                                                <Loader2 className="animate-spin text-primary" size={32} />
+                                                <span className="font-bold uppercase text-xs tracking-widest">{t('loading')}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            if (sortedStaff.length === 0) {
+                                return (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <Award size={40} className="mb-2 opacity-20" />
+                                                <p className="text-lg font-black uppercase tracking-tight">{t('empty')}</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            }
+                            return sortedStaff.map((s, index) => (
                                 <tr key={s.id} className="hover:bg-muted/50 transition-colors group">
                                     <td className={clsx("px-6 py-4", 'text-center')}>
                                         <div className="flex items-center gap-2">
-                                            {index === 0 ? (
-                                                <Trophy className="text-yellow-500 fill-yellow-500/10" size={20} />
-                                            ) : index === 1 ? (
-                                                <Trophy className="text-slate-400 fill-slate-400/10" size={20} />
-                                            ) : index === 2 ? (
-                                                <Trophy className="text-amber-700 fill-amber-700/10" size={20} />
-                                            ) : (
-                                                <span className="text-muted-foreground font-black text-xs min-w-[20px] text-center">{index + 1}</span>
-                                            )}
+                                            {(() => {
+                                                if (index === 0) return <Trophy className="text-yellow-500 fill-yellow-500/10" size={20} />;
+                                                if (index === 1) return <Trophy className="text-slate-400 fill-slate-400/10" size={20} />;
+                                                if (index === 2) return <Trophy className="text-amber-700 fill-amber-700/10" size={20} />;
+                                                return <span className="text-muted-foreground font-black text-xs min-w-[20px] text-center">{index + 1}</span>;
+                                            })()}
                                         </div>
                                     </td>
                                     <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>
@@ -251,8 +254,8 @@ export default function StaffSalesPage() {
                                         </button>
                                     </td>
                                 </tr>
-                            ))
-                        )}
+                            ));
+                        })()}
                     </tbody>
                 </table>
             </div>
@@ -341,23 +344,29 @@ export default function StaffSalesPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {modalLoading ? (
-                                        <tr>
-                                            <td colSpan={3} className="py-12 text-center text-muted-foreground">
-                                                <div className="flex flex-col items-center justify-center gap-3">
-                                                    <Loader2 className="animate-spin text-primary" size={32} />
-                                                    <span className="font-bold uppercase text-[10px] tracking-widest">{t('modal.loading')}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : !modalData?.invoices?.length ? (
-                                        <tr>
-                                            <td colSpan={3} className="py-12 text-center text-muted-foreground font-black uppercase text-[10px] tracking-widest">
-                                                {t('modal.noSales')}
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        modalData.invoices.map((inv: Invoice) => (
+                                    {(() => {
+                                        if (modalLoading) {
+                                            return (
+                                                <tr>
+                                                    <td colSpan={3} className="py-12 text-center text-muted-foreground">
+                                                        <div className="flex flex-col items-center justify-center gap-3">
+                                                            <Loader2 className="animate-spin text-primary" size={32} />
+                                                            <span className="font-bold uppercase text-[10px] tracking-widest">{t('modal.loading')}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                        if (!modalData?.invoices?.length) {
+                                            return (
+                                                <tr>
+                                                    <td colSpan={3} className="py-12 text-center text-muted-foreground font-black uppercase text-[10px] tracking-widest">
+                                                        {t('modal.noSales')}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                        return modalData.invoices.map((inv: Invoice) => (
                                             <Fragment key={inv.id}>
                                                 <tr className="hover:bg-muted/30 transition-colors group">
                                                     <td className={clsx("py-4 font-bold", 'text-center')}>{new Date(inv.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</td>
@@ -393,8 +402,8 @@ export default function StaffSalesPage() {
                                                     </td>
                                                 </tr>
                                             </Fragment>
-                                        ))
-                                    )}
+                                        ));
+                                    })()}
                                 </tbody>
                             </table>
                         </div>

@@ -122,7 +122,8 @@ export async function createCustomer(data: {
 
         revalidatePath('/customers');
         return { success: true, customer };
-    } catch (err: any) {
+    } catch (error: unknown) {
+        const err = error as { code?: string };
         // Handle unique constraint violation (name + phone combo)
         if (err?.code === 'P2002') {
             return { success: false, error: 'A customer with this name and phone already exists.' };
@@ -182,7 +183,8 @@ export async function updateCustomer(
         revalidatePath('/dashboard');
         revalidatePath('/profits');
         return { success: true, customer };
-    } catch (err: any) {
+    } catch (error: unknown) {
+        const err = error as { code?: string };
         if (err?.code === 'P2002') {
             return { success: false, error: 'A customer with this name and phone already exists.' };
         }
@@ -214,8 +216,8 @@ export async function deleteCustomer(id: string) {
         revalidatePath('/customers');
         revalidatePath('/dashboard');
         return { success: true };
-    } catch (err: any) {
-        console.error('Failed to delete customer:', err);
+    } catch (error: unknown) {
+        console.error('Failed to delete customer:', error);
         return { success: false, error: 'Failed to delete customer. Please try again.' };
     }
 }

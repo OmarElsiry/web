@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const endDateStr = searchParams.get('endDate');
 
     // Build the query
-    const whereClause: any = {};
+    const whereClause: { date?: { gte?: Date, lte?: Date } } = {};
     if (startDateStr || endDateStr) {
         whereClause.date = {};
         if (startDateStr) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
         const zipBuffer = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
 
-        return new NextResponse(zipBuffer as any, {
+        return new NextResponse(zipBuffer as unknown as BodyInit, {
             headers: {
                 'Content-Type': 'application/zip',
                 'Content-Disposition': `attachment; filename="invoices-export-${new Date().toISOString().split('T')[0]}.zip"`,

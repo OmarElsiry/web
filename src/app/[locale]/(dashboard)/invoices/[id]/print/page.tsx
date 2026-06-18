@@ -3,14 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Invoice } from '../../types';
 import { getInvoiceById } from '@/app/actions/invoices';
 import { Loader2, Printer, Settings2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { tafqeet } from '@/lib/tafqeet';
 
 export default function InvoicePrintPage() {
     const { id } = useParams();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [invoice, setInvoice] = useState<any>(null);
+    const [invoice, setInvoice] = useState<Invoice | null>(null);
     const [loading, setLoading] = useState(true);
     const [showSettings, setShowSettings] = useState(true);
 
@@ -400,8 +400,7 @@ export default function InvoicePrintPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {invoice.items.map((item: any, idx: number) => (
+                                {invoice.items?.map((item, idx: number) => (
                                     <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
                                         <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
                                         {showItemCode && <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>}

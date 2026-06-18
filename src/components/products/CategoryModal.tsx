@@ -1,6 +1,5 @@
 import React from 'react';
 import { Loader2, Plus, Trash2, X, FolderPlus, AlertCircle } from 'lucide-react';
-import clsx from 'clsx';
 
 interface Category {
     id: string;
@@ -11,7 +10,7 @@ interface Category {
 interface CategoryModalProps {
     isOpen: boolean;
     onClose: () => void;
-    t: any;
+    t: (key: string) => string;
     locale: string;
     categoryError: string | null;
     newCategoryName: string;

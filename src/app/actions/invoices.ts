@@ -19,7 +19,7 @@ async function updateInventoryStock(tx: Prisma.TransactionClient, productId: str
 async function handleInvoiceItemsUpdate(
     tx: Prisma.TransactionClient, 
     invoiceId: string, 
-    existingItems: Array<{ id: string, productId: string, quantity: any }>, 
+    existingItems: Array<{ id: string, productId: string, quantity: number | Prisma.Decimal }>, 
     incomingItems: Array<{ id: string, productId: string, quantity: number, unitPrice: number }>, 
     locId?: string
 ) {

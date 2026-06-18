@@ -10,10 +10,10 @@ interface Category {
 interface ProductModalProps {
     isOpen: boolean;
     onClose: () => void;
-    t: any;
+    t: (key: string) => string;
     isEditMode: boolean;
     error: string | null;
-    formData: any;
+    formData: { name: string; sku: string; categoryId: string; costPrice: string | number; baseSellingPrice: string | number };
     categories: Category[];
     submitting: boolean;
     handleSubmit: (e: React.FormEvent) => Promise<void>;

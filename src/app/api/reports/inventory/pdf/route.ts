@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
 import { createClient } from '@/lib/supabase/server';
 import getPrisma from '@/lib/prisma';
@@ -11,15 +11,15 @@ export const dynamic = 'force-dynamic';
 type ProductWithInventory = {
     name: string;
     sku: string;
-    costPrice: any;
-    baseSellingPrice: any;
+    costPrice: number | { toNumber?(): number };
+    baseSellingPrice: number | { toNumber?(): number };
     inventoryItems: {
-        quantity: any;
+        quantity: number | { toNumber?(): number };
         location: { name: string };
     }[];
 };
 
-function drawDocumentHeader(doc: typeof PDFDocument, tableTop: number) {
+function drawDocumentHeader(doc: typeof PDFDocument | unknown, tableTop: number) {
     doc.fillColor('#1A365D')
        .fontSize(22)
        .text('Inventory & Valuation Report', { align: 'center' })
@@ -42,7 +42,7 @@ function drawDocumentHeader(doc: typeof PDFDocument, tableTop: number) {
     doc.moveTo(40, tableTop + 18).lineTo(555, tableTop + 18).strokeColor('#E2E8F0').lineWidth(1).stroke();
 }
 
-function printSummaryBox(doc: typeof PDFDocument, productsCount: number, grandTotalStock: number, grandTotalCostVal: number, grandTotalSellVal: number, y: number, hasArabicFont: boolean) {
+function printSummaryBox(doc: typeof PDFDocument | unknown, productsCount: number, grandTotalStock: number, grandTotalCostVal: number, grandTotalSellVal: number, y: number, hasArabicFont: boolean) {
     if (y > 720) {
         doc.addPage();
         if (hasArabicFont) doc.font('ArabicFont');
@@ -63,7 +63,7 @@ function printSummaryBox(doc: typeof PDFDocument, productsCount: number, grandTo
     doc.text(`Total Retail Valuation: EGP ${grandTotalSellVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 35, { align: 'right', width: 240 });
 }
 
-function processProductRow(doc: typeof PDFDocument, product: ProductWithInventory, y: number, hasArabicFont: boolean) {
+function processProductRow(doc: typeof PDFDocument | unknown, product: ProductWithInventory, y: number, hasArabicFont: boolean) {
     const totalStock = product.inventoryItems.reduce((acc, curr) => acc + Number(curr.quantity), 0);
     const cost = Number(product.costPrice);
     const sell = Number(product.baseSellingPrice);
@@ -120,7 +120,7 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
         }
 
         const tableTop = 130;
-        drawDocumentHeader(doc as any, tableTop);
+        drawDocumentHeader(doc, tableTop);
 
         let y = tableTop + 25;
         let grandTotalStock = 0;
@@ -136,7 +136,7 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
                 y = 50;
             }
 
-            const res = processProductRow(doc as any, product, y, hasArabicFont);
+            const res = processProductRow(doc, product, y, hasArabicFont);
             y = res.newY;
             grandTotalStock += res.totalStock;
             grandTotalCostVal += res.itemTotalCostVal;
@@ -146,7 +146,7 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
         doc.moveTo(40, y + 5).lineTo(555, y + 5).strokeColor('#CBD5E0').lineWidth(1.5).stroke();
         
         y += 15;
-        printSummaryBox(doc as any, products.length, grandTotalStock, grandTotalCostVal, grandTotalSellVal, y, hasArabicFont);
+        printSummaryBox(doc, products.length, grandTotalStock, grandTotalCostVal, grandTotalSellVal, y, hasArabicFont);
 
         doc.fontSize(8).fillColor('#A0AEC0').text('Stash Inventory Management System', 40, 800, { align: 'center' });
 
@@ -154,7 +154,7 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
     });
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
     const prisma = getPrisma();
 
     // Auth check

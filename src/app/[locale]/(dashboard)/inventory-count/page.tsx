@@ -11,8 +11,8 @@ export default function InventoryCountPage() {
     const locale = useLocale();
     const isRtl = locale === 'ar';
 
-    const [products, setProducts] = useState<any[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
+    const [products, setProducts] = useState<Awaited<ReturnType<typeof getUnifiedProducts>>>([]);
+    const [categories, setCategories] = useState<Awaited<ReturnType<typeof getCategories>>>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -208,7 +208,7 @@ export default function InventoryCountPage() {
                     <select
                         className="w-full px-4 py-3 rounded-xl border bg-background appearance-none"
                         value={sortBy}
-                        onChange={(e: any) => setSortBy(e.target.value)}
+                        onChange={(e) => setSortBy(e.target.value as any)}
                     >
                         <option value="name">Name (A-Z)</option>
                         <option value="stockAsc">Stock (Low to High)</option>
@@ -240,10 +240,12 @@ export default function InventoryCountPage() {
                             <div className="flex flex-col items-end justify-between min-h-[80px]">
                                 <div className={clsx(
                                     "px-3 py-1.5 rounded-lg font-black text-lg",
-                                    p.totalStock <= 0 ? "bg-red-100 text-red-600" :
-                                    p.totalStock < 5 ? "bg-red-50 text-red-600" :
-                                    p.totalStock < 20 ? "bg-yellow-100 text-yellow-700" :
-                                    "bg-green-100 text-green-700"
+                                    (() => {
+                                        if (p.totalStock <= 0) return "bg-red-100 text-red-600";
+                                        if (p.totalStock < 5) return "bg-red-50 text-red-600";
+                                        if (p.totalStock < 20) return "bg-yellow-100 text-yellow-700";
+                                        return "bg-green-100 text-green-700";
+                                    })()
                                 )}>
                                     {p.totalStock}
                                 </div>
@@ -258,7 +260,7 @@ export default function InventoryCountPage() {
                             <div className="bg-secondary/20 p-4 border-t border-secondary animate-in slide-in-from-top-2 duration-200">
                                 <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Stock Locations</div>
                                 <div className="space-y-2">
-                                    {p.locationBreakdown.map((loc: any) => (
+                                    {p.locationBreakdown.map((loc: { locationName: string; quantity: number; locationId?: string; locationType?: string }) => (
                                         <div key={loc.locationId} className="flex justify-between items-center bg-background p-2 rounded-lg border shadow-sm">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-2 h-2 rounded-full bg-primary" />
@@ -307,17 +309,19 @@ export default function InventoryCountPage() {
                                     <td className="px-6 py-4 text-center">
                                         <span className={clsx(
                                             "inline-flex px-3 py-1 rounded-full font-bold text-sm",
-                                            p.totalStock <= 0 ? "bg-red-100 text-red-600" :
-                                            p.totalStock < 5 ? "bg-red-50 text-red-600" :
-                                            p.totalStock < 20 ? "bg-yellow-100 text-yellow-700" :
-                                            "bg-green-100 text-green-700"
+                                            (() => {
+                                                if (p.totalStock <= 0) return "bg-red-100 text-red-600";
+                                                if (p.totalStock < 5) return "bg-red-50 text-red-600";
+                                                if (p.totalStock < 20) return "bg-yellow-100 text-yellow-700";
+                                                return "bg-green-100 text-green-700";
+                                            })()
                                         )}>
                                             {p.totalStock}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex flex-col gap-1 text-sm">
-                                            {p.locationBreakdown.map((loc: any) => (
+                                            {p.locationBreakdown.map((loc: { locationName: string; quantity: number; locationId?: string; locationType?: string }) => (
                                                 <div key={loc.locationId} className="flex justify-between items-center px-2 py-1 bg-background rounded border">
                                                     <span className="truncate max-w-[120px]" title={loc.locationName}>{loc.locationName}</span>
                                                     <span className="font-bold ml-4">{loc.quantity}</span>

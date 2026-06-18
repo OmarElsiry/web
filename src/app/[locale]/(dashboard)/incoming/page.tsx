@@ -141,7 +141,7 @@ export default function IncomingStockPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {loading ? (
+                            {loading && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center justify-center gap-3">
@@ -150,7 +150,8 @@ export default function IncomingStockPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : items.length === 0 ? (
+                            )}
+                            {!loading && items.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
@@ -160,7 +161,8 @@ export default function IncomingStockPage() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
+                            )}
+                            {!loading && items.length > 0 && (
                                 items.map(item => (
                                     <tr key={item.id} className="hover:bg-muted/50 transition-colors group">
                                         <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>{item.productName}</td>

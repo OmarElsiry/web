@@ -1,10 +1,11 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
-import { ScrollText, RefreshCcw, Loader2, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { RefreshCcw, Loader2, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
 
@@ -58,6 +59,7 @@ function LogsContent() {
 
     useEffect(() => {
         fetchLogs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, selectedUserId]);
 
     const getActionColor = (action: string) => {
@@ -138,6 +140,7 @@ function LogsContent() {
                         <tbody className="divide-y divide-border">
                             {loading ? (
                                 <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
+                            // eslint-disable-next-line sonarjs/no-nested-conditional
                             ) : logs.length === 0 ? (
                                 <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">{t('empty')}</td></tr>
                             ) : (

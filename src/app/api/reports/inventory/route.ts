@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 const prisma = getPrisma();
 
-export async function GET(_request: Request) {
+export async function GET() {
   // Auth check
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -71,10 +71,10 @@ export async function GET(_request: Request) {
       products: formattedProducts,
       summary
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to fetch inventory report data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch inventory report: ' + error.message },
+      { error: 'Failed to fetch inventory report: ' + (error instanceof Error ? error.message : String(error)) },
       { status: 500 }
     );
   }

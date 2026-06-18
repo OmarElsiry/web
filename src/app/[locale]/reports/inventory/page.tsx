@@ -251,13 +251,11 @@ function useInventoryData() {
 
 
 function ReportHeader({ 
-  locale, 
   isRtl, 
   isLoading, 
   fetchData, 
   handlePrint 
 }: { 
-  locale: string, 
   isRtl: boolean, 
   isLoading: boolean, 
   fetchData: () => void, 
@@ -296,7 +294,7 @@ function ReportHeader({
   );
 }
 
-function SummaryCards({ isRtl, isLoading, filteredSummary }: { isRtl: boolean, isLoading: boolean, filteredSummary: any }) {
+function SummaryCards({ isRtl, isLoading, filteredSummary }: { isRtl: boolean, isLoading: boolean, filteredSummary: { totalUniqueItems: number; totalStockQuantity: number } }) {
   return (
     <div className="max-w-7xl mx-auto mb-8 grid grid-cols-1 sm:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 max-w-2xl">
       <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800/80 p-6 rounded-2xl shadow-xl flex items-center justify-between print:border-slate-300 print:bg-slate-50 print:p-4">

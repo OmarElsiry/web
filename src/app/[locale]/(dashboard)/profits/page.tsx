@@ -177,6 +177,7 @@ export default function ProfitsPage() {
                             <Loader2 className="animate-spin mr-2" size={16} />
                             {t('loading')}
                         </div>
+                    // eslint-disable-next-line sonarjs/no-nested-conditional
                     ) : filteredInvoices.length === 0 ? (
                         <div className="flex items-center justify-center p-8 text-muted-foreground font-bold uppercase text-xs tracking-widest">
                             {t('empty')}

@@ -423,14 +423,14 @@ export default function CustomersPage() {
                                         : "bg-primary text-primary-foreground shadow-primary/20 hover:bg-primary/90"
                                 )}
                             >
-                                {saving ? (
-                                    <Loader2 className="animate-spin" size={20} />
-                                ) : modalMode === 'edit' ? (
+                                {saving && <Loader2 className="animate-spin" size={20} />}
+                                {!saving && modalMode === 'edit' && (
                                     <>
                                         <Save size={18} strokeWidth={3} />
                                         {t('editModal.save')}
                                     </>
-                                ) : (
+                                )}
+                                {!saving && modalMode !== 'edit' && (
                                     <>
                                         <Plus size={18} strokeWidth={3} />
                                         {t('modal.create')}

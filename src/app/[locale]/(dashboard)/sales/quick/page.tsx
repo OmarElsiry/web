@@ -1,28 +1,47 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useLocale } from 'next-intl';
 import { getProducts, processSale } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
-import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, Phone, FileText } from 'lucide-react';
+import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, FileText } from 'lucide-react';
 import clsx from 'clsx';
-import { Link } from '@/i18n/routing';
+
+type Product = {
+    id: string;
+    name: string;
+    price: number;
+    stock: number;
+    sku?: string | null;
+    [key: string]: unknown;
+};
+
+type Customer = {
+    id: string;
+    name: string;
+    phone: string | null;
+    balance: number;
+    [key: string]: unknown;
+};
+
+type Step = 1 | 2 | 3 | 4;
 
 export default function QuickSalePage() {
     const locale = useLocale();
     const isRtl = locale === 'ar';
 
-    const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+    const [step, setStep] = useState<Step>(1);
 
     // Step 1: Customer
     const [customerQuery, setCustomerQuery] = useState('');
-    const [customerResults, setCustomerResults] = useState<any[]>([]);
+    const [customerResults, setCustomerResults] = useState<Customer[]>([]);
     const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState<{ id: string, name: string, phone: string, balance: number } | null>(null);
 
     // Step 2: Products
     const [productQuery, setProductQuery] = useState('');
-    const [productResults, setProductResults] = useState<any[]>([]);
+    const [productResults, setProductResults] = useState<Product[]>([]);
     const [isSearchingProduct, setIsSearchingProduct] = useState(false);
     const [cart, setCart] = useState<{ id: string, name: string, price: number, quantity: number, stock: number }[]>([]);
 
@@ -90,7 +109,7 @@ export default function QuickSalePage() {
         }
     };
 
-    const handleAddToCart = (product: any) => {
+    const handleAddToCart = (product: Product) => {
         const stock = product.stock ?? 0;
         if (stock <= 0) return;
 
@@ -160,7 +179,7 @@ export default function QuickSalePage() {
             } else {
                 setError(result.error || 'Failed to process sale');
             }
-        } catch (e: any) {
+        } catch (e: unknown) {
             setError(e.message || 'An error occurred');
         } finally {
             setIsSubmitting(false);
@@ -289,7 +308,7 @@ export default function QuickSalePage() {
                                     className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/5"
                                 >
                                     <Plus size={20} />
-                                    Add "{customerQuery}" as new customer
+                                    Add &quot;{customerQuery}&quot; as new customer
                                 </button>
                             )}
                         </div>
@@ -454,7 +473,7 @@ export default function QuickSalePage() {
                                 ].map(method => (
                                     <button
                                         key={method.id}
-                                        onClick={() => setPaymentMethod(method.id as any)}
+                                        onClick={() => setPaymentMethod(method.id as "CASH" | "CARD" | "CREDIT")}
                                         className={clsx(
                                             "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2",
                                             paymentMethod === method.id 
@@ -571,7 +590,7 @@ export default function QuickSalePage() {
                 <div className="max-w-2xl mx-auto flex gap-3">
                     {step > 1 && (
                         <button
-                            onClick={() => setStep(step - 1 as any)}
+                            onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
                             disabled={isSubmitting}
                             className="p-4 flex items-center justify-center bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/80 transition-colors"
                         >
@@ -581,7 +600,7 @@ export default function QuickSalePage() {
                     
                     {step < 4 ? (
                         <button
-                            onClick={() => setStep(step + 1 as any)}
+                            onClick={() => setStep((step + 1) as 1 | 2 | 3 | 4)}
                             disabled={step === 2 && cart.length === 0}
                             className="flex-1 py-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold text-lg rounded-xl shadow-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:shadow-none"
                         >

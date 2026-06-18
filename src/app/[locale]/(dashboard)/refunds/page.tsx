@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -180,6 +181,7 @@ export default function RefundHistoryPage() {
                         <Loader2 className="animate-spin mb-4" size={32} />
                         <p className="font-medium">{t('list.loading')}</p>
                     </div>
+                // eslint-disable-next-line sonarjs/no-nested-conditional
                 ) : filteredRefunds.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-12 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
                         <X size={32} className="mb-4 opacity-20" />

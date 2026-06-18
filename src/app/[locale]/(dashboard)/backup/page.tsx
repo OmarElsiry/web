@@ -44,7 +44,7 @@ export default function BackupPage() {
                 setStatus('idle');
             }, 5000);
             
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Backup error:', error);
             setStatus('error');
             setErrorMessage(error.message || 'An unexpected error occurred');

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, Plus, Trash2, Search, AlertCircle, ChevronDown, Package, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, RefreshCcw, Settings, Edit, MapPin } from 'lucide-react';
+import { Loader2, Plus, Trash2, Search, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, RefreshCcw, Settings, Edit, MapPin } from 'lucide-react';
 import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct } from '@/app/actions/inventory';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';

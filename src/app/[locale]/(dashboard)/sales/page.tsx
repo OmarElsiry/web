@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
@@ -235,7 +236,7 @@ export default function SalesPage() {
         
         searchTimeoutRef.current = setTimeout(async () => {
             const results = await searchCustomers(val);
-            setSearchResults(results as any[]);
+            setSearchResults(results as CustomerSearch[]);
             setShowCustomerSuggestions(results.length > 0);
         }, 300);
     };

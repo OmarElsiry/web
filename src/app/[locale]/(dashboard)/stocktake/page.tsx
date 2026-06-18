@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { ClipboardCheck, Search, RefreshCcw, Save, Filter } from 'lucide-react';
+import { Search, RefreshCcw, Save, Filter } from 'lucide-react';
 import { getStocktakeItems, reconcileStock, StockAdjustment } from '@/app/actions/stocktake';
 import clsx from 'clsx';
 
@@ -30,7 +30,7 @@ export default function StocktakePage() {
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [loadData]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -199,12 +199,14 @@ export default function StocktakePage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                            {loading ? (
-                                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">{t('table.loading')}</td></tr>
-                            ) : filteredProducts.length === 0 ? (
-                                <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">{t('table.noResults')}</td></tr>
-                            ) : (
-                                filteredProducts.map(product => {
+                            {(() => {
+                                if (loading) {
+                                    return <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">{t('table.loading')}</td></tr>;
+                                }
+                                if (filteredProducts.length === 0) {
+                                    return <tr><td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">{t('table.noResults')}</td></tr>;
+                                }
+                                return filteredProducts.map(product => {
                                     const actual = counts[product.id] ?? product.stock;
                                     const diff = actual - product.stock;
                                     const hasDiff = diff !== 0;
@@ -267,7 +269,7 @@ export default function StocktakePage() {
                                         </tr>
                                     );
                                 })
-                            )}
+                            })()}
                         </tbody>
                     </table>
                 </div>

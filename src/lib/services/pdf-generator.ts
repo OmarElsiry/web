@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
         const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');

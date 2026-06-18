@@ -50,7 +50,7 @@ export default function UsersPage() {
         void fetchUsers(false);
     }, [fetchUsers]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (confirm(t('alerts.deleteConfirm'))) {
             const res = await deleteUser(id);
             if (res.success) {
@@ -59,12 +59,12 @@ export default function UsersPage() {
                 alert(res.error);
             }
         }
-    };
+    }, [t, fetchUsers]);
 
     const handleDeleteClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
         const id = e.currentTarget.dataset.id;
         if (id) handleDelete(id);
-    }, [fetchUsers, t]);
+    }, [handleDelete]);
 
     const openCreateModal = useCallback(() => {
         setEditingUser(null);
@@ -155,7 +155,7 @@ export default function UsersPage() {
             <div className="flex flex-wrap gap-3 mb-6">
                 {Object.entries(ROLE_COLORS).map(([role, color]) => (
                     <span key={role} className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border shadow-sm ${color}`}>
-                        {t(`roles.${role}` as any)}
+                        {t(`roles.${role}` as Parameters<typeof t>[0])}
                     </span>
                 ))}
             </div>
@@ -180,12 +180,13 @@ export default function UsersPage() {
                             <tr key={user.id} className="hover:bg-secondary/20 transition-colors">
                                 <td className="px-6 py-4 text-center">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black shadow-lg ${user.role === 'ROOT' ? 'bg-purple-500 shadow-purple-500/20' :
-                                            user.role === 'ADMIN' ? 'bg-blue-500 shadow-blue-500/20' :
-                                                user.role === 'ACCOUNTANT' ? 'bg-green-500 shadow-green-500/20' :
-                                                    user.role === 'SALESPERSON' ? 'bg-orange-500 shadow-orange-500/20' :
-                                                        'bg-gray-500 shadow-gray-500/20'
-                                            }`}>
+                                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white font-black shadow-lg ${(() => {
+                                            if (user.role === 'ROOT') return 'bg-purple-500 shadow-purple-500/20';
+                                            if (user.role === 'ADMIN') return 'bg-blue-500 shadow-blue-500/20';
+                                            if (user.role === 'ACCOUNTANT') return 'bg-green-500 shadow-green-500/20';
+                                            if (user.role === 'SALESPERSON') return 'bg-orange-500 shadow-orange-500/20';
+                                            return 'bg-gray-500 shadow-gray-500/20';
+                                        })()}`}>
                                             {(user.name || user.username)[0].toUpperCase()}
                                         </div>
                                         <div>
@@ -214,7 +215,7 @@ export default function UsersPage() {
                                 <td className="px-6 py-4 text-center">
                                     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border shadow-sm ${ROLE_COLORS[user.role] || ROLE_COLORS.READ_ONLY}`}>
                                         <Shield size={10} />
-                                        {t(`roles.${user.role}` as any)}
+                                        {t(`roles.${user.role}` as Parameters<typeof t>[0])}
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-center">
@@ -384,12 +385,12 @@ export default function UsersPage() {
                                                 disabled={!useCustomPermissions}
                                                 className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20"
                                             />
-                                            {t(`permissions.${perm.key}` as any)}
+                                            {t(`permissions.${perm.key}` as Parameters<typeof t>[0])}
                                         </label>
                                     ))}
                                 </div>
                                 {!useCustomPermissions && (
-                                    <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground/60 text-center">{t('modal.defaultPermissions', { role: t(`roles.${selectedRole}` as any) })}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground/60 text-center">{t('modal.defaultPermissions', { role: t(`roles.${selectedRole}` as Parameters<typeof t>[0]) })}</p>
                                 )}
                             </div>
 

@@ -58,7 +58,7 @@ export async function createCategory(name: string) {
         revalidatePath('/products');
         return { success: true, category };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2002') {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002') {
             return { success: false, error: 'Category name already exists.' };
         }
         return { success: false, error: 'Failed to create category.' };
@@ -206,7 +206,7 @@ export async function createProduct(data: {
             }
         };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2002' && (error as any).meta?.target?.includes('sku')) {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string; meta?: { target?: string | string[] } }).code === 'P2002' && (error as { meta?: { target?: string | string[] } }).meta?.target?.includes('sku')) {
             return {
                 success: false,
                 error: 'SKU already exists. Please use a unique code.'
@@ -321,7 +321,7 @@ export async function updateProduct(id: string, data: {
             }
         };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2002' && (error as any).meta?.target?.includes('sku')) {
+        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string; meta?: { target?: string | string[] } }).code === 'P2002' && (error as { meta?: { target?: string | string[] } }).meta?.target?.includes('sku')) {
             return {
                 success: false,
                 error: 'SKU already exists. Please use a unique code.'

@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -59,6 +60,7 @@ export default function MovementsPage() {
 
     useEffect(() => {
         fetchData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, filterType, startDate, endDate]);
 
     const handleFilterTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value), []);
@@ -122,13 +124,15 @@ export default function MovementsPage() {
             </div>
 
             <div className="space-y-4">
-                {loading ? (
+                {loading && (
                     <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
-                ) : transactions.length === 0 ? (
+                )}
+                {!loading && transactions.length === 0 && (
                     <div className="text-center py-20 bg-card border border-border rounded-xl text-muted-foreground">
                         {t('empty')}
                     </div>
-                ) : (
+                )}
+                {!loading && transactions.length > 0 && (
                     transactions.map((tx) => {
                         const { icon: Icon, color, label } = getTypeConfig(tx.type);
                         return (
