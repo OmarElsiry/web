@@ -1,8 +1,10 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { traceAction } from '@/lib/perf-trace';
 
 export async function getDashboardStats() {
+    return traceAction('getDashboardStats', async () => {
     const prisma = getPrisma();
 
     // Parallelize queries for performance
@@ -17,7 +19,8 @@ export async function getDashboardStats() {
     ] = await Promise.all([
         // 1. Total Revenue (Invoices)
         prisma.invoice.aggregate({
-            _sum: { totalAmount: true }
+            _sum: { totalAmount: true },
+            where: { status: 'ACCEPTED' }
         }),
         // 1b. Total Refunds
         prisma.refund.aggregate({
@@ -33,6 +36,7 @@ export async function getDashboardStats() {
         prisma.invoice.aggregate({
             _sum: { totalAmount: true },
             where: {
+                status: 'ACCEPTED',
                 date: {
                     gte: new Date(new Date().setHours(0, 0, 0, 0))
                 }
@@ -52,6 +56,7 @@ export async function getDashboardStats() {
         prisma.invoice.findMany({
             take: 5,
             orderBy: { date: 'desc' },
+            where: { status: 'ACCEPTED' },
             include: {
                 user: {
                     select: { name: true, username: true }
@@ -75,7 +80,7 @@ export async function getDashboardStats() {
                 const end = new Date(date.setHours(23, 59, 59, 999));
                 const res = await prisma.invoice.aggregate({
                     _sum: { totalAmount: true },
-                    where: { date: { gte: start, lte: end } }
+                    where: { status: 'ACCEPTED', date: { gte: start, lte: end } }
                 });
                 dailyData.push({ start, amount: Number(res._sum.totalAmount || 0) });
             }
@@ -122,4 +127,5 @@ export async function getDashboardStats() {
         activeVehicles,
         weeklyData: weeklyFormatted
     };
+    });
 }
