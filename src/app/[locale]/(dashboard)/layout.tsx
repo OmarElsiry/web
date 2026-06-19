@@ -30,7 +30,8 @@ import {
     Database,
     ClipboardList,
     FolderOpen,
-    Landmark
+    Landmark,
+    Layers
 } from 'lucide-react';
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
@@ -42,6 +43,7 @@ const iconMap: Record<string, React.ElementType> = {
     '/dashboard': LayoutDashboard,
     '/sales': ShoppingCart,
     '/stocktake': ClipboardCheck,
+    '/inventory': Layers,
     '/movements': ArrowLeftRight,
     '/incoming': Download,
     '/products': Package,
@@ -164,7 +166,7 @@ const SidebarGroup = ({
 const getGroupForPathname = (pathname: string): string | null => {
     const overviewPaths = ['/dashboard', '/reports'];
     const salesPaths = ['/sales', '/invoices', '/portfolio', '/customers', '/debts', '/reviews'];
-    const inventoryPaths = ['/products', '/stocktake', '/movements', '/incoming'];
+    const inventoryPaths = ['/products', '/inventory', '/stocktake', '/movements', '/incoming'];
     const managementPaths = ['/logs', '/users', '/backup'];
 
     if (overviewPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) return 'overview';
@@ -178,6 +180,7 @@ const getRequiredPermission = (path: string): string | null => {
     if (path === '/dashboard' || path.startsWith('/dashboard/')) return 'dashboard';
     if (path === '/sales' || path.startsWith('/sales/')) return 'sales';
     if (path === '/stocktake' || path.startsWith('/stocktake/')) return 'stocktake';
+    if (path === '/inventory' || path.startsWith('/inventory/')) return 'inventory';
     if (path === '/movements' || path.startsWith('/movements/')) return 'movements';
     if (path === '/incoming' || path.startsWith('/incoming/')) return 'movements';
     if (path === '/products' || path.startsWith('/products/')) return 'products';
@@ -352,7 +355,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="inventory" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/products', '/stocktake', '/movements', '/incoming'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/products', '/inventory', '/stocktake', '/movements', '/incoming'].includes(i.to))} 
                         isOpen={openGroupId === 'inventory'}
                         onToggle={() => handleToggleGroup('inventory')}
                         onItemClick={handleCloseSidebar}

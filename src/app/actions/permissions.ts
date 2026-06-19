@@ -31,6 +31,7 @@ export async function getMenuItemsForUser() {
         { to: '/dashboard', permission: 'dashboard', translationKey: 'dashboard' },
         { to: '/sales', permission: 'sales', translationKey: 'sales' },
         { to: '/stocktake', permission: 'stocktake', translationKey: 'stocktake' },
+        { to: '/inventory', permission: 'inventory', translationKey: 'inventory' },
         { to: '/movements', permission: 'movements', translationKey: 'movements' },
         { to: '/incoming', permission: 'movements', translationKey: 'incoming' },
         { to: '/products', permission: 'products', translationKey: 'products' },

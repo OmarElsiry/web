@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { FileText, Clock, Check, X, Filter, ChevronDown, TrendingUp } from 'lucide-react';
+import { FileText, Clock, Check, X, Filter, ChevronDown } from 'lucide-react';
 import { getStaffList, getStaffPortfolio } from '@/app/actions/staff';
 import { getCurrentUser } from '@/app/actions/permissions';
 import clsx from 'clsx';
@@ -169,25 +169,6 @@ export default function PortfolioPage() {
                 </select>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-5">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">{t('totalInvoices')}</div>
-                    <div className="text-2xl font-black tabular-nums">{statusCounts.pending + statusCounts.accepted + statusCounts.declined}</div>
-                </Card>
-                <Card className="p-5">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1"><TrendingUp size={12} className="text-green-500" />{t('acceptedTotal')}</div>
-                    <div className="text-2xl font-black tabular-nums text-green-600">{ts('currency')} {acceptedTotal.toLocaleString(locale)}</div>
-                </Card>
-                <Card className="p-5">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1"><Clock size={12} className="text-amber-500" />{t('pendingCount')}</div>
-                    <div className="text-2xl font-black tabular-nums text-amber-600">{statusCounts.pending}</div>
-                </Card>
-                <Card className="p-5">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1"><X size={12} className="text-red-500" />{t('declinedCount')}</div>
-                    <div className="text-2xl font-black tabular-nums text-red-600">{statusCounts.declined}</div>
-                </Card>
-            </div>
 
             {/* Invoice List */}
             {dataLoading ? (
@@ -203,47 +184,47 @@ export default function PortfolioPage() {
                             <div
                                 data-id={inv.id}
                                 onClick={handleInvoiceClick}
-                                className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-secondary/20 transition-colors"
+                                className="px-4 py-3 flex items-center justify-between gap-3 cursor-pointer hover:bg-secondary/20 transition-colors"
                             >
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-3 min-w-0">
                                     <div className={clsx(
-                                        "p-3 rounded-xl",
+                                        "p-2 rounded-lg shrink-0",
                                         inv.status === 'ACCEPTED' && "bg-green-500/5 text-green-600",
                                         inv.status === 'PENDING_REVIEW' && "bg-amber-500/5 text-amber-600",
                                         inv.status === 'DECLINED' && "bg-red-500/5 text-red-600",
                                     )}>
-                                        <FileText size={22} />
+                                        <FileText size={18} />
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-lg">
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-base truncate">
                                             {inv.customerName || t('walkIn')}
                                         </div>
-                                        <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-                                            <span className="font-mono bg-secondary px-1.5 py-0.5 rounded text-xs">#{inv.id.slice(0, 8).toUpperCase()}</span>
-                                            <span>•</span>
+                                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 flex-wrap">
                                             <span>{new Date(inv.date).toLocaleDateString(locale)}</span>
+                                            <span>•</span>
+                                            <span className="font-mono bg-secondary px-1 py-0.5 rounded text-[10px]">#{inv.id.slice(0, 8).toUpperCase()}</span>
                                             {inv.reviewer && (
                                                 <>
                                                     <span>•</span>
-                                                    <span className="text-xs">{t('reviewedBy')} {inv.reviewer.name || inv.reviewer.username}</span>
+                                                    <span className="text-[10px]">{t('reviewedBy')} {inv.reviewer.name || inv.reviewer.username}</span>
                                                 </>
                                                     )}
                                                     {inv.revisedBy.length > 0 && (
                                                         <>
                                                             <span>•</span>
-                                                            <span className="text-xs text-blue-600 font-bold">{t('revisedBadge')}</span>
+                                                            <span className="text-[10px] text-blue-600 font-bold">{t('revisedBadge')}</span>
                                                         </>
                                                     )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 shrink-0">
                                     <StatusBadge status={inv.status} />
-                                    <div className="text-center">
-                                        <div className="font-black text-lg text-primary">{ts('currency')} {inv.totalAmount.toLocaleString(locale)}</div>
-                                        <div className="text-xs text-muted-foreground">{inv.paymentMethod}</div>
+                                    <div className="text-end">
+                                        <div className="font-black text-sm text-primary whitespace-nowrap">{ts('currency')} {inv.totalAmount.toLocaleString(locale)}</div>
+                                        <div className="text-[10px] text-muted-foreground">{inv.paymentMethod}</div>
                                     </div>
-                                    <ChevronDown size={18} className={clsx("text-muted-foreground transition-transform", expandedId === inv.id && "rotate-180")} />
+                                    <ChevronDown size={16} className={clsx("text-muted-foreground transition-transform", expandedId === inv.id && "rotate-180")} />
                                 </div>
                             </div>
 

@@ -3,6 +3,7 @@
     "dashboard": "Home",
     "sales": "POS",
     "stocktake": "Stock Count",
+    "inventory": "Inventory View",
     "movements": "Stock In/Out",
     "products": "Products & Pricing",
     "invoices": "Invoices",
