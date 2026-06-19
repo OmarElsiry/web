@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { getProducts, processSale } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import InvoicePdfActions from './InvoicePdfActions';
-import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid } from 'lucide-react';
+import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid, Pencil, X, Clock } from 'lucide-react';
 import clsx from 'clsx';
 
 type Product = {
@@ -59,99 +59,12 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [invoiceId, setInvoiceId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-
-    // Derived
-    const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    useEffect(() => {
-        if (customerQuery.length > 1) {
-            setIsSearchingCustomer(true);
-            const timer = setTimeout(async () => {
-                const results = await searchCustomers(customerQuery);
-                setCustomerResults(results as Customer[]);
-                setIsSearchingCustomer(false);
-            }, 500);
-            return () => clearTimeout(timer);
-        } else {
-            setCustomerResults([]);
-        }
-    }, [customerQuery]);
-
-    useEffect(() => {
-        setProductResults([]);
-    }, []);
-
-    useEffect(() => {
-        if (productQuery.length >= 1) {
-            setIsSearchingProduct(true);
-            const timer = setTimeout(async () => {
-                const products = await getProducts(productQuery, 10);
-                setProductResults(products?.map((p: any) => ({ 
-                    id: p.id,
-                    name: p.name,
-                    price: p.baseSellingPrice,
-                    stock: p.stock,
-                    sku: p.sku
-                })) || []);
-                setIsSearchingProduct(false);
-            }, 300);
-            return () => clearTimeout(timer);
-        } else {
-            setProductResults([]);
-        }
-    }, [productQuery]);
-
-    const handleAddCustomer = useCallback(() => {
-        if (customerQuery) {
-            setSelectedCustomer({ id: 'new', name: customerQuery, phone: '', balance: 0 });
-            setStep(2);
-        }
-    }, [customerQuery]);
-
-    const handleAddToCart = useCallback((product: Product) => {
-        const stock = product.stock ?? 0;
-        if (stock <= 0) return;
-
-        setCart(prev => {
-            const existing = prev.find(i => i.id === product.id);
-            if (existing) {
-                if (existing.quantity >= stock) return prev;
-                return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-            }
-            return [...prev, {
-                id: product.id,
-                name: product.name,
-                price: Number(product.price),
-                quantity: 1,
-                stock
-            }];
-        });
-    }, []);
-
-    const updateQuantity = useCallback((id: string, delta: number) => {
-        setCart(prev => prev.map(item => {
-            if (item.id === id) {
-                const newQty = item.quantity + delta;
-                if (newQty <= 0) return item;
-                if (newQty > item.stock) return item;
-                return { ...item, quantity: newQty };
-            }
-            return item;
-        }));
-    const [editingPriceValue, setEditingPriceValue] = useState<string>('');
-
-    // Step 3: Payment (always cash)
-    const [amountPaid, setAmountPaid] = useState<string>('0');
-
-    // Step 4: Submission
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [invoiceId, setInvoiceId] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [pendingReview, setPendingReview] = useState(false);
 
     // Derived
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    // Debounced customer search
     useEffect(() => {
         if (customerQuery.length > 1) {
             setIsSearchingCustomer(true);
@@ -166,28 +79,21 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
         }
     }, [customerQuery]);
 
+    // Fetch products (initial load & search)
     useEffect(() => {
-        setProductResults([]);
-    }, []);
-
-    useEffect(() => {
-        if (productQuery.length >= 1) {
-            setIsSearchingProduct(true);
-            const timer = setTimeout(async () => {
-                const products = await getProducts(productQuery, 10);
-                setProductResults(products?.map((p: any) => ({ 
-                    id: p.id,
-                    name: p.name,
-                    price: p.baseSellingPrice,
-                    stock: p.stock,
-                    sku: p.sku
-                })) || []);
-                setIsSearchingProduct(false);
-            }, 300);
-            return () => clearTimeout(timer);
-        } else {
-            setProductResults([]);
-        }
+        setIsSearchingProduct(true);
+        const timer = setTimeout(async () => {
+            const products = await getProducts(productQuery || undefined, 100);
+            setProductResults(products?.map((p: any) => ({ 
+                id: p.id,
+                name: p.name,
+                price: p.baseSellingPrice,
+                stock: p.stock,
+                sku: p.sku
+            })) || []);
+            setIsSearchingProduct(false);
+        }, productQuery.length >= 1 ? 300 : 0);
+        return () => clearTimeout(timer);
     }, [productQuery]);
 
     const handleAddCustomer = useCallback(() => {
@@ -283,10 +189,32 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                 paid,
                 customerId
             );
+
+            if (result.success && result.invoice) {
+                if (result.needsReview) {
+                    setPendingReview(true);
+                }
+                setInvoiceId(result.invoice.id);
+            } else {
+                setError(result.error || 'Failed to process sale');
+            }
+        } catch (err: any) {
+            setError(err.message || 'An unexpected error occurred');
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [cart, selectedCustomer, amountPaid]);
+
+    const resetWizard = useCallback(() => {
         setSelectedCustomer(null);
         setCart([]);
         setAmountPaid('0');
         setInvoiceId(null);
+        setStep(1);
+        setCustomerQuery('');
+        setProductQuery('');
+        setError(null);
+        setPendingReview(false);
     }, []);
 
     const handleSelectCustomer = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
@@ -358,13 +286,31 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
     if (invoiceId) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 text-center" dir={isRtl ? 'rtl' : 'ltr'}>
-                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
-                    <Check size={40} strokeWidth={3} />
-                </div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">{isRtl ? 'اكتملت عملية البيع!' : 'Sale Complete!'}</h1>
-                <p className="text-muted-foreground mb-8 text-lg">
-                    {isRtl ? `فاتورة رقم #${invoiceId.slice(-6).toUpperCase()}` : `Invoice #${invoiceId.slice(-6).toUpperCase()}`}
-                </p>
+                {pendingReview ? (
+                    <>
+                        <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-6 shadow-sm animate-pulse">
+                            <Clock size={40} strokeWidth={3} />
+                        </div>
+                        <h1 className="text-3xl font-bold text-foreground mb-2">
+                            {isRtl ? 'قيد المراجعة!' : 'Pending Review!'}
+                        </h1>
+                        <p className="text-muted-foreground mb-8 text-lg">
+                            {isRtl ? 'تم إرسال الفاتورة للمراجعة بسبب تغيير السعر.' : 'The sale has been submitted for review because of custom pricing.'}
+                        </p>
+                    </>
+                ) : (
+                    <>
+                        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                            <Check size={40} strokeWidth={3} />
+                        </div>
+                        <h1 className="text-3xl font-bold text-foreground mb-2">
+                            {isRtl ? 'اكتملت عملية البيع!' : 'Sale Complete!'}
+                        </h1>
+                        <p className="text-muted-foreground mb-8 text-lg">
+                            {isRtl ? `فاتورة رقم #${invoiceId.slice(-6).toUpperCase()}` : `Invoice #${invoiceId.slice(-6).toUpperCase()}`}
+                        </p>
+                    </>
+                )}
                 
                 <div className="flex flex-col gap-4 w-full max-w-md">
                     <InvoicePdfActions invoiceId={invoiceId} />
@@ -516,9 +462,51 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                             <div className="space-y-3">
                                 {cart.map(item => (
                                     <div key={item.id} className="flex items-center justify-between gap-3 bg-secondary/20 p-3 rounded-xl">
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <div className="font-bold line-clamp-1">{item.name}</div>
-                                            <div className="text-sm text-muted-foreground">{item.price.toLocaleString(locale)} {t('currency')}</div>
+                                            {editingPriceId === item.id ? (
+                                                <div className="flex items-center gap-1.5 mt-1">
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        className="w-20 px-2 py-0.5 bg-background border border-primary text-foreground rounded-lg font-bold text-xs focus:outline-none"
+                                                        value={editingPriceValue}
+                                                        onChange={(e) => setEditingPriceValue(e.target.value)}
+                                                        autoFocus
+                                                    />
+                                                    <button
+                                                        onClick={() => handleConfirmEditPrice(item.id)}
+                                                        className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+                                                    >
+                                                        <Check size={12} />
+                                                    </button>
+                                                    <button
+                                                        onClick={handleCancelEditPrice}
+                                                        className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1.5 text-xs mt-0.5">
+                                                    <span className="text-muted-foreground">
+                                                        {item.price.toLocaleString(locale)} {t('currency')}
+                                                    </span>
+                                                    {item.price !== item.basePrice && (
+                                                        <span className="text-[9px] bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                                                            {isRtl ? 'سعر مخصص' : 'Custom'}
+                                                        </span>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleStartEditPrice(item.id, item.price)}
+                                                        className="text-primary hover:text-primary/80 p-0.5 rounded hover:bg-primary/10 transition-all flex items-center justify-center"
+                                                        title={isRtl ? 'تعديل السعر' : 'Edit Price'}
+                                                    >
+                                                        <Pencil size={11} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                         
                                         <div className="flex items-center gap-3 bg-background rounded-lg border p-1 border-border">
@@ -573,7 +561,7 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                             {isSearchingProduct && <Loader2 className={clsx("absolute top-1/2 -translate-y-1/2 animate-spin text-muted-foreground", isRtl ? "left-3" : "right-3")} size={20} />}
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto pb-4">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 max-h-[65vh] overflow-y-auto pb-4">
                             {productResults.map(p => {
                                 const stock = p.stock ?? 0;
                                 const isOutOfStock = stock <= 0;
@@ -586,21 +574,21 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                                         disabled={isOutOfStock}
                                         onClick={handleAddProductToCart}
                                         className={clsx(
-                                            "p-4 rounded-xl flex flex-col justify-between min-h-[140px] transition-all border text-right",
-                                            isOutOfStock ? "opacity-50 bg-secondary/50 cursor-not-allowed border-border" : "bg-background border-border hover:border-primary hover:shadow-md active:scale-95",
+                                            "p-2.5 rounded-xl flex flex-col justify-between min-h-[110px] transition-all border text-right",
+                                            isOutOfStock ? "opacity-50 bg-secondary/50 cursor-not-allowed border-border" : "bg-background border-border hover:border-primary hover:shadow-sm active:scale-[0.98]",
                                             inCart > 0 && "border-primary/50 bg-primary/5"
                                         )}
                                     >
                                         <div>
-                                            <div className="text-xs font-bold px-2 py-1 bg-secondary rounded-md w-fit mb-2 text-muted-foreground">
+                                            <div className="text-[10px] font-bold px-1.5 py-0.5 bg-secondary rounded w-fit mb-1.5 text-muted-foreground">
                                                 {stock} {isRtl ? 'متاح' : 'in stock'}
                                             </div>
-                                            <div className="font-bold leading-tight line-clamp-2 text-[15px]">{p.name}</div>
+                                            <div className="font-semibold leading-tight line-clamp-2 text-[13px] text-foreground">{p.name}</div>
                                         </div>
-                                        <div className="mt-4 flex justify-between items-end w-full">
-                                            <div className="font-black text-lg text-primary">{Number(p.price).toLocaleString(locale)}</div>
+                                        <div className="mt-2 flex justify-between items-center w-full">
+                                            <div className="font-extrabold text-base text-primary">{Number(p.price).toLocaleString(locale)}</div>
                                             {inCart > 0 && (
-                                                <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
+                                                <div className="w-5 h-5 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-[10px] font-bold">
                                                     {inCart}
                                                 </div>
                                             )}
@@ -609,7 +597,7 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                                 );
                             })}
                             {productResults.length === 0 && !isSearchingProduct && (
-                                <div className="col-span-4 text-center py-10 text-muted-foreground">
+                                <div className="col-span-3 sm:col-span-4 md:col-span-5 text-center py-10 text-muted-foreground">
                                     {isRtl ? 'لا توجد نتائج بحث للأصناف.' : 'No products found.'}
                                 </div>
                             )}

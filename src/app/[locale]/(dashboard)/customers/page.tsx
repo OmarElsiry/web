@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Phone, MapPin, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle, HandCoins } from 'lucide-react';
+import { Users, Search, Phone, MapPin, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle, HandCoins, User } from 'lucide-react';
 import { getCustomersList, createCustomer, updateCustomer, deleteCustomer, recordCustomerPayment } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -323,7 +323,7 @@ export default function CustomersPage() {
 
                             <div className="flex items-start gap-4 mb-6 relative z-10">
                                 <div className="p-4 bg-primary/10 text-primary rounded-2xl shadow-sm">
-                                    <UserCircle size={32} />
+                                    <User size={32} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h3 className="font-black text-xl tracking-tight line-clamp-1 mb-1">{customer.name}</h3>

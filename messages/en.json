@@ -607,7 +607,9 @@
       "customers": "Customer CRM",
       "debts": "Debts Report",
       "review": "Review Price Changes",
-      "portfolio": "Sales Portfolio"
+      "portfolio": "Sales Portfolio",
+      "reports": "Reports",
+      "backup": "System Backup"
     },
     "alerts": {
       "deleteConfirm": "Are you absolutely sure? This will permanently revoke all access for this user.",

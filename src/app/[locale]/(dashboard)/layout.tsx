@@ -35,6 +35,7 @@ import {
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
 import { getMenuItemsForUser, getCurrentUser } from '@/app/actions/permissions';
+import { getPendingReviewInvoices } from '@/app/actions/reviews';
 import { Spinner } from '@/components/ui';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -69,7 +70,7 @@ interface CurrentUser {
     role: string;
 }
 
-const SidebarItem = ({ to, icon: Icon, translationKey, active, onClick }: { to: string, icon: React.ElementType, translationKey: string, active: boolean, onClick?: () => void }) => {
+const SidebarItem = ({ to, icon: Icon, translationKey, active, onClick, hasDot }: { to: string, icon: React.ElementType, translationKey: string, active: boolean, onClick?: () => void, hasDot?: boolean }) => {
     const t = useTranslations('Navigation');
     const ref = useRef<HTMLAnchorElement>(null);
 
@@ -92,7 +93,12 @@ const SidebarItem = ({ to, icon: Icon, translationKey, active, onClick }: { to: 
                 active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
         >
-            <Icon size={20} />
+            <div className="relative flex items-center justify-center">
+                <Icon size={20} />
+                {hasDot && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-card" />
+                )}
+            </div>
             <span className={clsx("text-sm transition-colors duration-200", active ? "font-bold" : "font-medium")}>
                 {t(translationKey)}
             </span>
@@ -106,14 +112,16 @@ const SidebarGroup = ({
     pathname, 
     isOpen, 
     onToggle,
-    onItemClick
+    onItemClick,
+    hasPendingReviews
 }: { 
     id: string, 
     items: MenuItem[], 
     pathname: string, 
     isOpen: boolean, 
     onToggle: () => void,
-    onItemClick?: () => void
+    onItemClick?: () => void,
+    hasPendingReviews?: boolean
 }) => {
     const t = useTranslations('Navigation');
 
@@ -138,6 +146,7 @@ const SidebarGroup = ({
                         translationKey={item.translationKey}
                         active={pathname === item.to || pathname.startsWith(item.to + '/')}
                         onClick={onItemClick}
+                        hasDot={item.to === '/reviews' && hasPendingReviews}
                     />
                 ))}
             </div>
@@ -189,6 +198,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
     const [openGroupId, setOpenGroupId] = useState<string | null>(null);
     const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+    const [hasPendingReviews, setHasPendingReviews] = useState(false);
+
+    const hasReviewPermission = menuItems.some(item => item.permission === 'review');
+
+    useEffect(() => {
+        if (!hasReviewPermission) {
+            setHasPendingReviews(false);
+            return;
+        }
+
+        const checkPendingReviews = async () => {
+            try {
+                const invoices = await getPendingReviewInvoices();
+                setHasPendingReviews(invoices.length > 0);
+            } catch (err) {
+                console.error('Error checking pending reviews', err);
+            }
+        };
+
+        checkPendingReviews();
+
+        // Poll every 30 seconds
+        const interval = setInterval(checkPendingReviews, 30000);
+        return () => clearInterval(interval);
+    }, [hasReviewPermission, pathname]);
 
     useEffect(() => {
         // Load menu items based on user permissions
@@ -306,6 +340,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         isOpen={openGroupId === 'sales'}
                         onToggle={() => handleToggleGroup('sales')}
                         onItemClick={handleCloseSidebar}
+                        hasPendingReviews={hasPendingReviews}
                     />
                     <SidebarGroup 
                         id="inventory" 
