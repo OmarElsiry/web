@@ -794,20 +794,27 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                         <button
                             onClick={handleNextStep}
                             disabled={step === 2 && cart.length === 0}
-                            className="flex-1 py-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold text-lg rounded-xl shadow-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:shadow-none"
+                            className="flex-1 py-4 flex items-center justify-center relative bg-primary text-primary-foreground font-bold text-lg rounded-xl shadow-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:shadow-none"
                         >
-                            {isRtl ? 'الخطوة التالية' : 'Next Step'} <ArrowRight className={clsx("w-5 h-5", isRtl && "rotate-180")} />
+                            <span>{isRtl ? 'الخطوة التالية' : 'Next Step'}</span>
+                            <ArrowRight className={clsx("w-5 h-5 absolute", isRtl ? "left-6" : "right-6", isRtl && "rotate-180")} />
                         </button>
                     ) : (
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting}
-                            className="flex-1 py-4 flex items-center justify-center gap-2 bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg hover:bg-green-700 transition-all disabled:opacity-50"
+                            className="flex-1 py-4 flex items-center justify-center relative bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg hover:bg-green-700 transition-all disabled:opacity-50"
                         >
                             {isSubmitting ? (
-                                <><Loader2 className="w-6 h-6 animate-spin" /> {isRtl ? 'جاري المعالجة...' : 'Processing...'}</>
+                                <>
+                                    <Loader2 className={clsx("w-6 h-6 animate-spin absolute", isRtl ? "right-6" : "left-6")} />
+                                    <span>{isRtl ? 'جاري المعالجة...' : 'Processing...'}</span>
+                                </>
                             ) : (
-                                <><Check className="w-6 h-6" /> {isRtl ? 'تأكيد عملية البيع' : 'Confirm Sale'}</>
+                                <>
+                                    <Check className={clsx("w-6 h-6 absolute", isRtl ? "right-6" : "left-6")} />
+                                    <span>{isRtl ? 'تأكيد عملية البيع' : 'Confirm Sale'}</span>
+                                </>
                             )}
                         </button>
                     )}
