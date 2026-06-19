@@ -116,101 +116,103 @@ async function handleCronBackup() {
             })
         ]);
 
-        await backupTable(dateStr, 'invoices', '📊',
-            invoices.map((i: InvoiceBackupRow) => ({
-                id: i.id, date: i.date.toISOString(), totalAmount: i.totalAmount.toString(),
-                method: i.paymentMethod, customer: i.customerName || ''
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'date', title: 'Date' },
-                { id: 'totalAmount', title: 'Total' },
-                { id: 'method', title: 'Method' },
-                { id: 'customer', title: 'Customer' }
-            ]
-        );
+        await Promise.all([
+            backupTable(dateStr, 'invoices', '📊',
+                invoices.map((i: InvoiceBackupRow) => ({
+                    id: i.id, date: i.date.toISOString(), totalAmount: i.totalAmount.toString(),
+                    method: i.paymentMethod, customer: i.customerName || ''
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'date', title: 'Date' },
+                    { id: 'totalAmount', title: 'Total' },
+                    { id: 'method', title: 'Method' },
+                    { id: 'customer', title: 'Customer' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'refunds', '↩️',
-            refunds.map((r: RefundBackupRow) => ({
-                id: r.id, date: r.createdAt.toISOString(), totalAmount: r.totalAmount.toString(),
-                reason: r.reason || '', invoiceId: r.invoiceId || ''
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'date', title: 'Date' },
-                { id: 'totalAmount', title: 'Total' },
-                { id: 'reason', title: 'Reason' },
-                { id: 'invoiceId', title: 'Invoice ID' }
-            ]
-        );
+            backupTable(dateStr, 'refunds', '↩️',
+                refunds.map((r: RefundBackupRow) => ({
+                    id: r.id, date: r.createdAt.toISOString(), totalAmount: r.totalAmount.toString(),
+                    reason: r.reason || '', invoiceId: r.invoiceId || ''
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'date', title: 'Date' },
+                    { id: 'totalAmount', title: 'Total' },
+                    { id: 'reason', title: 'Reason' },
+                    { id: 'invoiceId', title: 'Invoice ID' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'customers', '👥',
-            customers.map((c: CustomerBackupRow) => ({
-                id: c.id, name: c.name, phone: c.phone || '', balance: c.balance.toString()
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'name', title: 'Name' },
-                { id: 'phone', title: 'Phone' },
-                { id: 'balance', title: 'Balance' }
-            ]
-        );
+            backupTable(dateStr, 'customers', '👥',
+                customers.map((c: CustomerBackupRow) => ({
+                    id: c.id, name: c.name, phone: c.phone || '', balance: c.balance.toString()
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'name', title: 'Name' },
+                    { id: 'phone', title: 'Phone' },
+                    { id: 'balance', title: 'Balance' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'expenses', '💸',
-            expenses.map((e: ExpenseBackupRow) => ({
-                id: e.id, description: e.description, amount: e.amount.toString(),
-                date: e.date.toISOString(), category: e.category || ''
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'description', title: 'Description' },
-                { id: 'amount', title: 'Amount' },
-                { id: 'date', title: 'Date' },
-                { id: 'category', title: 'Category' }
-            ]
-        );
+            backupTable(dateStr, 'expenses', '💸',
+                expenses.map((e: ExpenseBackupRow) => ({
+                    id: e.id, description: e.description, amount: e.amount.toString(),
+                    date: e.date.toISOString(), category: e.category || ''
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'description', title: 'Description' },
+                    { id: 'amount', title: 'Amount' },
+                    { id: 'date', title: 'Date' },
+                    { id: 'category', title: 'Category' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'customer-payments', '💰',
-            customerPayments.map((p: PaymentBackupRow) => ({
-                id: p.id, amount: p.amount.toString(),
-                date: p.date.toISOString(), note: p.note || ''
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'amount', title: 'Amount' },
-                { id: 'date', title: 'Date' },
-                { id: 'note', title: 'Note' }
-            ]
-        );
+            backupTable(dateStr, 'customer-payments', '💰',
+                customerPayments.map((p: PaymentBackupRow) => ({
+                    id: p.id, amount: p.amount.toString(),
+                    date: p.date.toISOString(), note: p.note || ''
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'amount', title: 'Amount' },
+                    { id: 'date', title: 'Date' },
+                    { id: 'note', title: 'Note' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'audit-logs', '📝',
-            auditLogs.map((a: AuditBackupRow) => ({
-                id: a.id, userId: a.userId, action: a.action,
-                details: a.details || '', timestamp: a.timestamp.toISOString()
-            })),
-            [
-                { id: 'id', title: 'ID' },
-                { id: 'userId', title: 'User ID' },
-                { id: 'action', title: 'Action' },
-                { id: 'details', title: 'Details' },
-                { id: 'timestamp', title: 'Timestamp' }
-            ]
-        );
+            backupTable(dateStr, 'audit-logs', '📝',
+                auditLogs.map((a: AuditBackupRow) => ({
+                    id: a.id, userId: a.userId, action: a.action,
+                    details: a.details || '', timestamp: a.timestamp.toISOString()
+                })),
+                [
+                    { id: 'id', title: 'ID' },
+                    { id: 'userId', title: 'User ID' },
+                    { id: 'action', title: 'Action' },
+                    { id: 'details', title: 'Details' },
+                    { id: 'timestamp', title: 'Timestamp' }
+                ]
+            ),
 
-        await backupTable(dateStr, 'inventory', '📦',
-            inventory.map((i: InventoryBackupRow) => ({
-                productName: i.product.name,
-                locationName: i.location.name,
-                quantity: i.quantity.toString(),
-                reserved: i.reservedQuantity.toString()
-            })),
-            [
-                { id: 'productName', title: 'Product' },
-                { id: 'locationName', title: 'Location' },
-                { id: 'quantity', title: 'Quantity' },
-                { id: 'reserved', title: 'Reserved' }
-            ]
-        );
+            backupTable(dateStr, 'inventory', '📦',
+                inventory.map((i: InventoryBackupRow) => ({
+                    productName: i.product.name,
+                    locationName: i.location.name,
+                    quantity: i.quantity.toString(),
+                    reserved: i.reservedQuantity.toString()
+                })),
+                [
+                    { id: 'productName', title: 'Product' },
+                    { id: 'locationName', title: 'Location' },
+                    { id: 'quantity', title: 'Quantity' },
+                    { id: 'reserved', title: 'Reserved' }
+                ]
+            )
+        ]);
 
         return NextResponse.json(
             { success: true, message: 'Backups sent to Telegram' },

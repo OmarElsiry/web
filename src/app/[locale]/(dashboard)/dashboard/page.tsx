@@ -9,10 +9,12 @@ export const revalidate = 60;
 
 export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
-    const stats = await getDashboardStats();
-    const { logs: recentLogs } = await getAuditLogs(1, 4);
-    const t = await getTranslations({ locale, namespace: 'Home' });
-    const ts = await getTranslations({ locale, namespace: 'Sales' });
+    const [stats, { logs: recentLogs }, t, ts] = await Promise.all([
+        getDashboardStats(),
+        getAuditLogs(1, 4),
+        getTranslations({ locale, namespace: 'Home' }),
+        getTranslations({ locale, namespace: 'Sales' }),
+    ]);
 
     return (
         <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>

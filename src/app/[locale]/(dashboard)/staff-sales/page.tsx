@@ -55,11 +55,13 @@ export default function StaffSalesPage() {
             const staffList = await getStaffList();
             setStaff(staffList);
 
+            const details = await Promise.all(
+                staffList.map(s => getStaffSalesDetail(s.id, 'all'))
+            );
             const summaryData: Record<string, { total: number, count: number }> = {};
-            for (const s of staffList) {
-                const detail = await getStaffSalesDetail(s.id, 'all');
-                summaryData[s.id] = { total: detail.totalSales, count: detail.totalTransactions };
-            }
+            staffList.forEach((s, i) => {
+                summaryData[s.id] = { total: details[i].totalSales, count: details[i].totalTransactions };
+            });
             setSalesData(summaryData);
         } finally {
             setLoading(false);
