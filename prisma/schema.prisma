@@ -196,12 +196,14 @@ model Invoice {
   reviewer        User?         @relation("InvoiceReviewer", fields: [reviewerId], references: [id])
   reviewedAt      DateTime?
   reviewNote      String?
-  revisedFromInvoiceId String?
-  revisedFrom     Invoice?      @relation("InvoiceRevisions", fields: [revisedFromInvoiceId], references: [id])
-  revisedBy       Invoice[]     @relation("InvoiceRevisions")
+   revisedFromInvoiceId String?
+   revisedFrom     Invoice?      @relation("InvoiceRevisions", fields: [revisedFromInvoiceId], references: [id])
+   revisedBy       Invoice[]     @relation("InvoiceRevisions")
 
-  items           InvoiceItem[]
-  refunds         Refund[]
+   idempotencyKey  String?       @unique
+
+   items           InvoiceItem[]
+   refunds         Refund[]
 
   @@index([date])
   @@index([customerId])

@@ -14,6 +14,37 @@ import { getErrorMessage } from '@/lib/utils/errors';
 import { validateOrFail } from '@/lib/validations';
 import { after } from 'next/server';
 
+async function findExistingInvoice(prisma: ReturnType<typeof getPrisma>, idempotencyKey?: string) {
+    if (!idempotencyKey) return null;
+    return prisma.invoice.findUnique({
+        where: { idempotencyKey },
+        include: { items: true },
+    });
+}
+
+type InvoiceWithItems = {
+    id: string;
+    totalAmount: Prisma.Decimal;
+    items: Array<{
+        unitPrice: Prisma.Decimal;
+        subtotal: Prisma.Decimal;
+        [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+};
+
+function serializeInvoice<T extends InvoiceWithItems>(invoice: T) {
+    return {
+        ...invoice,
+        totalAmount: toNumber(invoice.totalAmount),
+        items: invoice.items.map(it => ({
+            ...it,
+            unitPrice: toNumber(it.unitPrice),
+            subtotal: toNumber(it.subtotal)
+        }))
+    };
+}
+
 async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerId?: string, buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string }) {
     let finalCustomerId = customerId;
     let previousBalance = 0;
@@ -96,6 +127,7 @@ export async function getStaffList() {
     return getStaffList();
 }
 
+// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function processSale(
     items: { productId: string, quantity: number, unitPrice?: number, discountValue?: number }[],
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
@@ -104,7 +136,8 @@ export async function processSale(
     staffId?: string,
     amountPaid?: number,
     customerId?: string,
-    reviewerEditOf?: string
+    reviewerEditOf?: string,
+    clientRequestId?: string
 ) {
     // Validate inputs using Zod
     const validation = validateOrFail(SaleSchema, {
@@ -120,6 +153,17 @@ export async function processSale(
     if (!validation.success) return validation;
 
     const prisma = getPrisma();
+
+    // Idempotency: if clientRequestId was provided, return existing invoice
+    const existing = await findExistingInvoice(prisma, clientRequestId);
+    if (existing) {
+        return {
+            success: true,
+            needsReview: existing.status === 'PENDING_REVIEW',
+            idempotent: true,
+            invoice: serializeInvoice(existing)
+        };
+    }
 
     // Determine who gets credit for the sale (Staff ID if selected, otherwise logged-in user)
     const sellerId = staffId || userId;
@@ -194,6 +238,7 @@ export async function processSale(
                         amountPaid: 0,
                         currentBalance: previousBalance,
                         userId: sellerId || null,
+                        ...(clientRequestId && { idempotencyKey: clientRequestId }),
                         items: { create: invoiceItemsData }
                     },
                     include: { items: true }
@@ -231,6 +276,7 @@ export async function processSale(
                     currentBalance,
                     userId: sellerId || null,
                     ...(isReviewerEdit && { revisedFromInvoiceId: reviewerEditOf }),
+                    ...(clientRequestId && { idempotencyKey: clientRequestId }),
                     items: { create: invoiceItemsData }
                 },
                 include: { items: true }
@@ -281,15 +327,7 @@ export async function processSale(
         return {
             success: true,
             needsReview,
-            invoice: {
-                ...invoice,
-                totalAmount: toNumber(invoice.totalAmount),
-                items: invoice.items.map(it => ({
-                    ...it,
-                    unitPrice: toNumber(it.unitPrice),
-                    subtotal: toNumber(it.subtotal)
-                }))
-            }
+            invoice: serializeInvoice(invoice)
         };
     } catch (error: unknown) {
         const message = getErrorMessage(error, "An unexpected error occurred during the sale.");
