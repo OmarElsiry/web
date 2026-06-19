@@ -131,15 +131,19 @@ export async function processSale(
     // Reviewer editing on behalf of a salesperson → always accepted, no review
     const isReviewerEdit = !!reviewerEditOf && userIsReviewer;
 
-    // 1. Calculate Total & Detect Price Overrides
+    // 1. Batch-fetch all products in one query (eliminates N+1)
+    const productIds = items.map(i => i.productId);
+    const productRecords = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+    });
+    const productMap = new Map(productRecords.map(p => [p.id, p]));
+
     let totalAmount = 0;
     const invoiceItemsData: { productId: string, quantity: number, unitPrice: number, subtotal: number }[] = [];
     let hasPriceOverride = false;
 
     for (const item of items) {
-        const product = await prisma.product.findUnique({
-            where: { id: item.productId }
-        });
+        const product = productMap.get(item.productId);
 
         if (!product) throw new Error(`Product ${item.productId} not found`);
 
