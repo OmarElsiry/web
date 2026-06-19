@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/useLocale';
 import { getExpenses, createExpense, deleteExpense, getSalaryReport, getMonthlyExpenseSummary } from '@/app/actions/expenses';
 import { getStaffList } from '@/app/actions/sales';
 import {
@@ -77,11 +78,10 @@ const EMPTY_FORM = {
     date: new Date().toISOString().split('T')[0]
 };
 
-export default function ExpensesPage() {
+export default function ExpensesTab() {
     const t = useTranslations('Expenses');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
 
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [users, setUsers] = useState<StaffMember[]>([]);
@@ -345,7 +345,7 @@ ${report.employees.map(emp => `
     }, [dateRange, locale, t, isRtl, currency]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -353,7 +353,7 @@ ${report.employees.map(emp => `
                         <Receipt size={28} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tight uppercase text-foreground">{t('title')}</h1>
+                        <h2 className="text-xl font-bold tracking-tight text-foreground">{t('title')}</h2>
                         <p className="text-xs text-muted-foreground font-medium">{t('subtitle')}</p>
                     </div>
                 </div>

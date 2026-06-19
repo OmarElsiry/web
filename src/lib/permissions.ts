@@ -1,9 +1,9 @@
 // Default permissions by role - shared between client and server
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
-    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
-    ACCOUNTANT: ['dashboard', 'invoices', 'profits', 'expenses', 'staff_sales', 'logs', 'customers', 'portfolio'],
-    SALESPERSON: ['dashboard', 'sales', 'invoices', 'customers', 'portfolio'],
+    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'reports', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
+    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'reports', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
+    ACCOUNTANT: ['dashboard', 'invoices', 'reports', 'logs', 'customers', 'portfolio'],
+    SALESPERSON: ['sales', 'invoices', 'stocktake', 'movements', 'portfolio'],
     READ_ONLY: ['dashboard', 'invoices'],
 };
 
@@ -20,11 +20,9 @@ export const ALL_PERMISSIONS = [
     { key: 'movements', label: 'Stock Movements' },
     { key: 'products', label: 'Products & Pricing' },
     { key: 'invoices', label: 'Invoices' },
-    { key: 'profits', label: 'Profits' },
-    { key: 'staff_sales', label: 'Staff Sales' },
+    { key: 'reports', label: 'Reports' },
     { key: 'logs', label: 'Audit Logs' },
     { key: 'users', label: 'Team Management' },
-    { key: 'expenses', label: 'Expenses' },
     { key: 'customers', label: 'Customers' },
     { key: 'backup', label: 'Backup Data' },
     { key: 'review', label: 'Review Price Changes' },

@@ -93,6 +93,14 @@ export default function InvoicesPage() {
         }
     }, [invoices]);
 
+    const handlePrevPage = useCallback(() => {
+        setPage(p => Math.max(1, p - 1));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setPage(p => Math.min(totalPages, p + 1));
+    }, [totalPages]);
+
     const handlePrintIconClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         const id = e.currentTarget.dataset.id;
@@ -279,7 +287,7 @@ export default function InvoicesPage() {
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        onClick={handlePrevPage}
                         disabled={page === 1 || loading}
                         className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
                     >
@@ -289,7 +297,7 @@ export default function InvoicesPage() {
                         {t('pageOf', { current: page, total: totalPages, defaultValue: `Page ${page} of ${totalPages}` })}
                     </span>
                     <button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        onClick={handleNextPage}
                         disabled={page === totalPages || loading}
                         className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
                     >

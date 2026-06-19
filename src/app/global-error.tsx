@@ -1,6 +1,6 @@
 'use client'; // Error components must be Client Components
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 
 export default function GlobalError({
   error,
@@ -14,6 +14,10 @@ export default function GlobalError({
     console.error('Global Error Caught:', error);
   }, [error]);
 
+  const handleReset = useCallback(() => {
+    reset();
+  }, [reset]);
+
   return (
     <html>
       <body>
@@ -25,7 +29,7 @@ export default function GlobalError({
             </p>
             <div className="flex flex-col space-y-4">
               <button
-                onClick={() => reset()}
+                onClick={handleReset}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
               >
                 Try again

@@ -1,3 +1,7 @@
+const barHeights = ['51%', '58%', '65%', '72%', '43%', '50%', '57%'];
+
+const getBarStyle = (height: string) => ({ height });
+
 export default function DashboardLoading() {
     return (
         <div className="space-y-6">
@@ -31,8 +35,8 @@ export default function DashboardLoading() {
                 <div className="col-span-4 rounded-2xl border border-border bg-card p-6 shadow-sm">
                     <div className="h-6 w-40 bg-muted animate-pulse rounded mb-8" />
                     <div className="flex items-end gap-3 h-[220px] border-b border-border/50 pb-2">
-                        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                            <div key={i} className="flex-1 bg-muted/50 animate-pulse rounded-t-lg" style={{ height: `${30 + (i * 7) % 40}%` }} />
+                        {barHeights.map((height, i) => (
+                            <div key={i} className="flex-1 bg-muted/50 animate-pulse rounded-t-lg" style={getBarStyle(height)} />
                         ))}
                     </div>
                 </div>

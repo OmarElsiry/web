@@ -140,8 +140,12 @@ export default function RefundModal({ invoice, onClose, onSuccess }: RefundModal
                             <p className="text-xs text-muted-foreground font-mono mt-1">Invoice #{invoice.id.slice(0, 8).toUpperCase()}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">
-                        <X size={20} />
+                    <button
+                        onClick={onClose}
+                        className="p-2 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary hover:scale-105 active:scale-95 flex items-center justify-center"
+                        aria-label="Close modal"
+                    >
+                        <X size={18} className="transition-transform duration-300 hover:rotate-90" />
                     </button>
                 </div>
 

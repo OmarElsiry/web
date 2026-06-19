@@ -9,9 +9,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
+import QuickWizard from '@/components/sales/QuickWizard';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
 import { getInvoiceForEdit } from '@/app/actions/reviews';
@@ -86,6 +87,15 @@ export default function SalesPage() {
     const locale = useLocale();
 
     const [loading, setLoading] = useState(true);
+    const [checkoutMode, setCheckoutMode] = useState<'standard' | 'quick'>('standard');
+
+    // Automatically set checkoutMode to quick on mobile viewports
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setCheckoutMode('quick');
+        }
+    }, []);
+
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -178,13 +188,7 @@ export default function SalesPage() {
         Promise.all([getStaffList(), getCurrentUser()]).then(([staff, user]) => {
             setStaffList(staff);
             setLoading(false);
-            if (user && staff.some((s: Staff) => s.id === user.id)) {
-                setSelectedStaffId(user.id);
-                const selectedStaff = staff.find((s: Staff) => s.id === user.id);
-                if (selectedStaff) {
-                    setEmployeeName(selectedStaff.name || selectedStaff.username);
-                }
-            }
+            // Do not pre-select the current user as the default salesperson/delegate
         });
 
         const handleClickOutside = (event: MouseEvent) => {
@@ -466,7 +470,7 @@ export default function SalesPage() {
         if (cart.length === 0) return;
 
         if (!selectedStaffId) {
-            setError("يجب اختيار الموظف قبل إصدار الفاتورة");
+            setError("يجب اختيار المندوب قبل إصدار الفاتورة");
             setTimeout(() => setError(null), 3000);
             return;
         }
@@ -579,6 +583,12 @@ export default function SalesPage() {
                     <p className="font-bold">جاري تحميل المحرر...</p>
                 </div>
             </div>
+        );
+    }
+
+    if (checkoutMode === 'quick') {
+        return (
+            <QuickWizard onSwitchMode={() => setCheckoutMode('standard')} />
         );
     }
 
@@ -728,6 +738,13 @@ export default function SalesPage() {
                         <div className="flex flex-col gap-1">
                             <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
                             <button onClick={saveDefaults} className="text-[10px] text-blue-600 font-bold hover:underline self-start">حفظ كإعدادات افتراضية</button>
+                            <button
+                                onClick={() => setCheckoutMode('quick')}
+                                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold transition-all shadow-sm hover:opacity-90 active:scale-95 self-start"
+                            >
+                                <Zap size={14} />
+                                {locale === 'ar' ? 'وضع البيع السريع' : 'Quick Checkout Mode'}
+                            </button>
                         </div>
                     )}
                     <button 
@@ -780,15 +797,15 @@ export default function SalesPage() {
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات المندوب</h3>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم الموظف</label>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم المندوب</label>
                                 <select
                                     value={selectedStaffId}
                                     onChange={handleStaffSelect}
                                     className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                                 >
-                                    <option value="">-- اختر الموظف --</option>
+                                    <option value="">-- اختر المندوب --</option>
                                     {staffList.map((staff: Staff) => (
                                         <option key={staff.id} value={staff.id}>
                                             {staff.name || staff.username}
@@ -857,7 +874,7 @@ export default function SalesPage() {
                                         <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">
                                             <span className="font-bold">{employeeName}</span>
                                         </td>
@@ -1169,11 +1186,6 @@ export default function SalesPage() {
                                         placeholder="0"
                                         className="w-full bg-transparent outline-none text-center font-black text-lg print-hide-spinners" 
                                     />
-                                    {paymentMethod === 'CASH' && amountPaid === 0 && (
-                                        <span className="absolute inset-0 flex items-center justify-center font-black pointer-events-none opacity-50">
-                                            0
-                                        </span>
-                                    )}
                                 </div>
 
                                 <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300 flex items-center">الرصيد المتبقي</div>

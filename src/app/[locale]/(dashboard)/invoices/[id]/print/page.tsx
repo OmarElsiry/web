@@ -71,6 +71,50 @@ export default function InvoicePrintPage() {
     const toggleSettings = useCallback(() => setShowSettings(prev => !prev), []);
     const handlePrint = useCallback(() => window.print(), []);
 
+    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setCustomerName(e.target.value);
+    }, []);
+
+    const handleCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setCity(e.target.value);
+    }, []);
+
+    const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setAddress(e.target.value);
+    }, []);
+
+    const handlePhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setPhone1(e.target.value);
+    }, []);
+
+    const handleEmployeeNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setEmployeeName(e.target.value);
+    }, []);
+
+    const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setWarehouseName(e.target.value);
+    }, []);
+
+    const handleShowCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowCity(e.target.checked);
+    }, []);
+
+    const handleShowAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowAddress(e.target.checked);
+    }, []);
+
+    const handleShowPhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowPhone1(e.target.checked);
+    }, []);
+
+    const handleShowItemCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowItemCode(e.target.checked);
+    }, []);
+
+    const handleShowUnitChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setShowUnit(e.target.checked);
+    }, []);
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -220,41 +264,41 @@ export default function InvoicePrintPage() {
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
-                                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={customerName} onChange={handleCustomerNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             {/* Customer Code Field Hidden */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <input type="checkbox" checked={showCity} onChange={handleShowCityChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                     <div className="flex-1 min-w-0">
                                         <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                        <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        <input type="text" value={city} onChange={handleCityChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                     </div>
                                 </div>
                                 {/* Category Field Hidden */}
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <input type="checkbox" checked={showAddress} onChange={handleShowAddressChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={address} onChange={handleAddressChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showPhone1} onChange={handleShowPhone1Change} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الهاتف</label>
-                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={phone1} onChange={handlePhone1Change} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات المندوب</h3>
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم الموظف</label>
-                                <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم المندوب</label>
+                                <input type="text" value={employeeName} onChange={handleEmployeeNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
 
@@ -262,11 +306,11 @@ export default function InvoicePrintPage() {
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showItemCode} onChange={(e) => setShowItemCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <input type="checkbox" checked={showItemCode} onChange={handleShowItemCodeChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
                                     <span>رقم الصنف</span>
                                 </label>
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showUnit} onChange={(e) => setShowUnit(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <input type="checkbox" checked={showUnit} onChange={handleShowUnitChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
                                     <span>الوحدة</span>
                                 </label>
                             </div>
@@ -274,7 +318,7 @@ export default function InvoicePrintPage() {
 
                         <div className="border-t border-gray-100 pt-6 pb-8">
                             <button
-                                onClick={() => window.print()}
+                                onClick={handlePrint}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_14px_rgba(37,99,235,0.3)] transition-all flex justify-center items-center gap-2"
                             >
                                 <Printer size={20} />
@@ -327,7 +371,7 @@ export default function InvoicePrintPage() {
                                         <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">
                                             <span className="font-bold">{employeeName}</span>
                                         </td>

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useLocale } from 'next-intl';
-import { getProducts, processSale } from '@/app/actions/sales';
+import { useLocale, useTranslations } from 'next-intl';
+import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
-import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, FileText } from 'lucide-react';
+import { getCurrentUser } from '@/app/actions/auth';
+import InvoicePdfActions from './InvoicePdfActions';
+import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid, Users } from 'lucide-react';
 import clsx from 'clsx';
 
 type Product = {
@@ -26,9 +28,14 @@ type Customer = {
 
 type Step = 1 | 2 | 3 | 4;
 
-export default function QuickSalePage() {
+interface QuickWizardProps {
+    onSwitchMode: () => void;
+}
+
+export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
     const locale = useLocale();
     const isRtl = locale === 'ar';
+    const t = useTranslations('Sales');
 
     const [step, setStep] = useState<Step>(1);
 
@@ -67,7 +74,7 @@ export default function QuickSalePage() {
             setIsSearchingCustomer(true);
             const timer = setTimeout(async () => {
                 const results = await searchCustomers(customerQuery);
-                setCustomerResults(results);
+                setCustomerResults(results as Customer[]);
                 setIsSearchingCustomer(false);
             }, 500);
             return () => clearTimeout(timer);
@@ -77,8 +84,6 @@ export default function QuickSalePage() {
     }, [customerQuery]);
 
     useEffect(() => {
-        // We no longer fetch all products upfront to prevent memory issues.
-        // Products will be fetched on demand as the user types.
         setProductResults([]);
     }, []);
 
@@ -87,7 +92,13 @@ export default function QuickSalePage() {
             setIsSearchingProduct(true);
             const timer = setTimeout(async () => {
                 const products = await getProducts(productQuery, 10);
-                setProductResults(products?.map((p: any) => ({ ...p, price: p.baseSellingPrice })) || []);
+                setProductResults(products?.map((p: any) => ({ 
+                    id: p.id,
+                    name: p.name,
+                    price: p.baseSellingPrice,
+                    stock: p.stock,
+                    sku: p.sku
+                })) || []);
                 setIsSearchingProduct(false);
             }, 300);
             return () => clearTimeout(timer);
@@ -116,7 +127,7 @@ export default function QuickSalePage() {
             return [...prev, {
                 id: product.id,
                 name: product.name,
-                price: Number(product.baseSellingPrice),
+                price: Number(product.price),
                 quantity: 1,
                 stock
             }];
@@ -190,31 +201,91 @@ export default function QuickSalePage() {
         setInvoiceId(null);
     }, []);
 
+    const handleSelectCustomer = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        const name = e.currentTarget.dataset.name;
+        const phone = e.currentTarget.dataset.phone || '';
+        const balance = Number(e.currentTarget.dataset.balance || 0);
+        if (id && name) {
+            setSelectedCustomer({ id, name, phone, balance });
+            setStep(2);
+        }
+    }, []);
+
+    const handleSkipCustomer = useCallback(() => setStep(2), []);
+
+    const handleUpdateQuantity = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        const delta = Number(e.currentTarget.dataset.delta || 0);
+        if (id) updateQuantity(id, delta);
+    }, [updateQuantity]);
+
+    const handleRemoveFromCart = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) removeFromCart(id);
+    }, [removeFromCart]);
+
+    const handleAddProductToCart = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (!id) return;
+        const product = productResults.find(p => p.id === id);
+        if (product) handleAddToCart(product);
+    }, [productResults, handleAddToCart]);
+
+    const handleSetExactAmount = useCallback(() => {
+        setAmountPaid(totalAmount.toString());
+    }, [totalAmount]);
+
+    const handleSetUnpaid = useCallback(() => {
+        setAmountPaid('0');
+    }, []);
+
+    const handlePrevStep = useCallback(() => {
+        setStep((step - 1) as 1 | 2 | 3 | 4);
+    }, [step]);
+
+    const handleNextStep = useCallback(() => {
+        setStep((step + 1) as 1 | 2 | 3 | 4);
+    }, [step]);
+
+    const handleProductQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setProductQuery(e.target.value);
+    }, []);
+
+    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = e.target.value;
+        if (v === '' || v === '-') return setAmountPaid('0');
+        const n = Number(v);
+        setAmountPaid(isNaN(n) ? '0' : String(Math.max(0, n)));
+    }, []);
+
+    const handleAmountPaidFocus = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+        e.target.select();
+    }, []);
+
+    const handleCustomerQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setCustomerQuery(e.target.value);
+    }, []);
+
     if (invoiceId) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 text-center">
+            <div className="flex flex-col items-center justify-center min-h-[70vh] p-4 text-center" dir={isRtl ? 'rtl' : 'ltr'}>
                 <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
                     <Check size={40} strokeWidth={3} />
                 </div>
-                <h1 className="text-3xl font-bold text-foreground mb-2">Sale Complete!</h1>
-                <p className="text-muted-foreground mb-8 text-lg">Invoice #{invoiceId.slice(-6).toUpperCase()}</p>
+                <h1 className="text-3xl font-bold text-foreground mb-2">{isRtl ? 'اكتملت عملية البيع!' : 'Sale Complete!'}</h1>
+                <p className="text-muted-foreground mb-8 text-lg">
+                    {isRtl ? `فاتورة رقم #${invoiceId.slice(-6).toUpperCase()}` : `Invoice #${invoiceId.slice(-6).toUpperCase()}`}
+                </p>
                 
-                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
-                    <a
-                        href={`/api/invoices/${invoiceId}/pdf`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground py-4 rounded-xl font-bold text-lg hover:opacity-90 shadow-lg"
-                    >
-                        <FileText size={24} />
-                        Print PDF
-                    </a>
+                <div className="flex flex-col gap-4 w-full max-w-md">
+                    <InvoicePdfActions invoiceId={invoiceId} />
                     <button
                         onClick={resetWizard}
-                        className="flex-1 flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-4 rounded-xl font-bold text-lg hover:bg-secondary/80"
+                        className="w-full flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-4 rounded-xl font-bold text-lg hover:bg-secondary/80"
                     >
                         <Plus size={24} />
-                        New Sale
+                        {isRtl ? 'بيع جديد' : 'New Sale'}
                     </button>
                 </div>
             </div>
@@ -222,12 +293,23 @@ export default function QuickSalePage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto pb-24 relative min-h-[calc(100vh-80px)]">
+        <div className="max-w-2xl mx-auto pb-24 relative min-h-[calc(100vh-80px)]" dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Header & Progress */}
             <div className="mb-6 sticky top-0 bg-background/95 backdrop-blur z-10 pt-4 pb-2">
                 <div className="flex justify-between items-center mb-4">
-                    <h1 className="text-2xl font-bold">Quick Sale</h1>
-                    <span className="text-sm font-medium text-muted-foreground bg-secondary px-3 py-1 rounded-full">Step {step} of 4</span>
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-2xl font-bold">{isRtl ? 'تسجيل بيع سريع' : 'Quick Sale'}</h1>
+                        <button
+                            onClick={onSwitchMode}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-bold transition-all"
+                        >
+                            <LayoutGrid size={14} />
+                            {isRtl ? 'وضع الكاشير الكامل' : 'Standard POS'}
+                        </button>
+                    </div>
+                    <span className="text-sm font-medium text-muted-foreground bg-secondary px-3 py-1 rounded-full">
+                        {isRtl ? `الخطوة ${step} من 4` : `Step ${step} of 4`}
+                    </span>
                 </div>
                 <div className="flex gap-2 h-2">
                     {[1, 2, 3, 4].map(s => (
@@ -246,27 +328,27 @@ export default function QuickSalePage() {
             {/* Step 1: Customer */}
             {step === 1 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-card rounded-2xl p-6 shadow-sm border">
+                    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
                         <div className="flex items-center gap-3 mb-6 text-primary">
                             <div className="p-3 bg-primary/10 rounded-xl">
                                 <User size={24} />
                             </div>
-                            <h2 className="text-xl font-bold">Customer Details</h2>
+                            <h2 className="text-xl font-bold">{isRtl ? 'بيانات العميل' : 'Customer Details'}</h2>
                         </div>
 
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium mb-2">Search or Add Customer</label>
+                                <label className="block text-sm font-medium mb-2">{isRtl ? 'ابحث أو أضف عميلاً' : 'Search or Add Customer'}</label>
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                                    <Search className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isRtl ? "right-3" : "left-3")} size={20} />
                                     <input
                                         type="text"
-                                        placeholder="Name or phone..."
-                                        className="w-full pl-10 pr-4 py-4 rounded-xl border bg-background text-lg"
+                                        placeholder={isRtl ? "الاسم أو رقم الهاتف..." : "Name or phone..."}
+                                        className={clsx("w-full py-4 rounded-xl border bg-background text-lg", isRtl ? "pr-10 pl-4" : "pl-10 pr-4")}
                                         value={customerQuery}
-                                        onChange={(e) => setCustomerQuery(e.target.value)}
+                                        onChange={handleCustomerQueryChange}
                                     />
-                                    {isSearchingCustomer && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" size={20} />}
+                                    {isSearchingCustomer && <Loader2 className={clsx("absolute top-1/2 -translate-y-1/2 animate-spin text-muted-foreground", isRtl ? "left-3" : "right-3")} size={20} />}
                                 </div>
                             </div>
 
@@ -275,20 +357,21 @@ export default function QuickSalePage() {
                                     {customerResults.map(c => (
                                         <button
                                             key={c.id}
-                                            onClick={() => {
-                                                setSelectedCustomer({ id: c.id, name: c.name, phone: c.phone || '', balance: Number(c.balance) });
-                                                setStep(2);
-                                            }}
-                                            className="w-full text-left bg-background p-4 rounded-lg flex justify-between items-center hover:border-primary border border-transparent transition-colors shadow-sm"
+                                            data-id={c.id}
+                                            data-name={c.name}
+                                            data-phone={c.phone || ''}
+                                            data-balance={Number(c.balance)}
+                                            onClick={handleSelectCustomer}
+                                            className="w-full text-right bg-background p-4 rounded-lg flex justify-between items-center hover:border-primary border border-transparent transition-colors shadow-sm"
                                         >
-                                            <div>
+                                            <div className="text-right">
                                                 <div className="font-bold text-lg">{c.name}</div>
                                                 {c.phone && <div className="text-sm text-muted-foreground">{c.phone}</div>}
                                             </div>
                                             {Number(c.balance) > 0 && (
-                                                <div className="text-right">
-                                                    <div className="text-xs text-muted-foreground">Balance</div>
-                                                    <div className="font-bold text-red-500">{Number(c.balance).toLocaleString()} EGP</div>
+                                                <div className="text-left">
+                                                    <div className="text-xs text-muted-foreground">{isRtl ? 'الرصيد' : 'Balance'}</div>
+                                                    <div className="font-bold text-red-500">{Number(c.balance).toLocaleString(locale)} {t('currency')}</div>
                                                 </div>
                                             )}
                                         </button>
@@ -302,7 +385,7 @@ export default function QuickSalePage() {
                                     className="w-full py-4 border-2 border-dashed border-primary/50 text-primary font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-primary/5"
                                 >
                                     <Plus size={20} />
-                                    Add &quot;{customerQuery}&quot; as new customer
+                                    {isRtl ? `إضافة "${customerQuery}" كعميل جديد` : `Add "${customerQuery}" as new customer`}
                                 </button>
                             )}
                         </div>
@@ -310,10 +393,10 @@ export default function QuickSalePage() {
 
                     <div className="flex gap-4">
                         <button
-                            onClick={() => setStep(2)}
+                            onClick={handleSkipCustomer}
                             className="flex-1 py-4 font-bold text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-colors"
                         >
-                            Skip Without Customer
+                            {isRtl ? 'تخطي بدون عميل (عميل نقدي)' : 'Skip Without Customer'}
                         </button>
                     </div>
                 </div>
@@ -329,37 +412,41 @@ export default function QuickSalePage() {
                                     <User size={16} /> {selectedCustomer.name}
                                 </div>
                             ) : (
-                                <div className="text-muted-foreground font-medium">Walk-in Customer</div>
+                                <div className="text-muted-foreground font-medium">{isRtl ? 'عميل نقدي' : 'Walk-in Customer'}</div>
                             )}
                         </div>
-                        <div className="font-bold text-lg">{totalAmount.toLocaleString()} EGP</div>
+                        <div className="font-bold text-lg">{totalAmount.toLocaleString(locale)} {t('currency')}</div>
                     </div>
 
                     {/* Cart Summary (if items exist) */}
                     {cart.length > 0 && (
-                        <div className="bg-card rounded-2xl p-4 shadow-sm border mb-6">
+                        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border mb-6">
                             <h3 className="font-bold text-sm text-muted-foreground mb-3 flex items-center gap-2">
                                 <ShoppingCart size={16} />
-                                Cart ({cart.reduce((s, i) => s + i.quantity, 0)} items)
+                                {isRtl ? `السلة (${cart.reduce((s, i) => s + i.quantity, 0)} أصناف)` : `Cart (${cart.reduce((s, i) => s + i.quantity, 0)} items)`}
                             </h3>
                             <div className="space-y-3">
                                 {cart.map(item => (
                                     <div key={item.id} className="flex items-center justify-between gap-3 bg-secondary/20 p-3 rounded-xl">
                                         <div className="flex-1">
                                             <div className="font-bold line-clamp-1">{item.name}</div>
-                                            <div className="text-sm text-muted-foreground">{item.price.toLocaleString()} EGP</div>
+                                            <div className="text-sm text-muted-foreground">{item.price.toLocaleString(locale)} {t('currency')}</div>
                                         </div>
                                         
-                                        <div className="flex items-center gap-3 bg-background rounded-lg border p-1">
+                                        <div className="flex items-center gap-3 bg-background rounded-lg border p-1 border-border">
                                             <button 
-                                                onClick={() => updateQuantity(item.id, -1)}
+                                                data-id={item.id}
+                                                data-delta={-1}
+                                                onClick={handleUpdateQuantity}
                                                 className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:bg-secondary rounded-md"
                                             >
                                                 <Minus size={16} />
                                             </button>
                                             <span className="font-bold w-6 text-center">{item.quantity}</span>
                                             <button 
-                                                onClick={() => updateQuantity(item.id, 1)}
+                                                data-id={item.id}
+                                                data-delta={1}
+                                                onClick={handleUpdateQuantity}
                                                 disabled={item.quantity >= item.stock}
                                                 className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground active:bg-secondary rounded-md disabled:opacity-30"
                                             >
@@ -367,12 +454,13 @@ export default function QuickSalePage() {
                                             </button>
                                         </div>
                                         
-                                        <div className="w-20 text-right font-bold text-primary">
-                                            {(item.price * item.quantity).toLocaleString()}
+                                        <div className="w-20 text-center font-bold text-primary">
+                                            {(item.price * item.quantity).toLocaleString(locale)}
                                         </div>
                                         
                                         <button 
-                                            onClick={() => removeFromCart(item.id)}
+                                            data-id={item.id}
+                                            onClick={handleRemoveFromCart}
                                             className="p-2 text-red-500/50 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                         >
                                             <Trash2 size={20} />
@@ -384,20 +472,20 @@ export default function QuickSalePage() {
                     )}
 
                     {/* Product Search */}
-                    <div className="bg-card rounded-2xl p-6 shadow-sm border">
+                    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
                         <div className="relative mb-6">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                            <Search className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isRtl ? "right-3" : "left-3")} size={20} />
                             <input
                                 type="text"
-                                placeholder="Search products..."
-                                className="w-full pl-10 pr-4 py-4 rounded-xl border bg-background text-lg"
+                                placeholder={isRtl ? "ابحث عن صنف بالاسم أو SKU..." : "Search products..."}
+                                className={clsx("w-full py-4 rounded-xl border bg-background text-lg", isRtl ? "pr-10 pl-4" : "pl-10 pr-4")}
                                 value={productQuery}
-                                onChange={(e) => setProductQuery(e.target.value)}
+                                onChange={handleProductQueryChange}
                             />
-                            {isSearchingProduct && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground" size={20} />}
+                            {isSearchingProduct && <Loader2 className={clsx("absolute top-1/2 -translate-y-1/2 animate-spin text-muted-foreground", isRtl ? "left-3" : "right-3")} size={20} />}
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 max-h-[60vh] overflow-y-auto pb-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[60vh] overflow-y-auto pb-4">
                             {productResults.map(p => {
                                 const stock = p.stock ?? 0;
                                 const isOutOfStock = stock <= 0;
@@ -406,22 +494,23 @@ export default function QuickSalePage() {
                                 return (
                                     <button
                                         key={p.id}
+                                        data-id={p.id}
                                         disabled={isOutOfStock}
-                                        onClick={() => handleAddToCart(p)}
+                                        onClick={handleAddProductToCart}
                                         className={clsx(
-                                            "p-4 rounded-xl text-left flex flex-col justify-between min-h-[140px] transition-all border",
-                                            isOutOfStock ? "opacity-50 bg-secondary/50 cursor-not-allowed" : "bg-background hover:border-primary hover:shadow-md active:scale-95",
+                                            "p-4 rounded-xl flex flex-col justify-between min-h-[140px] transition-all border text-right",
+                                            isOutOfStock ? "opacity-50 bg-secondary/50 cursor-not-allowed border-border" : "bg-background border-border hover:border-primary hover:shadow-md active:scale-95",
                                             inCart > 0 && "border-primary/50 bg-primary/5"
                                         )}
                                     >
                                         <div>
                                             <div className="text-xs font-bold px-2 py-1 bg-secondary rounded-md w-fit mb-2 text-muted-foreground">
-                                                {stock} in stock
+                                                {stock} {isRtl ? 'متاح' : 'in stock'}
                                             </div>
                                             <div className="font-bold leading-tight line-clamp-2 text-[15px]">{p.name}</div>
                                         </div>
                                         <div className="mt-4 flex justify-between items-end w-full">
-                                            <div className="font-black text-lg text-primary">{Number(p.baseSellingPrice).toLocaleString()}</div>
+                                            <div className="font-black text-lg text-primary">{Number(p.price).toLocaleString(locale)}</div>
                                             {inCart > 0 && (
                                                 <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
                                                     {inCart}
@@ -432,8 +521,8 @@ export default function QuickSalePage() {
                                 );
                             })}
                             {productResults.length === 0 && !isSearchingProduct && (
-                                <div className="col-span-2 text-center py-10 text-muted-foreground">
-                                    No products found.
+                                <div className="col-span-4 text-center py-10 text-muted-foreground">
+                                    {isRtl ? 'لا توجد نتائج بحث للأصناف.' : 'No products found.'}
                                 </div>
                             )}
                         </div>
@@ -444,63 +533,71 @@ export default function QuickSalePage() {
             {/* Step 3: Payment */}
             {step === 3 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-card rounded-2xl p-6 shadow-sm border">
+                    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
                         <div className="flex items-center gap-3 mb-6 text-primary">
                             <div className="p-3 bg-primary/10 rounded-xl">
                                 <CreditCard size={24} />
                             </div>
-                            <h2 className="text-xl font-bold">Payment Details</h2>
+                            <h2 className="text-xl font-bold">{isRtl ? 'تفاصيل الدفع' : 'Payment Details'}</h2>
                         </div>
 
                         <div className="text-center mb-8 p-6 bg-secondary/20 rounded-xl border border-primary/10">
-                            <div className="text-sm font-medium text-muted-foreground mb-1">Total to Pay</div>
-                            <div className="text-4xl font-black text-primary">{totalAmount.toLocaleString()} EGP</div>
+                            <div className="text-sm font-medium text-muted-foreground mb-1">{isRtl ? 'المطلوب سداده' : 'Total to Pay'}</div>
+                            <div className="text-4xl font-black text-primary">{totalAmount.toLocaleString(locale)} {t('currency')}</div>
                         </div>
 
                         <div className="space-y-4 mb-8">
-                            <label className="block text-sm font-medium">Payment Method</label>
-                            <div className="grid grid-cols-1 gap-3">
-                                <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-primary bg-primary/10 text-primary gap-2">
-                                    <span className="text-2xl">💵</span>
-                                    <span className="font-bold text-sm">Cash</span>
-                                </div>
+                            <label className="block text-sm font-medium">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {(['CASH', 'INSTAPAY', 'CREDIT'] as const).map(method => (
+                                    <button
+                                        key={method}
+                                        onClick={() => setPaymentMethod(method)}
+                                        className={clsx(
+                                            "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2",
+                                            paymentMethod === method 
+                                                ? "border-primary bg-primary/10 text-primary" 
+                                                : "border-border bg-card text-muted-foreground hover:bg-secondary/50"
+                                        )}
+                                    >
+                                        <span className="text-xl">{method === 'CASH' ? '💵' : method === 'INSTAPAY' ? '⚡' : '💳'}</span>
+                                        <span className="font-bold text-xs">{t(`sidebar.paymentMethods.${method}` as any)}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                            <label className="block text-sm font-medium">Amount Paid (EGP)</label>
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">EGP</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    className="w-full pl-16 pr-4 py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black"
-                                    value={amountPaid}
-                                    onChange={(e) => {
-                                        const v = e.target.value;
-                                        if (v === '' || v === '-') return setAmountPaid('0');
-                                        const n = Number(v);
-                                        setAmountPaid(isNaN(n) ? '0' : String(Math.max(0, n)));
-                                    }}
-                                    onFocus={(e) => e.target.select()}
-                                />
+                        {paymentMethod !== 'CREDIT' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                <label className="block text-sm font-medium">{isRtl ? 'المبلغ المدفوع' : 'Amount Paid (EGP)'}</label>
+                                <div className="relative">
+                                    <span className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg", isRtl ? "right-4" : "left-4")}>{t('currency')}</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        className={clsx("w-full py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black", isRtl ? "pr-16 pl-4" : "pl-16 pr-4")}
+                                        value={amountPaid}
+                                        onChange={handleAmountPaidChange}
+                                        onFocus={handleAmountPaidFocus}
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={handleSetExactAmount}
+                                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                    >
+                                        {isRtl ? 'المبلغ بالكامل' : 'Exact Amount'}
+                                    </button>
+                                    <button 
+                                        onClick={handleSetUnpaid}
+                                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                    >
+                                        {isRtl ? 'غير مدفوع (آجل)' : 'Unpaid'}
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <button 
-                                    onClick={() => setAmountPaid(totalAmount.toString())}
-                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
-                                >
-                                    Exact Amount
-                                </button>
-                                <button 
-                                    onClick={() => setAmountPaid('0')}
-                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
-                                >
-                                    Unpaid
-                                </button>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -508,37 +605,37 @@ export default function QuickSalePage() {
             {/* Step 4: Review */}
             {step === 4 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    <div className="bg-card rounded-2xl p-6 shadow-sm border">
+                    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
                         <div className="flex items-center gap-3 mb-6 text-primary">
                             <div className="p-3 bg-primary/10 rounded-xl">
                                 <Check size={24} />
                             </div>
-                            <h2 className="text-xl font-bold">Review & Confirm</h2>
+                            <h2 className="text-xl font-bold">{isRtl ? 'مراجعة وتأكيد' : 'Review & Confirm'}</h2>
                         </div>
 
                         {selectedCustomer && (
                             <div className="mb-6 p-4 bg-secondary/30 rounded-xl border border-secondary">
-                                <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-2">Customer</div>
+                                <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-2">{isRtl ? 'العميل' : 'Customer'}</div>
                                 <div className="font-bold text-lg">{selectedCustomer.name}</div>
                                 {selectedCustomer.phone && <div className="text-muted-foreground">{selectedCustomer.phone}</div>}
                                 {selectedCustomer.balance > 0 && (
                                     <div className="mt-2 text-sm">
-                                        Previous Balance: <span className="font-bold text-red-500">{selectedCustomer.balance.toLocaleString()} EGP</span>
+                                        {isRtl ? 'الرصيد السابق:' : 'Previous Balance:'} <span className="font-bold text-red-500">{selectedCustomer.balance.toLocaleString(locale)} {t('currency')}</span>
                                     </div>
                                 )}
                             </div>
                         )}
 
                         <div className="mb-6">
-                            <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-2">Items ({cart.length})</div>
+                            <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-2">{isRtl ? `الأصناف (${cart.length})` : `Items (${cart.length})`}</div>
                             <div className="space-y-2">
                                 {cart.map(item => (
-                                    <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0">
+                                    <div key={item.id} className="flex justify-between items-center py-2 border-b last:border-0 border-border">
                                         <div>
                                             <span className="font-medium">{item.name}</span>
                                             <span className="text-muted-foreground text-sm ml-2">×{item.quantity}</span>
                                         </div>
-                                        <div className="font-bold">{(item.price * item.quantity).toLocaleString()}</div>
+                                        <div className="font-bold">{(item.price * item.quantity).toLocaleString(locale)}</div>
                                     </div>
                                 ))}
                             </div>
@@ -546,25 +643,25 @@ export default function QuickSalePage() {
 
                         <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-muted-foreground">Total</span>
-                                <span className="text-lg font-bold">{totalAmount.toLocaleString()} EGP</span>
+                                <span className="text-muted-foreground">{isRtl ? 'الإجمالي' : 'Total'}</span>
+                                <span className="text-lg font-bold">{totalAmount.toLocaleString(locale)} {t('currency')}</span>
                             </div>
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-muted-foreground">Payment Method</span>
-                                <span className="font-medium">{paymentMethod}</span>
+                                <span className="text-muted-foreground">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</span>
+                                <span className="font-medium">{t(`sidebar.paymentMethods.${paymentMethod}` as any)}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Amount Paid</span>
+                                <span className="text-muted-foreground">{isRtl ? 'المبلغ المدفوع' : 'Amount Paid'}</span>
                                 <span className="font-bold text-green-600">
-                                    {Number(amountPaid).toLocaleString()} EGP
+                                    {paymentMethod === 'CREDIT' ? '0' : Number(amountPaid).toLocaleString(locale)} {t('currency')}
                                 </span>
                             </div>
                             
-                            {selectedCustomer && Number(amountPaid) < totalAmount && (
+                            {selectedCustomer && (paymentMethod === 'CREDIT' || Number(amountPaid) < totalAmount) && (
                                 <div className="mt-4 pt-4 border-t border-primary/20 flex justify-between items-center">
-                                    <span className="font-bold text-red-500">New Balance</span>
+                                    <span className="font-bold text-red-500">{isRtl ? 'الرصيد الجديد' : 'New Balance'}</span>
                                     <span className="font-black text-red-500">
-                                        {(selectedCustomer.balance + totalAmount - Number(amountPaid)).toLocaleString()} EGP
+                                        {(selectedCustomer.balance + totalAmount - (paymentMethod === 'CREDIT' ? 0 : Number(amountPaid))).toLocaleString(locale)} {t('currency')}
                                     </span>
                                 </div>
                             )}
@@ -574,11 +671,11 @@ export default function QuickSalePage() {
             )}
 
             {/* Bottom Actions Bar */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t border-border z-50">
                 <div className="max-w-2xl mx-auto flex gap-3">
                     {step > 1 && (
                         <button
-                            onClick={() => setStep((step - 1) as 1 | 2 | 3 | 4)}
+                            onClick={handlePrevStep}
                             disabled={isSubmitting}
                             className="p-4 flex items-center justify-center bg-secondary text-secondary-foreground rounded-xl hover:bg-secondary/80 transition-colors"
                         >
@@ -588,11 +685,11 @@ export default function QuickSalePage() {
                     
                     {step < 4 ? (
                         <button
-                            onClick={() => setStep((step + 1) as 1 | 2 | 3 | 4)}
+                            onClick={handleNextStep}
                             disabled={step === 2 && cart.length === 0}
                             className="flex-1 py-4 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold text-lg rounded-xl shadow-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:shadow-none"
                         >
-                            Next Step <ArrowRight className={clsx("w-5 h-5", isRtl && "rotate-180")} />
+                            {isRtl ? 'الخطوة التالية' : 'Next Step'} <ArrowRight className={clsx("w-5 h-5", isRtl && "rotate-180")} />
                         </button>
                     ) : (
                         <button
@@ -601,9 +698,9 @@ export default function QuickSalePage() {
                             className="flex-1 py-4 flex items-center justify-center gap-2 bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg hover:bg-green-700 transition-all disabled:opacity-50"
                         >
                             {isSubmitting ? (
-                                <><Loader2 className="w-6 h-6 animate-spin" /> Processing...</>
+                                <><Loader2 className="w-6 h-6 animate-spin" /> {isRtl ? 'جاري المعالجة...' : 'Processing...'}</>
                             ) : (
-                                <><Check className="w-6 h-6" /> Confirm Sale</>
+                                <><Check className="w-6 h-6" /> {isRtl ? 'تأكيد عملية البيع' : 'Confirm Sale'}</>
                             )}
                         </button>
                     )}

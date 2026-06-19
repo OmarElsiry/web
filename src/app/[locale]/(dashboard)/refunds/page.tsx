@@ -48,7 +48,7 @@ export default function RefundHistoryPage() {
     const [totalServerItems, setTotalServerItems] = useState(0);
     const ITEMS_PER_PAGE = 50;
 
-    const fetchRefunds = async () => {
+    const fetchRefunds = useCallback(async () => {
         setLoading(true);
         try {
             const [total, data] = await getRefunds(currentPage, ITEMS_PER_PAGE);
@@ -59,11 +59,11 @@ export default function RefundHistoryPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage]);
 
     useEffect(() => {
         fetchRefunds();
-    }, [currentPage]);
+    }, [fetchRefunds]);
 
     const filteredRefunds = refunds.filter(ref => {
         const query = searchQuery.toLowerCase();
@@ -98,6 +98,14 @@ export default function RefundHistoryPage() {
             if (found) setSelectedRefund(found);
         }
     }, [refunds]);
+
+    const handlePrevPage = useCallback(() => {
+        setCurrentPage(p => Math.max(1, p - 1));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setCurrentPage(p => p + 1);
+    }, []);
     
     const handleCloseMemoClick = useCallback(() => setSelectedRefund(null), []);
     const handlePrintInvoiceClick = useCallback(() => {
@@ -242,7 +250,7 @@ export default function RefundHistoryPage() {
                 <div className="flex items-center justify-between p-4 bg-card rounded-2xl border border-border shadow-sm">
                     <button 
                         disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        onClick={handlePrevPage}
                         className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
                     >
                         {t('buttons.previous')}
@@ -252,7 +260,7 @@ export default function RefundHistoryPage() {
                     </span>
                     <button 
                         disabled={currentPage >= Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
-                        onClick={() => setCurrentPage(p => p + 1)}
+                        onClick={handleNextPage}
                         className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
                     >
                         {t('buttons.next')}

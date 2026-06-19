@@ -165,12 +165,22 @@ export async function processSale(
         };
     }
 
-    // Determine who gets credit for the sale (Staff ID if selected, otherwise logged-in user)
-    const sellerId = staffId || userId;
-
     // Check if the current user is a reviewer (permission-based review trigger)
     const currentUser = await getCurrentUser();
     const userIsReviewer = isReviewer(currentUser);
+
+    // Determine who gets credit for the sale:
+    // 1. Explicitly selected staff
+    // 2. Explicitly passed userId
+    // 3. Currently logged-in user (mobile quick-sale fallback)
+    const effectiveUserId = userId || currentUser?.id;
+    const sellerId = staffId || effectiveUserId;
+
+    if (!sellerId) {
+        return { success: false, error: 'Seller is required. Please select a salesperson.' };
+    }
+
+    console.log('processSale seller resolved', staffId, userId, effectiveUserId, sellerId, currentUser?.id);
 
     // Reviewer editing on behalf of a salesperson → always accepted, no review
     const isReviewerEdit = !!reviewerEditOf && userIsReviewer;
@@ -311,7 +321,7 @@ export async function processSale(
         const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
         const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
         const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
-        const auditUserId = currentUser?.id || userId;
+        const auditUserId = currentUser?.id || userId || sellerId;
 
         after(
             needsReview

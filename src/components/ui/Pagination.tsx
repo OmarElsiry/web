@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
@@ -11,6 +12,14 @@ interface PaginationProps {
 }
 
 export function Pagination({ currentPage, totalPages, onPageChange, isRtl, disabled }: PaginationProps) {
+    const handlePrev = useCallback(() => {
+        onPageChange(Math.max(1, currentPage - 1));
+    }, [currentPage, onPageChange]);
+
+    const handleNext = useCallback(() => {
+        onPageChange(Math.min(totalPages, currentPage + 1));
+    }, [currentPage, totalPages, onPageChange]);
+
     if (totalPages <= 1) return null;
 
     const prevIcon = isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />;
@@ -19,7 +28,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, isRtl, disab
     return (
         <div className="flex justify-center items-center gap-4 mt-8">
             <button
-                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                onClick={handlePrev}
                 disabled={currentPage === 1 || disabled}
                 className="px-4 py-2 border border-border rounded-lg hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 text-sm font-bold"
             >
@@ -30,7 +39,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, isRtl, disab
                 {isRtl ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
             </span>
             <button
-                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                onClick={handleNext}
                 disabled={currentPage === totalPages || disabled}
                 className="px-4 py-2 border border-border rounded-lg hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 text-sm font-bold"
             >

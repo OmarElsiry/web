@@ -9,25 +9,29 @@ import { tafqeet } from '@/lib/tafqeet';
 export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
         const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
-        const hasArabicFont = fs.existsSync(fontPath);
+        if (!fs.existsSync(fontPath)) {
+            return reject(new Error(`Invoice PDF font missing: ${fontPath}`));
+        }
+
+        const logoPath = path.join(process.cwd(), 'public', 'stash-logo.png');
+        const hasLogo = fs.existsSync(logoPath);
 
         const doc = new PDFDocument({
             margin: 50,
-            font: hasArabicFont ? fontPath : undefined
+            size: 'A4',
+            font: fontPath
         });
-        if (hasArabicFont) {
-            doc.registerFont('ArabicFont', fontPath);
-        }
+        doc.registerFont('ArabicFont', fontPath);
+        doc.font('ArabicFont');
+
         const buffers: Buffer[] = [];
 
         doc.on('data', buffers.push.bind(buffers));
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
 
-        // -- Content Generation --
-        const logoPath = path.join(process.cwd(), 'public', 'stash-logo.png');
         let titleX = 50;
-        if (fs.existsSync(logoPath)) {
+        if (hasLogo) {
             doc.image(logoPath, 50, 45, { width: 80 });
             titleX = 140;
         }
@@ -65,7 +69,7 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
             .moveDown();
 
         const tableTop = 350;
-        doc.font(hasArabicFont ? 'ArabicFont' : 'Helvetica-Bold');
+        doc.font('ArabicFont');
         doc.text('Item / الصنف', 50, tableTop);
         doc.text('Quantity', 280, tableTop, { width: 90, align: 'right' });
         doc.text('Unit Price', 370, tableTop, { width: 90, align: 'right' });
@@ -74,7 +78,7 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
         let i = 0;
-        doc.font(hasArabicFont ? 'ArabicFont' : 'Helvetica');
+        doc.font('ArabicFont');
         for (const item of invoice.items) {
             const y = tableTop + 30 + (i * 30);
             doc.text(item.product.name, 50, y);
@@ -87,19 +91,17 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.moveTo(50, tableTop + 30 + (i * 30)).lineTo(550, tableTop + 30 + (i * 30)).stroke();
 
         const subtotalPosition = tableTop + 30 + (i * 30) + 15;
-        doc.font(hasArabicFont ? 'ArabicFont' : 'Helvetica-Bold');
+        doc.font('ArabicFont');
         doc.text('Grand Total / الاجمالي:', 350, subtotalPosition, { width: 90, align: 'right' });
         doc.text(formatMoney(toNumber(invoice.totalAmount)), 0, subtotalPosition, { align: 'right' });
 
         // Arabic amount in words (Tafqeet)
-        if (hasArabicFont) {
-            const totalAmount = toNumber(invoice.totalAmount);
-            const integerPart = Math.floor(totalAmount);
-            const decimalPart = Math.round((totalAmount - integerPart) * 100);
-            const arabicAmount = tafqeet(integerPart) + (decimalPart > 0 ? ` و${tafqeet(decimalPart)} قرشاً` : '');
-            doc.font('ArabicFont').fontSize(10).fillColor('#666666')
-                .text(`${arabicAmount} جنيه مصري فقط لا غير`, 50, subtotalPosition + 20, { align: 'center' });
-        }
+        const totalAmount = toNumber(invoice.totalAmount);
+        const integerPart = Math.floor(totalAmount);
+        const decimalPart = Math.round((totalAmount - integerPart) * 100);
+        const arabicAmount = tafqeet(integerPart) + (decimalPart > 0 ? ` و${tafqeet(decimalPart)} قرشاً` : '');
+        doc.font('ArabicFont').fontSize(10).fillColor('#666666')
+            .text(`${arabicAmount} جنيه مصري فقط لا غير`, 50, subtotalPosition + 20, { align: 'center' });
 
         doc.end();
     });

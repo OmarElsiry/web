@@ -30,7 +30,7 @@ interface ProductData {
     revenue: number;
 }
 
-export default function AnalyticsPage() {
+export default function AnalyticsTab() {
     const t = useTranslations('Analytics');
     const ts = useTranslations('Sales');
     const { locale } = useLocale();
@@ -95,8 +95,6 @@ export default function AnalyticsPage() {
         <div className="space-y-6 max-w-7xl mx-auto" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between gap-4">
-                
-
                 <div className="flex flex-wrap items-center gap-2">
                     {/* Date Inputs */}
                     <div className="flex items-center gap-2 bg-card border border-border p-1 rounded-lg">
@@ -184,7 +182,7 @@ export default function AnalyticsPage() {
 
                                 <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
+                                        <table className="w-full text-sm text-left font-sans">
                                             <thead className="bg-secondary/50 text-muted-foreground border-b border-border">
                                                 <tr>
                                                     <th className="p-4 font-bold uppercase tracking-wider text-[10px] text-center">{t('buyers.table.rank')}</th>
@@ -319,7 +317,7 @@ export default function AnalyticsPage() {
                                                             <span className={clsx(
                                                                 "inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs",
                                                                 ["bg-yellow-500/20 text-yellow-600", "bg-gray-400/20 text-gray-600", "bg-orange-400/20 text-orange-600"][idx] || "bg-secondary text-muted-foreground"
-                                                            )}>
+                                                                )}>
                                                                 #{(idx + 1).toLocaleString(locale)}
                                                             </span>
                                                         </td>

@@ -63,12 +63,14 @@ export default function PortfolioPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
     const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('all');
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
     useEffect(() => {
         Promise.all([getStaffList(), getCurrentUser()]).then(([staffList, user]) => {
             setStaff(staffList as StaffMember[]);
             if (user) {
                 setSelectedStaffId(user.id);
+                setCurrentUserRole(user.role);
             }
             setLoading(false);
         });
@@ -114,6 +116,11 @@ export default function PortfolioPage() {
         setExpandedId(prev => prev === id ? null : id);
     }, []);
 
+    const handleInvoiceClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const id = e.currentTarget.dataset.id;
+        if (id) handleToggleExpand(id);
+    }, [handleToggleExpand]);
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -126,6 +133,7 @@ export default function PortfolioPage() {
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Filters */}
             <div className="flex flex-wrap items-center gap-3 bg-card p-4 rounded-2xl border border-border shadow-sm">
+                {currentUserRole !== 'SALESPERSON' && (
                 <div className="flex items-center gap-2">
                     <Filter size={18} className="text-muted-foreground" />
                     <select
@@ -138,6 +146,7 @@ export default function PortfolioPage() {
                         ))}
                     </select>
                 </div>
+                )}
                 <select
                     value={statusFilter}
                     onChange={handleStatusFilterChange}
@@ -192,7 +201,8 @@ export default function PortfolioPage() {
                     {invoices.map(inv => (
                         <div key={inv.id} className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden">
                             <div
-                                onClick={() => handleToggleExpand(inv.id)}
+                                data-id={inv.id}
+                                onClick={handleInvoiceClick}
                                 className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-secondary/20 transition-colors"
                             >
                                 <div className="flex items-center gap-4">

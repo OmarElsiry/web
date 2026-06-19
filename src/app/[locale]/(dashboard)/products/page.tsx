@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Loader2, Plus, Trash2, Search, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, RefreshCcw, Settings, Edit, MapPin } from 'lucide-react';
-import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct } from '@/app/actions/inventory';
+import { Loader2, Plus, Trash2, Search, AlertCircle, ChevronDown, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, RefreshCcw, Settings, Edit, MapPin, Tag, Percent, X, Check, Printer } from 'lucide-react';
+import { getUnifiedProducts, getCategories, createProduct, updateProduct, createCategory, deleteCategory, deleteProduct, bulkUpdatePricing } from '@/app/actions/inventory';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
 import { ProductModal } from '@/components/products/ProductModal';
 import { CategoryModal } from '@/components/products/CategoryModal';
+import { Spinner } from '@/components/ui';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -51,8 +53,24 @@ const getMarginColor = (margin: number) => {
 export default function ProductsPage() {
     const t = useTranslations('Products');
     const ts = useTranslations('Sales');
+    const tp = useTranslations('Pricing');
     const locale = useLocale();
     const isRtl = locale === 'ar';
+
+    const [activeTab, setActiveTab] = useState<'stock' | 'pricing'>('stock');
+
+    // Bulk Update State
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkPercentage, setBulkPercentage] = useState<number | ''>('');
+    const [bulkType, setBulkType] = useState<'markup' | 'increase'>('markup');
+    const [bulkSubmitting, setBulkSubmitting] = useState(false);
+
+    // Single Edit State (for quick pricing edit)
+    const [isPriceEditModalOpen, setIsPriceEditModalOpen] = useState(false);
+    const [editingPriceProduct, setEditingPriceProduct] = useState<Product | null>(null);
+    const [editCost, setEditCost] = useState(0);
+    const [editSell, setEditSell] = useState(0);
+    const [editSubmitting, setEditSubmitting] = useState(false);
 
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -243,6 +261,63 @@ export default function ProductsPage() {
     const handleFormQtyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, initialQuantity: Math.max(0, Number(e.target.value) || 0) })), []);
     const handleNewCategoryNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value), []);
 
+    // Bulk Pricing handlers
+    const handleSaveBulk = useCallback(async () => {
+        if (!bulkPercentage) return;
+        setBulkSubmitting(true);
+        try {
+            await bulkUpdatePricing(Number(bulkPercentage), bulkType);
+            setIsBulkModalOpen(false);
+            fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setBulkSubmitting(false);
+        }
+    }, [bulkPercentage, bulkType, fetchData]);
+
+    const openBulkModal = useCallback(() => {
+        setBulkPercentage('');
+        setBulkType('markup');
+        setIsBulkModalOpen(true);
+    }, []);
+    const closeBulkModal = useCallback(() => setIsBulkModalOpen(false), []);
+    const handleBulkPercentageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setBulkPercentage(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0)), []);
+    const setBulkTypeMarkup = useCallback(() => setBulkType('markup'), []);
+    const setBulkTypeIncrease = useCallback(() => setBulkType('increase'), []);
+
+    const handleEditPriceClick = useCallback((product: Product) => {
+        setEditingPriceProduct(product);
+        setEditCost(product.costPrice);
+        setEditSell(product.baseSellingPrice);
+        setIsPriceEditModalOpen(true);
+    }, []);
+
+    const handleSavePriceEdit = useCallback(async () => {
+        if (!editingPriceProduct) return;
+        setEditSubmitting(true);
+        try {
+            await updateProduct(editingPriceProduct.id, {
+                name: editingPriceProduct.name,
+                sku: editingPriceProduct.sku,
+                categoryId: editingPriceProduct.categoryId,
+                costPrice: editCost,
+                baseSellingPrice: editSell,
+                unit: editingPriceProduct.unit
+            });
+            setIsPriceEditModalOpen(false);
+            await fetchData();
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setEditSubmitting(false);
+        }
+    }, [editingPriceProduct, editCost, editSell, fetchData]);
+
+    const closePriceEditModal = useCallback(() => setIsPriceEditModalOpen(false), []);
+    const handleEditCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditCost(Math.max(0, Number(e.target.value) || 0)), []);
+    const handleEditSellChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditSell(Math.max(0, Number(e.target.value) || 0)), []);
+
     const handleToggleExpandRow = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
         const id = e.currentTarget.dataset.id;
         if (id) {
@@ -343,20 +418,95 @@ export default function ProductsPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                
-                <div className="flex gap-2">
-                    <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50">
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    @page { size: auto; margin: 15mm; }
+                    body {
+                        background: white !important;
+                        color: black !important;
+                    }
+                    aside, header, .print\\:hidden, button, select, input, .filters-bar {
+                        display: none !important;
+                    }
+                    main {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        background: white !important;
+                    }
+                    .bg-secondary\\/20 {
+                        background-color: transparent !important;
+                    }
+                }
+            `}} />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                        {activeTab === 'stock' ? t('title') : tp('title')}
+                    </h1>
+                    <p className="text-xs text-muted-foreground">
+                        {activeTab === 'stock' ? t('subtitle') : tp('subtitle')}
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* Tab Switcher */}
+                    <div className="bg-secondary/50 p-1 rounded-xl flex items-center border border-border">
+                        <button
+                            onClick={() => setActiveTab('stock')}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                                activeTab === 'stock'
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            {t('title')}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('pricing')}
+                            className={clsx(
+                                "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+                                activeTab === 'pricing'
+                                    ? "bg-background text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            {tp('title')}
+                        </button>
+                    </div>
+
+                    <button onClick={fetchData} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50" aria-label="Refresh">
                         <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
                     </button>
-                    <button onClick={handleOpenCategoryModal} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors">
-                        <Settings size={16} />
-                        {t('categories')}
+                    
+                    <button
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+                    >
+                        <Printer size={16} />
+                        {ts('buttons.exportPDF')}
                     </button>
-                    <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-all shadow-sm active:scale-95">
-                        <Plus size={16} />
-                        {t('newProduct')}
-                    </button>
+
+                    {activeTab === 'stock' && (
+                        <>
+                            <button onClick={handleOpenCategoryModal} className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors">
+                                <Settings size={16} />
+                                {t('categories')}
+                            </button>
+                            <button onClick={openAddModal} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-all shadow-sm active:scale-95">
+                                <Plus size={16} />
+                                {t('newProduct')}
+                            </button>
+                        </>
+                    )}
+                    {activeTab === 'pricing' && (
+                        <button
+                            onClick={openBulkModal}
+                            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-all shadow-sm active:scale-95 font-bold text-xs uppercase"
+                        >
+                            <Percent size={16} />
+                            {tp('bulkUpdate')}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -368,7 +518,7 @@ export default function ProductsPage() {
             )}
 
             {/* Filters Bar */}
-            <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
+            <div className="flex flex-wrap items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm print:hidden">
                 {/* Category Filter */}
                     <select
                         value={categoryFilter}
@@ -398,30 +548,30 @@ export default function ProductsPage() {
             </div>
 
             {/* Unified Table */}
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden products-table-container">
                 <div className="overflow-x-auto">
                     <table className={clsx("w-full text-sm", 'text-center')}>
                         <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                             <tr>
-                                <th className="px-4 py-3 w-8 text-center"></th>
+                                <th className="px-4 py-3 w-8 text-center print:hidden"></th>
                                 {renderSortableHeader('name', t('table.product'))}
                                 {renderSortableHeader('sku', t('table.sku'))}
                                 {renderSortableHeader('category', t('table.category'))}
-                                <th className="px-4 py-3 text-xs text-center">{t('table.unit')}</th>
+                                {activeTab === 'stock' && <th className="px-4 py-3 text-xs text-center">{t('table.unit')}</th>}
                                 {renderSortableHeader('cost', t('table.cost'), 'text-center')}
                                 {renderSortableHeader('sell', t('table.sell'), 'text-center')}
-                                {renderSortableHeader('margin', t('table.margin'), 'text-center')}
-                                {renderSortableHeader('stock', t('table.stock'), 'text-center')}
-                                {renderSortableHeader('percent', t('table.percentTotal'), 'text-center')}
-                                <th className={clsx("px-4 py-3 text-xs", 'text-center')}>{t('table.actions')}</th>
+                                {renderSortableHeader('margin', activeTab === 'stock' ? t('table.margin') : tp('table.margin'), 'text-center')}
+                                {activeTab === 'stock' && renderSortableHeader('stock', t('table.stock'), 'text-center')}
+                                {activeTab === 'stock' && renderSortableHeader('percent', t('table.percentTotal'), 'text-center')}
+                                <th className={clsx("px-4 py-3 text-xs print:hidden", 'text-center')}>{t('table.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading && (
-                                <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
+                                <tr><td colSpan={activeTab === 'stock' ? 11 : 8} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
                             )}
                             {!loading && paginatedItems.length === 0 && (
-                                <tr><td colSpan={11} className="px-6 py-12 text-center text-muted-foreground">{t('noProducts')}</td></tr>
+                                <tr><td colSpan={activeTab === 'stock' ? 11 : 8} className="px-6 py-12 text-center text-muted-foreground">{t('noProducts')}</td></tr>
                             )}
                             {!loading && paginatedItems.length > 0 && (
                                 paginatedItems.map((p) => {
@@ -430,7 +580,7 @@ export default function ProductsPage() {
                                     return (
                                         <React.Fragment key={p.id}>
                                             <tr className="hover:bg-muted/50 transition-colors group">
-                                                <td className="px-4 py-3 text-center">
+                                                <td className="px-4 py-3 text-center print:hidden">
                                                     {p.locationBreakdown.length > 0 && (
                                                         <button
                                                             data-id={p.id}
@@ -444,7 +594,7 @@ export default function ProductsPage() {
                                                 <td className="px-4 py-3 font-semibold text-center">{p.name}</td>
                                                 <td className="px-4 py-3 font-mono text-xs text-center">{p.sku}</td>
                                                 <td className="px-4 py-3 text-center"><span className="px-2 py-1 bg-secondary rounded text-[10px] font-bold">{p.categoryName}</span></td>
-                                                <td className="px-4 py-3 text-xs capitalize text-muted-foreground text-center">{t(`units.${p.unit}` as Parameters<typeof t>[0])}</td>
+                                                {activeTab === 'stock' && <td className="px-4 py-3 text-xs capitalize text-muted-foreground text-center">{t(`units.${p.unit}` as Parameters<typeof t>[0])}</td>}
                                                 <td className={clsx("px-4 py-3 font-mono text-xs", 'text-center')}>{ts('currency')} {p.costPrice.toLocaleString(locale)}</td>
                                                 <td className={clsx("px-4 py-3 font-mono text-xs font-bold", 'text-center')}>{ts('currency')} {p.baseSellingPrice.toLocaleString(locale)}</td>
                                                 <td className={clsx("px-4 py-3", 'text-center')}>
@@ -455,31 +605,41 @@ export default function ProductsPage() {
                                                         {Number(margin).toLocaleString(locale)}%
                                                     </span>
                                                 </td>
-                                                <td className={clsx("px-4 py-3", 'text-center')}>
-                                                    <span className={clsx("font-bold", p.totalStock < 10 ? "text-red-500" : "")}>{p.totalStock.toLocaleString(locale)}</span>
-                                                    {p.totalStock < 10 && <AlertCircle size={12} className="inline mx-1 text-red-500" />}
-                                                </td>
-                                                <td className={clsx("px-4 py-3", 'text-center')}>
-                                                    <div className={clsx("flex items-center gap-2", isRtl ? "justify-start" : "justify-end")}>
-                                                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-primary rounded-full transition-all"
-                                                                style={{ width: `${Math.min(p.percentOfTotal, 100)}%` } as React.CSSProperties}
-                                                            />
+                                                {activeTab === 'stock' && (
+                                                    <td className={clsx("px-4 py-3", 'text-center')}>
+                                                        <span className={clsx("font-bold", p.totalStock < 10 ? "text-red-500" : "")}>{p.totalStock.toLocaleString(locale)}</span>
+                                                        {p.totalStock < 10 && <AlertCircle size={12} className="inline mx-1 text-red-500" />}
+                                                    </td>
+                                                )}
+                                                {activeTab === 'stock' && (
+                                                    <td className={clsx("px-4 py-3", 'text-center')}>
+                                                        <div className={clsx("flex items-center gap-2", isRtl ? "justify-start" : "justify-end")}>
+                                                            <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary rounded-full transition-all"
+                                                                    style={{ width: `${Math.min(p.percentOfTotal, 100)}%` } as React.CSSProperties}
+                                                                />
+                                                            </div>
+                                                            <span className="text-xs font-mono w-12">{p.percentOfTotal.toLocaleString(locale)}%</span>
                                                         </div>
-                                                        <span className="text-xs font-mono w-12">{p.percentOfTotal.toLocaleString(locale)}%</span>
-                                                    </div>
-                                                </td>
-                                                <td className={clsx("px-4 py-3", 'text-center')}>
+                                                    </td>
+                                                )}
+                                                <td className={clsx("px-4 py-3 print:hidden", 'text-center')}>
                                                     <div className={clsx("flex items-center gap-1", isRtl ? "justify-start" : "justify-end")}>
-                                                        <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground" aria-label="Edit product"><Edit size={14} /></button>
-                                                        <button data-id={p.id} onClick={handleDeleteProductClick} className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-colors" aria-label="Delete product"><Trash2 size={14} /></button>
+                                                        {activeTab === 'stock' ? (
+                                                            <>
+                                                                <button data-id={p.id} onClick={handleEditProductClick} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground" aria-label="Edit product"><Edit size={14} /></button>
+                                                                <button data-id={p.id} onClick={handleDeleteProductClick} className="p-2 hover:bg-red-50 rounded-lg text-red-400 hover:text-red-600 transition-colors" aria-label="Delete product"><Trash2 size={14} /></button>
+                                                            </>
+                                                        ) : (
+                                                            <button data-id={p.id} onClick={() => handleEditPriceClick(p)} className="p-2 hover:bg-secondary rounded-lg text-muted-foreground hover:text-foreground" aria-label="Edit price"><Edit size={14} /></button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
                                             {/* Expanded Location Breakdown */}
-                                            {isExpanded && (
-                                                <tr className="bg-secondary/10">
+                                            {isExpanded && activeTab === 'stock' && (
+                                                <tr className="bg-secondary/10 print:hidden">
                                                     <td colSpan={11} className="px-4 py-3 text-center">
                                                         <div className={clsx("space-y-1", isRtl ? "mr-8" : "ml-8")}>
                                                             <div className="text-[10px] font-bold uppercase text-muted-foreground mb-2">{t('stockByLocation')}</div>
@@ -510,7 +670,7 @@ export default function ProductsPage() {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                    <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between bg-secondary/10 gap-4">
+                    <div className="px-6 py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between bg-secondary/10 gap-4 print:hidden">
                         <div className="text-sm text-muted-foreground text-center sm:text-left">
                             {t('paginationInfo', {
                                 start: (((currentPage - 1) * ITEMS_PER_PAGE) + 1).toLocaleString(locale),
@@ -599,6 +759,188 @@ export default function ProductsPage() {
                 categories={categories}
                 handleDeleteCategoryClick={handleDeleteCategoryClick}
             />
+
+            {/* Single Price Edit Modal */}
+            {isPriceEditModalOpen && editingPriceProduct && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-border animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/30">
+                            <div>
+                                <h3 className="text-xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
+                                    <Edit size={20} className="text-primary" />
+                                    {tp('title')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-1 font-mono">{editingPriceProduct.name}</p>
+                            </div>
+                            <button
+                                onClick={closePriceEditModal}
+                                className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    {tp('table.cost', { currency: ts('currency') })}
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={editCost}
+                                    onChange={handleEditCostChange}
+                                    className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    {tp('table.selling', { currency: ts('currency') })}
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={editSell}
+                                    onChange={handleEditSellChange}
+                                    className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold"
+                                    step="0.01"
+                                />
+                            </div>
+                            
+                            <div className="pt-2">
+                                <div className="p-3 bg-secondary/50 rounded-xl flex items-center justify-between">
+                                    <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{tp('table.margin')}</span>
+                                    {(() => {
+                                        const margin = editSell > 0 ? ((editSell - editCost) / editSell * 100) : 0;
+                                        let marginClass = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800";
+                                        if (margin >= 20) {
+                                            marginClass = "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border border-green-200 dark:border-green-800";
+                                        } else if (margin >= 10) {
+                                            marginClass = "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800";
+                                        }
+                                        return (
+                                            <span className={clsx("px-2 py-1 rounded-full text-xs font-black shadow-sm tabular-nums", marginClass)}>
+                                                {margin.toLocaleString(locale, { maximumFractionDigits: 1 })}%
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
+                            <button
+                                onClick={closePriceEditModal}
+                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
+                            >
+                                {ts('cancel')}
+                            </button>
+                            <button
+                                onClick={handleSavePriceEdit}
+                                disabled={editSubmitting}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
+                            >
+                                {editSubmitting ? <Spinner size={16} /> : <Check size={16} />}
+                                {ts('save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bulk Update Modal */}
+            {isBulkModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-border animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex items-center justify-between bg-primary/5">
+                            <div>
+                                <h3 className="text-xl font-black uppercase tracking-tight text-foreground flex items-center gap-2">
+                                    <Percent size={20} className="text-primary" />
+                                    {tp('bulkUpdate')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground mt-1">Apply a bulk percentage to all products</p>
+                            </div>
+                            <button
+                                onClick={closeBulkModal}
+                                className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    Update Type
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button 
+                                        onClick={setBulkTypeMarkup}
+                                        className={clsx(
+                                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
+                                            bulkType === 'markup' 
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                                                : "bg-background text-muted-foreground border-border hover:bg-secondary"
+                                        )}
+                                    >
+                                        Markup on Cost
+                                    </button>
+                                    <button 
+                                        onClick={setBulkTypeIncrease}
+                                        className={clsx(
+                                            "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
+                                            bulkType === 'increase' 
+                                                ? "bg-primary text-primary-foreground border-primary shadow-md" 
+                                                : "bg-background text-muted-foreground border-border hover:bg-secondary"
+                                        )}
+                                    >
+                                        Increase Sell Price
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1 h-4">
+                                    {bulkType === 'markup' 
+                                        ? 'Selling Price = Cost Price + X% margin' 
+                                        : 'Selling Price = Current Selling Price + X%'}
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                    Percentage (%)
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={bulkPercentage}
+                                        onChange={handleBulkPercentageChange}
+                                        className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold pr-10"
+                                        placeholder="e.g. 10"
+                                        step="0.1"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-bold">
+                                        %
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
+                            <button
+                                onClick={closeBulkModal}
+                                className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
+                            >
+                                {ts('cancel')}
+                            </button>
+                            <button
+                                onClick={handleSaveBulk}
+                                disabled={bulkSubmitting || bulkPercentage === ''}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
+                            >
+                                {bulkSubmitting ? <Spinner size={16} /> : <Check size={16} />}
+                                Apply Update
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

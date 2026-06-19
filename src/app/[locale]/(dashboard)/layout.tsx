@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
 import Image from 'next/image';
@@ -27,7 +27,6 @@ import {
     ChevronDown,
     ChevronRight,
     Zap,
-    Calculator,
     Database,
     ClipboardList,
     FolderOpen,
@@ -36,27 +35,22 @@ import {
 import clsx from 'clsx';
 import { signOut } from '@/app/actions/auth';
 import { getMenuItemsForUser, getCurrentUser } from '@/app/actions/permissions';
+import { Spinner } from '@/components/ui';
 
 const iconMap: Record<string, React.ElementType> = {
     '/dashboard': LayoutDashboard,
-    '/sales/quick': Zap,
     '/sales': ShoppingCart,
-    '/inventory-count': Calculator,
     '/stocktake': ClipboardCheck,
     '/movements': ArrowLeftRight,
     '/incoming': Download,
-    '/pricing': Tags,
     '/products': Package,
     '/invoices': FileText,
     '/customers': Users,
-    '/analytics': BarChart3,
-    '/profits': TrendingUp,
-    '/staff-sales': UserCheck,
+    '/reports': BarChart3,
     '/reviews': ClipboardList,
     '/portfolio': FolderOpen,
     '/logs': ScrollText,
     '/users': Users,
-    '/expenses': DollarSign,
     '/refunds': RefreshCcw,
     '/debts': Landmark,
     '/backup': Database,
@@ -75,36 +69,60 @@ interface CurrentUser {
     role: string;
 }
 
-const SidebarItem = ({ to, icon: Icon, translationKey, active }: { to: string, icon: React.ElementType, translationKey: string, active: boolean }) => {
+const SidebarItem = ({ to, icon: Icon, translationKey, active, onClick }: { to: string, icon: React.ElementType, translationKey: string, active: boolean, onClick?: () => void }) => {
     const t = useTranslations('Navigation');
+    const ref = useRef<HTMLAnchorElement>(null);
+
+    useEffect(() => {
+        if (active && ref.current) {
+            const timer = setTimeout(() => {
+                ref.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [active]);
+
     return (
         <Link
+            ref={ref}
             href={to as import('react').ComponentProps<typeof Link>['href']}
+            onClick={onClick}
             className={clsx(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mx-2",
                 active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
         >
             <Icon size={20} />
-            <span className="font-bold text-sm">{t(translationKey)}</span>
+            <span className={clsx("text-sm transition-colors duration-200", active ? "font-bold" : "font-medium")}>
+                {t(translationKey)}
+            </span>
         </Link>
     );
 };
 
-const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], pathname: string }) => {
+const SidebarGroup = ({ 
+    id, 
+    items, 
+    pathname, 
+    isOpen, 
+    onToggle,
+    onItemClick
+}: { 
+    id: string, 
+    items: MenuItem[], 
+    pathname: string, 
+    isOpen: boolean, 
+    onToggle: () => void,
+    onItemClick?: () => void
+}) => {
     const t = useTranslations('Navigation');
-    // If any item is active, keep it open by default
-    const hasActiveItem = items.some(item => pathname === item.to || pathname.startsWith(item.to + '/'));
-    const [isOpen, setIsOpen] = useState(hasActiveItem || id === 'overview' || id === 'sales'); // Open overview and sales by default
-
-    const toggleOpen = useCallback(() => setIsOpen(prev => !prev), []);
 
     if (items.length === 0) return null;
 
     return (
         <div className="space-y-1 mb-2">
             <button 
-                onClick={toggleOpen}
+                onClick={onToggle}
                 className="w-full flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
             >
                 {t(`groups.${id}`)}
@@ -119,11 +137,45 @@ const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], 
                         icon={iconMap[item.to] || LayoutDashboard}
                         translationKey={item.translationKey}
                         active={pathname === item.to || pathname.startsWith(item.to + '/')}
+                        onClick={onItemClick}
                     />
                 ))}
             </div>
         </div>
     );
+};
+
+const getGroupForPathname = (pathname: string): string | null => {
+    const overviewPaths = ['/dashboard', '/reports'];
+    const salesPaths = ['/sales', '/invoices', '/portfolio', '/customers', '/debts', '/reviews'];
+    const inventoryPaths = ['/products', '/stocktake', '/movements', '/incoming'];
+    const managementPaths = ['/logs', '/users', '/backup'];
+
+    if (overviewPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) return 'overview';
+    if (salesPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) return 'sales';
+    if (inventoryPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) return 'inventory';
+    if (managementPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) return 'management';
+    return null;
+};
+
+const getRequiredPermission = (path: string): string | null => {
+    if (path === '/dashboard' || path.startsWith('/dashboard/')) return 'dashboard';
+    if (path === '/sales' || path.startsWith('/sales/')) return 'sales';
+    if (path === '/stocktake' || path.startsWith('/stocktake/')) return 'stocktake';
+    if (path === '/movements' || path.startsWith('/movements/')) return 'movements';
+    if (path === '/incoming' || path.startsWith('/incoming/')) return 'movements';
+    if (path === '/products' || path.startsWith('/products/')) return 'products';
+    if (path === '/invoices' || path.startsWith('/invoices/')) return 'invoices';
+    if (path === '/refunds' || path.startsWith('/refunds/')) return 'invoices';
+    if (path === '/customers' || path.startsWith('/customers/')) return 'customers';
+    if (path === '/reports' || path.startsWith('/reports/')) return 'reports';
+    if (path === '/reviews' || path.startsWith('/reviews/')) return 'review';
+    if (path === '/portfolio' || path.startsWith('/portfolio/')) return 'portfolio';
+    if (path === '/logs' || path.startsWith('/logs/')) return 'logs';
+    if (path === '/users' || path.startsWith('/users/')) return 'users';
+    if (path === '/debts' || path.startsWith('/debts/')) return 'debts';
+    if (path === '/backup' || path.startsWith('/backup/')) return 'backup';
+    return null;
 };
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -135,12 +187,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+    const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+    const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
     useEffect(() => {
         // Load menu items based on user permissions
-        getMenuItemsForUser().then((items) => setMenuItems(items as MenuItem[]));
-        getCurrentUser().then(setCurrentUser);
+        Promise.all([getMenuItemsForUser(), getCurrentUser()]).then(([items, user]) => {
+            setMenuItems(items as MenuItem[]);
+            setCurrentUser(user as CurrentUser);
+            setPermissionsLoaded(true);
+        }).catch(err => {
+            console.error('Failed to load user permissions', err);
+            setPermissionsLoaded(true);
+        });
     }, []);
+
+    // Page access validation and redirection
+    useEffect(() => {
+        if (!permissionsLoaded) return;
+
+        const reqPermission = getRequiredPermission(pathname);
+        if (reqPermission) {
+            const hasAccess = menuItems.some(item => item.permission === reqPermission);
+            if (!hasAccess) {
+                if (menuItems.length > 0) {
+                    router.replace(menuItems[0].to);
+                } else {
+                    router.replace('/login');
+                }
+            }
+        }
+    }, [pathname, menuItems, permissionsLoaded, router]);
+
+    // Automatically expand the active category group and collapse the others on route change
+    useEffect(() => {
+        const activeGroup = getGroupForPathname(pathname);
+        if (activeGroup) {
+            setOpenGroupId(activeGroup);
+        }
+    }, [pathname]);
 
     const handleCloseSidebar = useCallback(() => setSidebarOpen(false), []);
     const handleToggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), []);
@@ -153,6 +238,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         document.cookie = `NEXT_LOCALE=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
         router.replace(pathname, { locale: nextLocale });
     }, [locale, pathname, router]);
+
+    const handleToggleGroup = useCallback((groupId: string) => {
+        setOpenGroupId(prev => prev === groupId ? null : groupId);
+    }, []);
+
+    const reqPermission = getRequiredPermission(pathname);
+    const hasAccess = !reqPermission || menuItems.some(item => item.permission === reqPermission);
+
+    if (!permissionsLoaded || !hasAccess) {
+        return (
+            <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">
+                <Spinner size={32} />
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-background text-foreground overflow-hidden">
@@ -167,7 +267,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Sidebar */}
             <aside className={clsx(
                 "fixed md:relative z-30 w-64 h-full bg-card border-r border-border flex flex-col transition-transform duration-300",
-                !isSidebarOpen ? "-translate-x-full md:translate-x-0" : "translate-x-0",
+                !isSidebarOpen
+                    ? locale === 'ar'
+                        ? "translate-x-full md:translate-x-0"
+                        : "-translate-x-full md:translate-x-0"
+                    : "translate-x-0",
                 locale === 'ar' ? "right-0 border-l border-r-0" : "left-0"
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
@@ -177,8 +281,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
                         STASH
                     </h1>
-                    <button onClick={handleToggleSidebar} className="md:hidden ml-auto">
-                        <X />
+                    <button
+                        onClick={handleToggleSidebar}
+                        className="md:hidden ml-auto p-2 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background hover:scale-105 active:scale-95 flex items-center justify-center"
+                        aria-label="Close sidebar"
+                    >
+                        <X size={18} className="transition-transform duration-300 hover:rotate-90" />
                     </button>
                 </div>
 
@@ -186,22 +294,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="overview" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/dashboard', '/analytics'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/dashboard', '/reports'].includes(i.to))} 
+                        isOpen={openGroupId === 'overview'}
+                        onToggle={() => handleToggleGroup('overview')}
+                        onItemClick={handleCloseSidebar}
                     />
                     <SidebarGroup 
                         id="sales" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/sales', '/invoices', '/portfolio', '/customers', '/profits', '/expenses', '/staff-sales', '/debts', '/reviews'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/sales', '/invoices', '/portfolio', '/customers', '/debts', '/reviews'].includes(i.to))} 
+                        isOpen={openGroupId === 'sales'}
+                        onToggle={() => handleToggleGroup('sales')}
+                        onItemClick={handleCloseSidebar}
                     />
                     <SidebarGroup 
                         id="inventory" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/products', '/pricing', '/stocktake', '/movements', '/incoming'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/products', '/stocktake', '/movements', '/incoming'].includes(i.to))} 
+                        isOpen={openGroupId === 'inventory'}
+                        onToggle={() => handleToggleGroup('inventory')}
+                        onItemClick={handleCloseSidebar}
                     />
                     <SidebarGroup 
                         id="management" 
                         pathname={pathname}
                         items={menuItems.filter(i => ['/logs', '/users', '/backup'].includes(i.to))} 
+                        isOpen={openGroupId === 'management'}
+                        onToggle={() => handleToggleGroup('management')}
+                        onItemClick={handleCloseSidebar}
                     />
                 </nav>
 

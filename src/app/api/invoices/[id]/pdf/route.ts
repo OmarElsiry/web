@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 
 async function handleInvoicePdf(req: NextRequest, user: DBUser) {
     const id = req.nextUrl.pathname.split('/').pop() || '';
+    const isDownload = req.nextUrl.searchParams.get('download') === '1';
 
     const prisma = getPrisma();
     const invoice = await prisma.invoice.findUnique({
@@ -20,13 +21,17 @@ async function handleInvoicePdf(req: NextRequest, user: DBUser) {
         return apiError('Not found', 404);
     }
 
+    const start = Date.now();
     try {
         const buffer = await generateInvoicePdfBuffer(invoice);
+        const duration = Date.now() - start;
+        console.log('Invoice PDF generated', id, `bytes: ${buffer.length}`, `durationMs: ${duration}`, `userId: ${user.id}`);
 
         return new NextResponse(buffer as unknown as BodyInit, {
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': `inline; filename="invoice-${id}.pdf"`,
+                'Content-Length': buffer.length.toString(),
+                'Content-Disposition': `${isDownload ? 'attachment' : 'inline'}; filename="invoice-${id}.pdf"`,
                 'Cache-Control': 'public, max-age=86400, stale-while-revalidate=43200'
             },
         });

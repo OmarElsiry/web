@@ -28,7 +28,18 @@
     "backup": "Backup Data",
     "debts": "Debts",
     "reviews": "Price Reviews",
-    "portfolio": "Portfolio"
+    "portfolio": "Portfolio",
+    "reports": "Reports"
+  },
+  "Reports": {
+    "title": "Reports Portal",
+    "subtitle": "Consolidated business metrics, profits, expenses, and staff performance",
+    "tabs": {
+      "analytics": "Analytics",
+      "profits": "Profits & Loss",
+      "expenses": "Expenses",
+      "staff": "Staff Performance"
+    }
   },
   "Login": {
     "title": "Welcome Back",
@@ -168,7 +179,25 @@
     },
     "confirmMessage": "You are about to reconcile {count} items. This will update inventory levels. Continue?",
     "success": "Stock reconciled successfully!",
-    "error": "Failed to reconcile stock"
+    "error": "Failed to reconcile stock",
+    "tabView": "Inventory List",
+    "tabCount": "Physical Count",
+    "exportCSV": "Export CSV",
+    "statsProducts": "Products",
+    "statsUnits": "Stock Units",
+    "statsValueRetail": "Value (Retail)",
+    "statsValueCost": "Value (Cost)",
+    "tapToReveal": "Tap to reveal",
+    "sortBy": "Sort By",
+    "sortName": "Name (A-Z)",
+    "sortStockAsc": "Stock (Low to High)",
+    "sortStockDesc": "Stock (High to Low)",
+    "sortPriceAsc": "Price (Low to High)",
+    "sortPriceDesc": "Price (High to Low)",
+    "locations": "Locations",
+    "noProducts": "No products found",
+    "adjustFilters": "Try adjusting your search or filters.",
+    "searchProductSku": "Search by name or SKU..."
   },
   "Expenses": {
     "title": "Expenses",

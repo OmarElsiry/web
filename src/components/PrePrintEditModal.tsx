@@ -71,8 +71,12 @@ export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: P
               <h2 className="text-xl font-bold text-gray-800">تعديل الفاتورة قبل الطباعة</h2>
               <p className="text-sm text-gray-500 mt-1">{customer.name} - {customer.governorate}</p>
             </div>
-            <button onClick={onClose} className="p-2 hover:bg-gray-200/50 rounded-full transition-colors">
-              <X className="w-5 h-5 text-gray-500" />
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-500 hover:text-gray-800 bg-gray-100/50 hover:bg-gray-200/80 border border-gray-200/60 hover:border-gray-300 rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 hover:scale-105 active:scale-95 flex items-center justify-center"
+              aria-label="Close modal"
+            >
+              <X className="w-4 h-4 transition-transform duration-300 hover:rotate-90" />
             </button>
           </div>
         </div>

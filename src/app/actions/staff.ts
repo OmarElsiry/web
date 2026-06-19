@@ -3,6 +3,7 @@
 import getPrisma from '@/lib/prisma';
 import { getStartDateForPeriod, Period } from '@/lib/utils/date';
 import { serializeInvoice, toNumber } from '@/lib/utils/decimal';
+import { getCurrentUser } from '@/lib/auth/session';
 
 // Get all staff members with their basic info
 export async function getStaffList() {
@@ -25,6 +26,12 @@ export async function getStaffSalesDetail(
     userId: string,
     period: 'day' | 'week' | 'month' | '2months' | '6months' | 'all'
 ) {
+    // Salespeople can only view their own sales data
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role === 'SALESPERSON' && currentUser.id !== userId) {
+        throw new Error('You can only view your own sales data');
+    }
+
     const prisma = getPrisma();
 
     const startDate = getStartDateForPeriod(period as Period);
@@ -65,6 +72,12 @@ export async function getStaffPortfolio(
     userId: string,
     filter?: { status?: 'ACCEPTED' | 'PENDING_REVIEW' | 'DECLINED'; period?: 'day' | 'week' | 'month' | 'all' }
 ) {
+    // Salespeople can only view their own portfolio
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role === 'SALESPERSON' && currentUser.id !== userId) {
+        throw new Error('You can only view your own portfolio');
+    }
+
     const prisma = getPrisma();
 
     const startDate = getStartDateForPeriod((filter?.period || 'all') as Period);

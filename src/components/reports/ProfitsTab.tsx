@@ -1,4 +1,3 @@
-
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
@@ -17,7 +16,7 @@ interface Invoice {
     totalAmount: number | string;
 }
 
-export default function ProfitsPage() {
+export default function ProfitsTab() {
     const t = useTranslations('Profits');
     const ts = useTranslations('Sales');
     const { locale, isRtl } = useLocale();
@@ -55,13 +54,13 @@ export default function ProfitsPage() {
         <div className="space-y-6 animate-in fade-in duration-500">
             <PageHeader
                 icon={TrendingUp}
-                title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>}
+                title={<h2 className="text-xl font-bold tracking-tight text-foreground">{t('title')}</h2>}
                 isRtl={isRtl}
                 actions={
                     <button
                         onClick={handleToggleDateFilter}
                         className={clsx(
-                            "flex items-center gap-2 px-4 py-3 border rounded-xl transition-all font-bold text-xs uppercase tracking-widest active:scale-95",
+                            "flex items-center gap-2 px-4 py-2 border rounded-xl transition-all font-bold text-xs uppercase tracking-widest active:scale-95",
                             showDateFilter ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" : "bg-card border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
                         )}
                     >
@@ -98,46 +97,62 @@ export default function ProfitsPage() {
                         </span>
                     </div>
                     <div className={clsx("text-3xl font-black text-primary tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
-                        <span>{loading ? '...' : profit.toLocaleString(locale)}</span>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-border text-[10px] font-bold text-muted-foreground tabular-nums">
-                        {totalRevenue.toLocaleString(locale)} - {estimatedCost.toLocaleString(locale)} - {totalExpenses.toLocaleString(locale)} = {profit.toLocaleString(locale)}
+                        <span className="text-sm font-bold">{ts('currency')}</span>
+                        {loading ? <Spinner size={24} /> : profit.toLocaleString(locale)}
                     </div>
                 </div>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-                <h3 className={clsx("text-lg font-black uppercase tracking-tighter mb-6 flex items-center gap-2", 'text-center')}>
-                    <Calendar size={20} className="text-primary" />
-                    {t('recentSales')}
-                </h3>
-                <div className="space-y-4">
-                    {loading ? (
-                        <div className="flex items-center justify-center p-8 text-muted-foreground animate-pulse font-bold uppercase text-xs tracking-widest">
-                            <Spinner size={16} className="mr-2" />
-                            {t('loading')}
-                        </div>
-                    // eslint-disable-next-line sonarjs/no-nested-conditional
-                    ) : recentSales.length === 0 ? (
-                        <div className="flex items-center justify-center p-8 text-muted-foreground font-bold uppercase text-xs tracking-widest">
-                            {t('empty')}
-                        </div>
-                    ) : (
-                        recentSales.map(inv => (
-                            <div key={inv.id} className="flex items-center justify-between p-4 bg-secondary/10 rounded-xl border border-transparent hover:border-border transition-all group">
-                                <div className={'text-center'}>
-                                    <div className="font-bold text-sm tracking-tight group-hover:text-primary transition-colors">{inv.customerName || t('customer')}</div>
-                                    <div className="text-[10px] font-mono text-muted-foreground uppercase">{new Date(inv.date).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                                </div>
-                                <div className={clsx("font-black text-green-600 tabular-nums flex items-center gap-1", isRtl ? "flex-row-reverse" : "flex-row")}>
-                                    <span className="text-xs">+</span>
-                                    <span className="text-xs font-bold">{ts('currency')}</span>
-                                    <span>{Number(inv.totalAmount).toLocaleString(locale)}</span>
-                                </div>
-                            </div>
-                        ))
-                    )}
+            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-border bg-secondary/10 flex justify-between items-center">
+                    <h3 className="text-sm font-black uppercase tracking-wider">{t('recentSales')}</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-secondary/30 text-muted-foreground border-b border-border">
+                            <tr>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.invoice')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.date')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.customer')}</th>
+                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.amount')}</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                            {loading && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            <Spinner size={32} className="text-primary" />
+                                            <span className="font-bold uppercase text-xs tracking-widest">{t('loading')}</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && recentSales.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground font-black uppercase text-xs tracking-widest">
+                                        {t('noSales')}
+                                    </td>
+                                </tr>
+                            )}
+                            {!loading && recentSales.length > 0 && recentSales.map((invoice) => (
+                                <tr key={invoice.id} className="hover:bg-muted/50 transition-colors">
+                                    <td className={clsx("px-6 py-4 font-bold text-foreground", 'text-center')}>
+                                        #{parseInt(invoice.id.slice(-4), 16).toString()}
+                                    </td>
+                                    <td className={clsx("px-6 py-4 font-mono text-xs text-muted-foreground", 'text-center')}>
+                                        {new Date(invoice.date).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </td>
+                                    <td className={clsx("px-6 py-4 font-black", 'text-center')}>
+                                        {invoice.customerName || t('table.cashCustomer')}
+                                    </td>
+                                    <td className={clsx("px-6 py-4 font-mono font-black text-foreground tabular-nums", 'text-center')}>
+                                        {Number(invoice.totalAmount).toLocaleString(locale)} {ts('currency')}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

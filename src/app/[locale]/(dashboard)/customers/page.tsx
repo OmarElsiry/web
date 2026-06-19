@@ -444,11 +444,12 @@ export default function CustomersPage() {
                         <button 
                             onClick={handleCloseModal}
                             className={clsx(
-                                "absolute top-6 p-2 text-muted-foreground hover:bg-secondary rounded-full transition-all",
+                                "absolute top-6 p-2 text-muted-foreground hover:text-foreground bg-card/85 dark:bg-card/30 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background hover:scale-105 active:scale-95 flex items-center justify-center",
                                 isRtl ? "left-6" : "right-6"
                             )}
+                            aria-label="Close modal"
                         >
-                            <X size={24} />
+                            <X size={18} className="transition-transform duration-300 hover:rotate-90" />
                         </button>
 
                         <div className="p-10 pb-8 flex flex-col items-center text-center gap-4">
@@ -613,15 +614,16 @@ export default function CustomersPage() {
             {/* Payment Modal */}
             {paymentTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-card w-full max-w-md rounded-[2.5rem] border border-green-500/30 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+                    <div className="bg-card w-full max-w-md rounded-[2.5rem] border border-green-500/30 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300 relative">
                         <button
                             onClick={handleClosePayment}
                             className={clsx(
-                                "absolute top-6 p-2 text-muted-foreground hover:bg-secondary rounded-full transition-all",
+                                "absolute top-6 p-2 text-muted-foreground hover:text-foreground bg-card/85 dark:bg-card/30 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background hover:scale-105 active:scale-95 flex items-center justify-center",
                                 isRtl ? "left-6" : "right-6"
                             )}
+                            aria-label="Close modal"
                         >
-                            <X size={24} />
+                            <X size={18} className="transition-transform duration-300 hover:rotate-90" />
                         </button>
 
                         <div className="p-10 pb-8 flex flex-col items-center text-center gap-4">

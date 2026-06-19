@@ -8,6 +8,7 @@ import { revalidateInvoicePaths, revalidateUndoInvoicePaths } from '@/lib/utils/
 import { safeLogActivity, logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/lib/utils/errors';
 import { calcSkip } from '@/lib/utils/pagination';
+import { getCurrentUser } from '@/lib/auth/session';
 
 async function handleInvoiceItemsUpdate(
     tx: Prisma.TransactionClient, 
@@ -55,7 +56,13 @@ async function handleInvoiceItemsUpdate(
 // Update type definition if not global, but for now we'll imply it from usage
 export async function getAllInvoices() {
     const prisma = getPrisma();
+    const user = await getCurrentUser();
+    const where: Prisma.InvoiceWhereInput = {};
+    if (user?.role === 'SALESPERSON') {
+        where.userId = user.id;
+    }
     const invoices = await prisma.invoice.findMany({
+        where,
         include: {
             items: { include: { product: true } },
             customer: true,
@@ -71,10 +78,16 @@ export async function getAllInvoices() {
 export async function getInvoices(page: number = 1, limit: number = 50) {
     const prisma: PrismaClient = getPrisma();
     const skip = calcSkip(page, limit);
+    const user = await getCurrentUser();
+    const where: Prisma.InvoiceWhereInput = {};
+    if (user?.role === 'SALESPERSON') {
+        where.userId = user.id;
+    }
 
     const [totalCount, invoices] = await Promise.all([
-        prisma.invoice.count(),
+        prisma.invoice.count({ where }),
         prisma.invoice.findMany({
+            where,
             skip,
             take: limit,
             orderBy: { date: 'desc' },
@@ -106,6 +119,7 @@ export async function getInvoices(page: number = 1, limit: number = 50) {
 
 export async function getInvoiceById(id: string) {
     const prisma: PrismaClient = getPrisma();
+    const user = await getCurrentUser();
     const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: {
@@ -129,6 +143,11 @@ export async function getInvoiceById(id: string) {
     });
 
     if (!invoice) return null;
+
+    // Salespeople can only view their own invoices
+    if (user?.role === 'SALESPERSON' && invoice.userId !== user.id) {
+        return null;
+    }
 
     return serializeInvoice(invoice as any, { includeProductFields: true, includeRefundableQty: true });
 }

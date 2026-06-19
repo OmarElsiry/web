@@ -118,6 +118,18 @@ function ProfileContent() {
         }
     }, []);
 
+    const handleTabChange = useCallback((tab: 'history' | 'statement') => {
+        setActiveTab(tab);
+    }, []);
+
+    const handleStatementTabClick = useCallback(() => {
+        handleTabChange('statement');
+    }, [handleTabChange]);
+
+    const handleHistoryTabClick = useCallback(() => {
+        handleTabChange('history');
+    }, [handleTabChange]);
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
@@ -231,7 +243,7 @@ function ProfileContent() {
                     {/* Tab Switcher */}
                     <div className="flex gap-2 p-1 bg-secondary/30 rounded-2xl border border-border">
                         <button
-                            onClick={() => setActiveTab('statement')}
+                            onClick={handleStatementTabClick}
                             className={clsx(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
                                 activeTab === 'statement' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"
@@ -241,7 +253,7 @@ function ProfileContent() {
                             {t('statement.title')}
                         </button>
                         <button
-                            onClick={() => setActiveTab('history')}
+                            onClick={handleHistoryTabClick}
                             className={clsx(
                                 "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
                                 activeTab === 'history' ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"

@@ -32,7 +32,7 @@ interface StaffSalesDetail {
 
 type Period = 'day' | 'week' | 'month' | '2months' | '6months' | 'all';
 
-export default function StaffSalesPage() {
+export default function StaffSalesTab() {
     const t = useTranslations('StaffSales');
     const ts = useTranslations('Sales');
     const { locale, isRtl } = useLocale();
@@ -167,7 +167,16 @@ export default function StaffSalesPage() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <PageHeader icon={UserCheck} title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>} isRtl={isRtl} />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-primary/10 text-primary rounded-xl">
+                        <UserCheck size={28} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold tracking-tight text-foreground">{t('title')}</h2>
+                    </div>
+                </div>
+            </div>
 
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
@@ -207,7 +216,7 @@ export default function StaffSalesPage() {
                             return sortedStaff.map((s, index) => (
                                 <tr key={s.id} className="hover:bg-muted/50 transition-colors group">
                                     <td className={clsx("px-6 py-4", 'text-center')}>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 justify-center">
                                             {(() => {
                                                 if (index === 0) return <Trophy className="text-yellow-500 fill-yellow-500/10" size={20} />;
                                                 if (index === 1) return <Trophy className="text-slate-400 fill-slate-400/10" size={20} />;
@@ -252,7 +261,7 @@ export default function StaffSalesPage() {
                             <div className={'text-center'}>
                                 <h3 className="text-2xl font-black tracking-tighter uppercase">{selectedStaff.name || selectedStaff.username}</h3>
                                 {selectedStaff.phone && (
-                                    <p className="text-xs font-bold text-muted-foreground flex items-center gap-1 mt-1">
+                                    <p className="text-xs font-bold text-muted-foreground flex items-center gap-1 mt-1 justify-center">
                                         <Phone size={12} className="text-primary" /> {selectedStaff.phone}
                                     </p>
                                 )}
