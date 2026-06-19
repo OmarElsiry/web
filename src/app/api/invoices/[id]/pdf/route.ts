@@ -8,7 +8,8 @@ import type { DBUser } from '@/lib/auth/session';
 export const dynamic = 'force-dynamic';
 
 async function handleInvoicePdf(req: NextRequest, user: DBUser) {
-    const id = req.nextUrl.pathname.split('/').pop() || '';
+    const match = req.nextUrl.pathname.match(/\/invoices\/([^\/]+)\/pdf/);
+    const id = match ? match[1] : '';
     const isDownload = req.nextUrl.searchParams.get('download') === '1';
 
     const prisma = getPrisma();

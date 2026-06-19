@@ -351,52 +351,50 @@ export default function StocktakePage() {
             )}
 
             {/* Filters Section */}
-            <div className="flex flex-col sm:flex-row gap-4 bg-card p-4 rounded-2xl border border-border shadow-sm">
-                <div className="relative flex-1">
-                    <Search className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground", isRtl ? "right-3" : "left-3")} size={18} />
+            <div className="flex flex-row items-center gap-1.5 sm:gap-4 bg-card p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-border shadow-sm w-full">
+                <div className="relative flex-[1.5] sm:flex-1 min-w-0">
+                    <Search className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground w-3.5 h-3.5 sm:w-4 sm:h-4", isRtl ? "right-2 sm:right-3" : "left-2 sm:left-3")} />
                     <input
                         type="text"
                         placeholder={t('searchProductSku')}
                         value={searchQuery}
                         onChange={handleSearchChange}
                         className={clsx(
-                            "w-full py-2.5 bg-background border border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm font-bold",
-                            isRtl ? "pr-10 pl-4" : "pl-10 pr-4"
+                            "w-full py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold",
+                            isRtl ? "pr-6 sm:pr-10 pl-2 sm:pl-4" : "pl-6 sm:pl-10 pr-2 sm:pr-4"
                         )}
                     />
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        <Filter size={18} className="text-muted-foreground" />
+                <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                    <Filter className="text-muted-foreground hidden sm:block w-4 h-4" />
+                    <select
+                        value={selectedCategory}
+                        onChange={handleCategoryChange}
+                        className="w-full px-1 sm:px-4 py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold cursor-pointer text-foreground"
+                    >
+                        <option value="all">{t('filterAll')}</option>
+                        {categories.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {activeTab === 'list' && (
+                    <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider hidden xl:block">{t('sortBy')}</label>
                         <select
-                            value={selectedCategory}
-                            onChange={handleCategoryChange}
-                            className="px-4 py-2.5 bg-background border border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-bold cursor-pointer text-foreground"
+                            value={sortBy}
+                            onChange={handleSortChange}
+                            className="w-full px-1 sm:px-4 py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold cursor-pointer text-foreground"
                         >
-                            <option value="all">{t('filterAll')}</option>
-                            {categories.map(c => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
+                            <option value="name">{t('sortName')}</option>
+                            <option value="stockAsc">{t('sortStockAsc')}</option>
+                            <option value="stockDesc">{t('sortStockDesc')}</option>
+                            <option value="priceDesc">{t('sortPriceDesc')}</option>
+                            <option value="priceAsc">{t('sortPriceAsc')}</option>
                         </select>
                     </div>
-
-                    {activeTab === 'list' && (
-                        <div className="flex items-center gap-2">
-                            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('sortBy')}</label>
-                            <select
-                                value={sortBy}
-                                onChange={handleSortChange}
-                                className="px-4 py-2.5 bg-background border border-input rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-bold cursor-pointer text-foreground"
-                            >
-                                <option value="name">{t('sortName')}</option>
-                                <option value="stockAsc">{t('sortStockAsc')}</option>
-                                <option value="stockDesc">{t('sortStockDesc')}</option>
-                                <option value="priceDesc">{t('sortPriceDesc')}</option>
-                                <option value="priceAsc">{t('sortPriceAsc')}</option>
-                            </select>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {/* List / Table Content */}

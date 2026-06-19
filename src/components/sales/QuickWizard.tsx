@@ -465,27 +465,27 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                                         <div className="flex-1 min-w-0">
                                             <div className="font-bold line-clamp-1">{item.name}</div>
                                             {editingPriceId === item.id ? (
-                                                <div className="flex items-center gap-1.5 mt-1">
+                                                <div className="flex items-center gap-2 mt-1">
                                                     <input
                                                         type="number"
                                                         min="0"
-                                                        step="0.01"
-                                                        className="w-20 px-2 py-0.5 bg-background border border-primary text-foreground rounded-lg font-bold text-xs focus:outline-none"
+                                                        step="5"
+                                                        className="w-28 px-3 py-1.5 bg-background border-2 border-primary text-foreground rounded-lg font-bold text-sm focus:outline-none"
                                                         value={editingPriceValue}
                                                         onChange={(e) => setEditingPriceValue(e.target.value)}
                                                         autoFocus
                                                     />
                                                     <button
                                                         onClick={() => handleConfirmEditPrice(item.id)}
-                                                        className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+                                                        className="p-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
                                                     >
-                                                        <Check size={12} />
+                                                        <Check size={16} />
                                                     </button>
                                                     <button
                                                         onClick={handleCancelEditPrice}
-                                                        className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                                                        className="p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
                                                     >
-                                                        <X size={12} />
+                                                        <X size={16} />
                                                     </button>
                                                 </div>
                                             ) : (
@@ -494,7 +494,7 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                                                         {item.price.toLocaleString(locale)} {t('currency')}
                                                     </span>
                                                     {item.price !== item.basePrice && (
-                                                        <span className="text-[9px] bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded font-bold">
+                                                        <span className="text-[9px] bg-amber-500 text-white px-1.5 py-0.5 rounded font-bold">
                                                             {isRtl ? 'سعر مخصص' : 'Custom'}
                                                         </span>
                                                     )}
@@ -617,9 +617,58 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                             <h2 className="text-xl font-bold">{isRtl ? 'تفاصيل الدفع' : 'Payment Details'}</h2>
                         </div>
 
-                        <div className="text-center mb-8 p-6 bg-secondary/20 rounded-xl border border-primary/10">
-                            <div className="text-sm font-medium text-muted-foreground mb-1">{isRtl ? 'المطلوب سداده' : 'Total to Pay'}</div>
-                            <div className="text-4xl font-black text-primary">{totalAmount.toLocaleString(locale)} {t('currency')}</div>
+                        <div className="flex flex-row w-full items-stretch justify-between gap-1 sm:gap-2 mb-8 bg-secondary/10 p-2 sm:p-4 rounded-2xl border border-primary/10">
+                            {selectedCustomer && selectedCustomer.balance > 0 ? (
+                                <>
+                                    <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-background/60 shadow-sm border border-border/50 min-w-0">
+                                        <div className="text-[clamp(0.7rem,2.5vw,1rem)] font-medium text-muted-foreground mb-1 whitespace-nowrap">
+                                            {isRtl ? 'فاتورة اليوم' : 'This Invoice'}
+                                        </div>
+                                        <div className="text-[clamp(1.2rem,5vw,2rem)] font-black text-primary flex items-baseline gap-1 whitespace-nowrap">
+                                            <span>{totalAmount.toLocaleString(locale)}</span>
+                                            <span className="text-[clamp(0.6rem,2vw,0.8rem)] font-bold">{t('currency')}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-center text-[clamp(1.5rem,4vw,2rem)] font-black text-muted-foreground/40">
+                                        +
+                                    </div>
+                                    
+                                    <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-background/60 shadow-sm border border-border/50 min-w-0">
+                                        <div className="text-[clamp(0.7rem,2.5vw,1rem)] font-medium text-muted-foreground mb-1 whitespace-nowrap">
+                                            {isRtl ? 'رصيد سابق' : 'Previous Balance'}
+                                        </div>
+                                        <div className="text-[clamp(1.2rem,5vw,2rem)] font-black text-red-500 flex items-baseline gap-1 whitespace-nowrap">
+                                            <span>{selectedCustomer.balance.toLocaleString(locale)}</span>
+                                            <span className="text-[clamp(0.6rem,2vw,0.8rem)] font-bold">{t('currency')}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-center text-[clamp(1.5rem,4vw,2rem)] font-black text-muted-foreground/40">
+                                        =
+                                    </div>
+                                    
+                                    <div className="flex-[1.2] flex flex-col items-center justify-center p-2 rounded-xl bg-primary/10 border-2 border-primary shadow-sm min-w-0">
+                                        <div className="text-[clamp(0.8rem,3vw,1.1rem)] font-bold text-primary mb-1 whitespace-nowrap">
+                                            {isRtl ? 'الإجمالي' : 'Total'}
+                                        </div>
+                                        <div className="text-[clamp(1.5rem,6vw,2.5rem)] font-black text-primary flex items-baseline gap-1 whitespace-nowrap">
+                                            <span>{(totalAmount + selectedCustomer.balance).toLocaleString(locale)}</span>
+                                            <span className="text-[clamp(0.75rem,2.5vw,1rem)] font-bold">{t('currency')}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl bg-background/60 shadow-sm border border-border/50 min-w-0">
+                                    <div className="text-[clamp(1rem,4vw,1.5rem)] font-medium text-muted-foreground mb-2 whitespace-nowrap">
+                                        {isRtl ? 'المطلوب سداده' : 'Total to Pay'}
+                                    </div>
+                                    <div className="text-[clamp(2.5rem,10vw,4rem)] font-black text-primary flex items-baseline gap-2 whitespace-nowrap">
+                                        <span>{totalAmount.toLocaleString(locale)}</span>
+                                        <span className="text-[clamp(1rem,4vw,1.5rem)] font-bold">{t('currency')}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="mb-6 p-4 bg-secondary/20 rounded-xl border border-primary/10 flex items-center justify-between">
