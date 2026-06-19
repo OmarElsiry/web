@@ -387,38 +387,38 @@ export default function DebtsPage() {
                 </div>
               ) : statementData ? (
                 <div className="space-y-6">
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ArrowUpCircle className="w-4 h-4 text-red-500" />
-                        <span className="text-xs font-black uppercase tracking-widest text-red-600">
+                  {/* Summary Cards - horizontal, border-only */}
+                  <div className="flex items-stretch gap-0 border border-border rounded-xl overflow-hidden">
+                    <div className="flex-1 px-4 py-3 text-center border-e border-border">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <ArrowUpCircle className="w-3.5 h-3.5 text-red-500" />
+                        <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">
                           {isRtl ? 'إجمالي المدين' : 'Total Debit'}
                         </span>
                       </div>
-                      <p className="text-2xl font-black text-red-600 tabular-nums">
+                      <p className="text-lg sm:text-xl font-black text-red-600 tabular-nums">
                         {statementData.totals.totalDebit.toFixed(2)}
                       </p>
                     </div>
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <ArrowDownCircle className="w-4 h-4 text-green-500" />
-                        <span className="text-xs font-black uppercase tracking-widest text-green-600">
+                    <div className="flex-1 px-4 py-3 text-center border-e border-border">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <ArrowDownCircle className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">
                           {isRtl ? 'إجمالي المدفوع' : 'Total Paid'}
                         </span>
                       </div>
-                      <p className="text-2xl font-black text-green-600 tabular-nums">
+                      <p className="text-lg sm:text-xl font-black text-green-600 tabular-nums">
                         {statementData.totals.totalCredit.toFixed(2)}
                       </p>
                     </div>
-                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Landmark className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-black uppercase tracking-widest text-primary">
+                    <div className="flex-1 px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <Landmark className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-muted-foreground">
                           {isRtl ? 'الرصيد الحالي' : 'Current Balance'}
                         </span>
                       </div>
-                      <p className="text-2xl font-black text-primary tabular-nums">
+                      <p className="text-lg sm:text-xl font-black text-primary tabular-nums">
                         {statementData.totals.currentBalance.toFixed(2)}
                       </p>
                     </div>
@@ -449,14 +449,14 @@ export default function DebtsPage() {
                               <th className="hidden sm:table-cell px-4 py-3 text-center font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'المندوب' : 'Salesperson'}
                               </th>
-                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest text-red-600 whitespace-nowrap">
-                                {isRtl ? 'مدين' : 'Debit'}
-                              </th>
-                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest text-green-600 whitespace-nowrap">
-                                {isRtl ? 'دائن' : 'Credit'}
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
+                                {isRtl ? 'الرصيد قبل' : 'Balance Before'}
                               </th>
                               <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
-                                {isRtl ? 'الرصيد' : 'Balance'}
+                                {isRtl ? 'العملية' : 'Operation'}
+                              </th>
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
+                                {isRtl ? 'الرصيد بعد' : 'Balance After'}
                               </th>
                             </tr>
                           </thead>
@@ -496,17 +496,29 @@ export default function DebtsPage() {
                                     {entry.salesperson || (isRtl ? '-' : '-')}
                                   </span>
                                 </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-red-600 text-[10px] sm:text-sm">
-                                  {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-green-600 text-[10px] sm:text-sm">
-                                  {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
-                                </td>
-                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-[10px] sm:text-sm">
-                                  <span className={entry.balance > 0 ? 'text-red-600' : entry.balance < 0 ? 'text-green-600' : 'text-muted-foreground'}>
-                                    {entry.balance.toFixed(2)}
-                                  </span>
-                                </td>
+                                {(() => {
+                                  const operation = entry.debit > 0 ? entry.debit : -entry.credit;
+                                  const balanceBefore = entry.balance - operation;
+                                  return (
+                                    <>
+                                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-[10px] sm:text-sm">
+                                        <span className={balanceBefore > 0 ? 'text-red-600' : balanceBefore < 0 ? 'text-green-600' : 'text-muted-foreground'}>
+                                          {balanceBefore.toFixed(2)}
+                                        </span>
+                                      </td>
+                                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-[10px] sm:text-sm">
+                                        <span className={operation > 0 ? 'text-red-600' : 'text-green-600'}>
+                                          {operation > 0 ? '+' : ''}{operation.toFixed(2)}
+                                        </span>
+                                      </td>
+                                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-[10px] sm:text-sm">
+                                        <span className={entry.balance > 0 ? 'text-red-600' : entry.balance < 0 ? 'text-green-600' : 'text-muted-foreground'}>
+                                          {entry.balance.toFixed(2)}
+                                        </span>
+                                      </td>
+                                    </>
+                                  );
+                                })()}
                               </tr>
                             ))}
                           </tbody>
@@ -518,11 +530,13 @@ export default function DebtsPage() {
                               <td colSpan={4} className="hidden sm:table-cell px-4 py-3 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">
                                 {isRtl ? 'الإجمالي' : 'Total'}
                               </td>
-                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-red-600 text-xs sm:text-base">
-                                {statementData.totals.totalDebit.toFixed(2)}
+                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-muted-foreground text-xs sm:text-base">
+                                -
                               </td>
-                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-green-600 text-xs sm:text-base">
-                                {statementData.totals.totalCredit.toFixed(2)}
+                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-xs sm:text-base">
+                                <span className="text-red-600">+{statementData.totals.totalDebit.toFixed(2)}</span>
+                                {' / '}
+                                <span className="text-green-600">-{statementData.totals.totalCredit.toFixed(2)}</span>
                               </td>
                               <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-primary text-xs sm:text-base">
                                 {statementData.totals.currentBalance.toFixed(2)}

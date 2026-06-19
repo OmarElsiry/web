@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { getProducts, processSale } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
+import { getCurrentUser } from '@/app/actions/permissions';
 import InvoicePdfActions from './InvoicePdfActions';
 import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid, Pencil, X, Clock } from 'lucide-react';
 import clsx from 'clsx';
@@ -60,6 +61,13 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
     const [invoiceId, setInvoiceId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [pendingReview, setPendingReview] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
+
+    useEffect(() => {
+        getCurrentUser().then(user => {
+            if (user) setUserRole(user.role);
+        });
+    }, []);
 
     // Derived
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -313,7 +321,7 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                 )}
                 
                 <div className="flex flex-col gap-4 w-full max-w-md">
-                    <InvoicePdfActions invoiceId={invoiceId} />
+                    <InvoicePdfActions invoiceId={invoiceId} disabled={pendingReview && userRole === 'SALESPERSON'} />
                     <button
                         onClick={resetWizard}
                         className="w-full flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-4 rounded-xl font-bold text-lg hover:bg-secondary/80"

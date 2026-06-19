@@ -14,6 +14,7 @@ interface InvoiceDetailsModalProps {
     onClose: () => void;
     onUpdate: () => void;
     onOpenRefund: () => void;
+    userRole?: string | null;
 }
 
 const Field = ({ label, value, important = false }: { label: string, value: React.ReactNode, important?: boolean }) => (
@@ -27,7 +28,8 @@ export default function InvoiceDetailsModal({
     invoice,
     onClose,
     onUpdate,
-    onOpenRefund
+    onOpenRefund,
+    userRole
 }: InvoiceDetailsModalProps) {
     const t = useTranslations('Invoices');
     const ts = useTranslations('Sales');
@@ -246,7 +248,12 @@ export default function InvoiceDetailsModal({
                             <RefreshCcw size={18} />
                             {t('details.refund')}
                         </button>
-                        <button onClick={handleOpenPrintTab} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-black transition-all hover:bg-primary/90 shadow-lg shadow-primary/20">
+                        <button 
+                            onClick={handleOpenPrintTab} 
+                            disabled={invoice.status === 'PENDING_REVIEW' && userRole === 'SALESPERSON'}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-black transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={invoice.status === 'PENDING_REVIEW' && userRole === 'SALESPERSON' ? t('details.cannotPrintPending', { defaultValue: 'Cannot print pending invoice' }) : ''}
+                        >
                             <FileText size={18} /> {t('details.officialInvoice', { defaultValue: 'Official PDF' })}
                         </button>
                     </div>

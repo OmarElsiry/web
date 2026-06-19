@@ -222,18 +222,18 @@ export default function StocktakePage() {
             />
 
             {/* Filters Section */}
-            <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full">
+            <div className="flex flex-row gap-2 w-full">
                 <input
                     type="text"
                     placeholder={t('searchProductSku')}
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium col-span-2 md:col-span-1 md:flex-1"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium flex-1"
                 />
                 <select
                     value={selectedCategory}
                     onChange={handleCategoryChange}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium cursor-pointer text-foreground md:flex-1"
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium cursor-pointer text-foreground flex-1"
                 >
                     <option value="all">{t('filterAll')}</option>
                     {categories.map(c => (
@@ -248,11 +248,11 @@ export default function StocktakePage() {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border">
                                 <tr>
-                                    <th className={clsx("px-6 py-4", isRtl ? "text-right" : "text-left")}>{t('table.product')}</th>
-                                    <th className="px-6 py-4 text-center">{t('table.category')}</th>
-                                    <th className="px-6 py-4 text-center">{t('table.systemStock')}</th>
-                                    <th className="px-6 py-4 text-center w-32">{t('table.actualCount')}</th>
-                                    <th className="px-6 py-4 text-center">{t('table.diff')}</th>
+                                    <th className={clsx("px-2 sm:px-6 py-4", isRtl ? "text-right" : "text-left")}>{t('table.product')}</th>
+                                    <th className="px-2 sm:px-6 py-4 text-center hidden md:table-cell">{t('table.category')}</th>
+                                    <th className="px-2 sm:px-6 py-4 text-center">{t('table.systemStock')}</th>
+                                    <th className="px-2 sm:px-6 py-4 text-center w-24 sm:w-32">{t('table.actualCount')}</th>
+                                    <th className="px-2 sm:px-6 py-4 text-center">{t('table.diff')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -273,7 +273,7 @@ export default function StocktakePage() {
                                                 "transition-colors",
                                                 hasDiff ? "bg-yellow-500/5 hover:bg-yellow-500/10" : "hover:bg-muted/50"
                                             )}>
-                                                <td className={clsx("px-6 py-4 font-semibold text-foreground", isRtl ? "text-right" : "text-left")}>
+                                                <td className={clsx("px-2 sm:px-6 py-4 font-semibold text-foreground", isRtl ? "text-right" : "text-left")}>
                                                     <div>{product.name}</div>
                                                     {hasDiff && (
                                                         <span className={clsx(
@@ -289,15 +289,15 @@ export default function StocktakePage() {
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-2 sm:px-6 py-4 text-center hidden md:table-cell">
                                                     <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary/50 text-muted-foreground border border-border">
                                                         {product.categoryName}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-center font-bold text-foreground">
+                                                <td className="px-2 sm:px-6 py-4 text-center font-bold text-foreground">
                                                     {product.totalStock.toLocaleString(locale)}
                                                 </td>
-                                                <td className="px-6 py-4 text-center">
+                                                <td className="px-2 sm:px-6 py-4 text-center">
                                                     <div className="flex items-center justify-center">
                                                         <input
                                                             type="number"
@@ -306,7 +306,7 @@ export default function StocktakePage() {
                                                             data-id={product.id}
                                                             onChange={handleCountChangeCb}
                                                             className={clsx(
-                                                                "w-20 px-2 py-1.5 text-center font-bold rounded-lg border outline-none focus:ring-2 transition-all",
+                                                                "w-16 sm:w-20 px-1 sm:px-2 py-1.5 text-center font-bold rounded-lg border outline-none focus:ring-2 transition-all",
                                                                 hasDiff
                                                                     ? "border-yellow-500 text-yellow-600 bg-background focus:ring-yellow-500/20"
                                                                     : "border-input bg-muted/30 focus:bg-background focus:ring-primary/20 focus:border-primary"
@@ -315,7 +315,7 @@ export default function StocktakePage() {
                                                         />
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-center font-black">
+                                                <td className="px-2 sm:px-6 py-4 text-center font-black">
                                                     {diff === 0 ? (
                                                         <span className="text-muted-foreground/30">—</span>
                                                     ) : (

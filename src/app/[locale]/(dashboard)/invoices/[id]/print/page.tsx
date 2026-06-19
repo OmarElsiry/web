@@ -137,11 +137,8 @@ export default function InvoicePrintPage() {
         );
     }
 
-    const formattedDate = new Date(invoice.date).toLocaleDateString('ar-EG', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
+    const dateObj = new Date(invoice.date);
+    const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
@@ -493,22 +490,22 @@ export default function InvoicePrintPage() {
                             </div>
                             <div className="grid grid-cols-2 text-sm divide-x divide-x-reverse divide-gray-200">
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700">الرصيد السابق</div>
-                                <div className="p-2 font-black text-center">{Number(invoice.previousBalance || 0).toLocaleString('ar-EG')}</div>
+                                <div className="p-2 font-black text-center">{Number(invoice.previousBalance || 0).toLocaleString('en-US')}</div>
 
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200">قيمة الفاتورة</div>
-                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700">{Number(invoice.totalAmount).toLocaleString('ar-EG')}</div>
+                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700">{Number(invoice.totalAmount).toLocaleString('en-US')}</div>
 
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center">
                                     <span>المدفوع</span>
                                     <span className="text-[10px] font-normal text-gray-500">{invoice.paymentMethod === 'CREDIT' ? 'آجل' : 'نقداً'}</span>
                                 </div>
                                 <div className="p-2 font-black text-center border-t border-gray-200 text-green-600 flex items-center justify-center">
-                                    {Number(invoice.amountPaid || 0).toLocaleString('ar-EG')}
+                                    {Number(invoice.amountPaid || 0).toLocaleString('en-US')}
                                 </div>
 
                                 <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300">الرصيد المتبقي</div>
                                 <div className="p-2 font-black text-center text-xl border-t border-gray-300 bg-gray-50 text-red-600">
-                                    {Number(invoice.currentBalance || 0).toLocaleString('ar-EG')}
+                                    {Number(invoice.currentBalance || 0).toLocaleString('en-US')}
                                 </div>
                             </div>
                         </div>

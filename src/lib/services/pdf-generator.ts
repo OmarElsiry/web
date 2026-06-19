@@ -1,9 +1,24 @@
 import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
-import { formatMoney } from '@/lib/utils/format';
 import { toNumber } from '@/lib/utils/decimal';
 import { tafqeet } from '@/lib/tafqeet';
+
+/**
+ * Force all digits to Western/English (0-9) instead of Arabic-Indic (٠-٩).
+ */
+function toEnglishDigits(str: string): string {
+    return str
+        .replace(/[\u0660-\u0669]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x0660 + 48))
+        .replace(/[\u06F0-\u06F9]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x06F0 + 48));
+}
+
+/**
+ * Format a number with English digits, no Arabic locale conversion.
+ */
+function formatNum(n: number | string): string {
+    return toEnglishDigits(Number(n).toLocaleString('en-US'));
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
@@ -30,234 +45,296 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.on('end', () => resolve(Buffer.concat(buffers)));
         doc.on('error', reject);
 
-        // Colors
+        // Colors — matching the HTML print page
         const COLOR_TEXT = '#111827';
         const COLOR_MUTED = '#6B7280';
         const COLOR_BORDER = '#D1D5DB';
         const COLOR_BG = '#F3F4F6';
-        
+        const COLOR_DARK = '#111827';
+
         const PAGE_WIDTH = 595.28;
         const MARGIN = 40;
         const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-        
-        // --- Header Section ---
+
+        // --- Helper: draw text with forced English digits ---
+        const drawText = (text: string, x: number, y: number, opts: any = {}) => {
+            doc.text(toEnglishDigits(text), x, y, opts);
+        };
+
+        // --- HEADER SECTION ---
         let currentY = MARGIN;
 
-        // Company Logo & Name (Left)
-        if (hasLogo) {
-            doc.image(logoPath, MARGIN, currentY, { width: 60 });
-        }
-        doc.fillColor(COLOR_TEXT).fontSize(24).text('STASH', hasLogo ? MARGIN + 70 : MARGIN, currentY + 15, { align: 'left' });
-
-        // Title Box (Center)
-        doc.lineWidth(2).strokeColor(COLOR_TEXT)
-            .roundedRect(PAGE_WIDTH / 2 - 60, currentY + 10, 120, 30, 5).stroke();
-        doc.fontSize(16).fillColor(COLOR_TEXT).text('فاتورة مبيعات', PAGE_WIDTH / 2 - 60, currentY + 17, { width: 120, align: 'center' });
-
-        // Meta Table (Right)
-        const metaWidth = 160;
+        // === RIGHT SIDE (RTL): Meta Table ===
+        const metaWidth = 170;
         const metaX = PAGE_WIDTH - MARGIN - metaWidth;
         const seqId = invoice.id ? parseInt(invoice.id.slice(-4), 16).toString() : '---';
-        const formattedDate = new Date(invoice.date).toLocaleDateString('ar-EG');
+        const dateObj = new Date(invoice.date);
+        const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
         const empName = invoice.user?.name || invoice.user?.username || 'غير معروف';
 
         doc.lineWidth(1).strokeColor(COLOR_BORDER);
-        
+
         const drawMetaRow = (y: number, label: string, value: string) => {
-            doc.rect(metaX, y, 60, 20).fillAndStroke(COLOR_BG, COLOR_BORDER);
-            doc.fillColor(COLOR_TEXT).fontSize(10).text(label, metaX, y + 5, { width: 60, align: 'center' });
-            
-            doc.rect(metaX + 60, y, 100, 20).stroke();
-            doc.fillColor(COLOR_TEXT).fontSize(10).text(value, metaX + 60, y + 5, { width: 100, align: 'center' });
+            // Label cell (right side within the table)
+            doc.rect(metaX + 100, y, 70, 22).fillAndStroke(COLOR_BG, COLOR_BORDER);
+            doc.fillColor(COLOR_TEXT).fontSize(10);
+            drawText(label, metaX + 100, y + 6, { width: 70, align: 'center' });
+
+            // Value cell (left side within the table)
+            doc.rect(metaX, y, 100, 22).stroke();
+            doc.fillColor(COLOR_TEXT).fontSize(10);
+            drawText(value, metaX, y + 6, { width: 100, align: 'center' });
         };
 
         drawMetaRow(currentY, 'الرقم', seqId);
-        drawMetaRow(currentY + 20, 'التاريخ', formattedDate);
-        drawMetaRow(currentY + 40, 'المندوب', empName);
+        drawMetaRow(currentY + 22, 'التاريخ', formattedDate);
+        drawMetaRow(currentY + 44, 'المندوب', empName);
 
-        currentY += 80;
-        
+        // === CENTER: Title Box ===
+        const titleBoxW = 130;
+        const titleBoxX = PAGE_WIDTH / 2 - titleBoxW / 2;
+        doc.lineWidth(3).strokeColor(COLOR_DARK)
+            .roundedRect(titleBoxX, currentY + 10, titleBoxW, 34, 6).stroke();
+        doc.fontSize(16).fillColor(COLOR_TEXT);
+        drawText('فاتورة مبيعات', titleBoxX, currentY + 18, { width: titleBoxW, align: 'center' });
+
+        // === LEFT SIDE (RTL): Logo & Company Name ===
+        const logoSize = 60;
+        if (hasLogo) {
+            // Draw circular clipped logo
+            doc.save();
+            doc.circle(MARGIN + logoSize / 2, currentY + logoSize / 2, logoSize / 2).clip();
+            doc.image(logoPath, MARGIN, currentY, { width: logoSize, height: logoSize });
+            doc.restore();
+        }
+        doc.fillColor(COLOR_TEXT).fontSize(22);
+        drawText('STASH', MARGIN, currentY + logoSize + 6, { align: 'left' });
+
+        currentY += 90;
+
         // Bottom border of header
-        doc.lineWidth(2).strokeColor(COLOR_TEXT)
+        doc.lineWidth(2).strokeColor(COLOR_DARK)
             .moveTo(MARGIN, currentY).lineTo(PAGE_WIDTH - MARGIN, currentY).stroke();
-            
-        currentY += 20;
 
-        // --- Customer Info Section ---
-        doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 25, 5).fillAndStroke(COLOR_BG, COLOR_BORDER);
-        doc.fillColor(COLOR_TEXT).fontSize(12).text('بيانات العميل', MARGIN + 10, currentY + 6, { width: CONTENT_WIDTH - 20, align: 'right' });
-        
-        currentY += 25;
-        doc.rect(MARGIN, currentY, CONTENT_WIDTH, 50).stroke();
-        
+        currentY += 15;
+
+        // --- CUSTOMER INFO SECTION ---
+        // Header bar
+        doc.roundedRect(MARGIN, currentY, CONTENT_WIDTH, 26, 4).fillAndStroke(COLOR_BG, COLOR_BORDER);
+        doc.fillColor(COLOR_TEXT).fontSize(13);
+        drawText('بيانات العميل', MARGIN + 10, currentY + 7, { width: CONTENT_WIDTH - 20, align: 'right' });
+
+        currentY += 26;
+
+        // Customer info box
+        doc.rect(MARGIN, currentY, CONTENT_WIDTH, 55).stroke();
+
         const custName = invoice.customer?.name || invoice.customerName || 'عميل نقدي';
         const custPhone = invoice.customer?.phone || invoice.customerPhone || '---';
         const custAddress = invoice.customer?.address || invoice.customerAddress || '---';
-        
-        doc.fontSize(10).fillColor(COLOR_TEXT);
-        doc.text(custName, MARGIN + CONTENT_WIDTH/2, currentY + 10, { width: CONTENT_WIDTH/2 - 50, align: 'right' });
-        doc.fillColor(COLOR_MUTED).text(':اسم العميل', PAGE_WIDTH - MARGIN - 40, currentY + 10, { width: 40, align: 'right' });
-        
-        doc.fillColor(COLOR_TEXT).text(custPhone, MARGIN, currentY + 10, { width: CONTENT_WIDTH/2 - 50, align: 'right' });
-        doc.fillColor(COLOR_MUTED).text(':هاتف', MARGIN + CONTENT_WIDTH/2 - 40, currentY + 10, { width: 40, align: 'right' });
-        
-        doc.fillColor(COLOR_TEXT).text(custAddress, MARGIN + CONTENT_WIDTH/2, currentY + 30, { width: CONTENT_WIDTH/2 - 50, align: 'right' });
-        doc.fillColor(COLOR_MUTED).text(':العنوان', PAGE_WIDTH - MARGIN - 40, currentY + 30, { width: 40, align: 'right' });
+        const custCity = invoice.customer?.governorate || 'دمياط الجديدة';
+
+        doc.fontSize(10).fillColor(COLOR_MUTED);
+        // Row 1: Customer Name (right) + Phone (left)
+        drawText('اسم العميل:', PAGE_WIDTH - MARGIN - 80, currentY + 8, { width: 70, align: 'right' });
+        doc.fillColor(COLOR_TEXT).fontSize(11);
+        drawText(custName, MARGIN + CONTENT_WIDTH / 2, currentY + 8, { width: CONTENT_WIDTH / 2 - 90, align: 'right' });
+
+        doc.fillColor(COLOR_MUTED).fontSize(10);
+        drawText('الهاتف:', MARGIN + CONTENT_WIDTH / 2 - 55, currentY + 8, { width: 45, align: 'right' });
+        doc.fillColor(COLOR_TEXT).fontSize(11);
+        drawText(custPhone, MARGIN + 10, currentY + 8, { width: CONTENT_WIDTH / 2 - 70, align: 'right' });
+
+        // Row 2: Address (right) + City (left)
+        doc.fillColor(COLOR_MUTED).fontSize(10);
+        drawText('العنوان:', PAGE_WIDTH - MARGIN - 80, currentY + 30, { width: 70, align: 'right' });
+        doc.fillColor(COLOR_TEXT).fontSize(11);
+        drawText(custAddress, MARGIN + CONTENT_WIDTH / 2, currentY + 30, { width: CONTENT_WIDTH / 2 - 90, align: 'right' });
+
+        doc.fillColor(COLOR_MUTED).fontSize(10);
+        drawText('المدينة:', MARGIN + CONTENT_WIDTH / 2 - 55, currentY + 30, { width: 45, align: 'right' });
+        doc.fillColor(COLOR_TEXT).fontSize(11);
+        drawText(custCity, MARGIN + 10, currentY + 30, { width: CONTENT_WIDTH / 2 - 70, align: 'right' });
 
         currentY += 70;
 
-        // --- Line Items Table ---
+        // --- LINE ITEMS TABLE ---
         const tableHeaderY = currentY;
-        doc.rect(MARGIN, tableHeaderY, CONTENT_WIDTH, 25).fillAndStroke(COLOR_BG, COLOR_TEXT);
-        
+        doc.lineWidth(2).strokeColor(COLOR_DARK);
+        doc.rect(MARGIN, tableHeaderY, CONTENT_WIDTH, 25).fillAndStroke(COLOR_BG, COLOR_DARK);
+
+        // Columns: RTL order (right-to-left): م | رقم الصنف | اسم الصنف | الوحدة | الكمية | السعر | القيمة
         const cols = [
-            { width: 80, title: 'القيمة', align: 'center' },
-            { width: 70, title: 'السعر', align: 'center' },
-            { width: 60, title: 'الكمية', align: 'center' },
-            { width: 60, title: 'الوحدة', align: 'center' },
-            { width: CONTENT_WIDTH - 300, title: 'اسم الصنف', align: 'right' },
-            { width: 30, title: 'م', align: 'center' }
+            { width: 70,  title: 'القيمة',    align: 'center' },
+            { width: 65,  title: 'السعر',     align: 'center' },
+            { width: 50,  title: 'الكمية',    align: 'center' },
+            { width: 55,  title: 'الوحدة',    align: 'center' },
+            { width: CONTENT_WIDTH - 340, title: 'اسم الصنف', align: 'center' },
+            { width: 70,  title: 'رقم الصنف',  align: 'center' },
+            { width: 30,  title: 'م',         align: 'center' }
         ];
 
         let startX = MARGIN;
         doc.fillColor(COLOR_TEXT).fontSize(10);
-        
-        // Draw Header Titles and vertical lines
+        doc.lineWidth(1).strokeColor(COLOR_DARK);
+
+        // Draw header titles and vertical lines
         cols.forEach((col) => {
-            doc.text(col.title, startX, tableHeaderY + 7, { width: col.width, align: col.align as any });
+            drawText(col.title, startX, tableHeaderY + 7, { width: col.width, align: col.align as any });
             doc.moveTo(startX, tableHeaderY).lineTo(startX, tableHeaderY + 25).stroke();
             startX += col.width;
         });
         doc.moveTo(PAGE_WIDTH - MARGIN, tableHeaderY).lineTo(PAGE_WIDTH - MARGIN, tableHeaderY + 25).stroke();
-        
+
         currentY += 25;
-        
+
         // Rows
         const items = invoice.items || [];
         items.forEach((item: any, idx: number) => {
             const rowHeight = 25;
-            // Background for even rows
+            // Alternate row background
             if (idx % 2 !== 0) {
                 doc.rect(MARGIN, currentY, CONTENT_WIDTH, rowHeight).fill(COLOR_BG);
             }
-            
+
             doc.fillColor(COLOR_TEXT).fontSize(10);
-            
+
             let cx = MARGIN;
-            
+
+            // القيمة (Subtotal)
             const subtotal = toNumber(item.subtotal).toFixed(2);
-            doc.text(subtotal, cx, currentY + 7, { width: cols[0].width, align: 'center' });
+            drawText(subtotal, cx, currentY + 7, { width: cols[0].width, align: 'center' });
             cx += cols[0].width;
-            
+
+            // السعر (Unit Price)
             const price = toNumber(item.unitPrice).toFixed(2);
-            doc.text(price, cx, currentY + 7, { width: cols[1].width, align: 'center' });
+            drawText(price, cx, currentY + 7, { width: cols[1].width, align: 'center' });
             cx += cols[1].width;
-            
+
+            // الكمية (Quantity)
             const qty = item.quantity.toString();
-            doc.text(qty, cx, currentY + 7, { width: cols[2].width, align: 'center' });
+            drawText(qty, cx, currentY + 7, { width: cols[2].width, align: 'center' });
             cx += cols[2].width;
-            
+
+            // الوحدة (Unit)
             const unit = item.productUnit || 'قطعة';
-            doc.text(unit, cx, currentY + 7, { width: cols[3].width, align: 'center' });
+            drawText(unit, cx, currentY + 7, { width: cols[3].width, align: 'center' });
             cx += cols[3].width;
-            
+
+            // اسم الصنف (Product Name)
             const name = item.productName || item.product?.name || '';
-            doc.text(name, cx, currentY + 7, { width: cols[4].width, align: 'right' });
+            drawText(name, cx, currentY + 7, { width: cols[4].width, align: 'center' });
             cx += cols[4].width;
-            
+
+            // رقم الصنف (Product Code / SKU)
+            const sku = item.productCode || item.product?.sku || '---';
+            doc.fontSize(8);
+            drawText(sku, cx, currentY + 8, { width: cols[5].width, align: 'center' });
+            doc.fontSize(10);
+            cx += cols[5].width;
+
+            // م (Index)
             const index = (idx + 1).toString();
-            doc.text(index, cx, currentY + 7, { width: cols[5].width, align: 'center' });
-            
+            drawText(index, cx, currentY + 7, { width: cols[6].width, align: 'center' });
+
             // Draw row vertical lines
             let lx = MARGIN;
-            doc.lineWidth(1).strokeColor(COLOR_BORDER);
+            doc.lineWidth(0.5).strokeColor(COLOR_BORDER);
             cols.forEach((col) => {
                 doc.moveTo(lx, currentY).lineTo(lx, currentY + rowHeight).stroke();
                 lx += col.width;
             });
             doc.moveTo(PAGE_WIDTH - MARGIN, currentY).lineTo(PAGE_WIDTH - MARGIN, currentY + rowHeight).stroke();
-            
+
             // Draw row bottom line
             doc.moveTo(MARGIN, currentY + rowHeight).lineTo(PAGE_WIDTH - MARGIN, currentY + rowHeight).stroke();
-            
+
             currentY += rowHeight;
         });
 
         currentY += 20;
 
-        // --- Footer Totals & Financials ---
-        
-        // Ensure we don't page break awkwardly. Simplistic check:
+        // --- FOOTER: TOTALS & FINANCIALS ---
+
+        // Page break safety
         if (currentY > PAGE_WIDTH - 200) {
             doc.addPage();
             currentY = MARGIN;
         }
 
-        // Left side: Totals and Amount in words
-        const leftBoxWidth = CONTENT_WIDTH - 220; // 200 for financials + 20 gap
-        
-        // Total Box
+        // Layout: Left = Totals & Amount in words, Right = Financial Statement
+        const finBoxWidth = 200;
+        const finBoxX = PAGE_WIDTH - MARGIN - finBoxWidth;
+        const leftBoxWidth = CONTENT_WIDTH - finBoxWidth - 20;
+
+        // === LEFT: الاجمالي العام ===
         doc.rect(MARGIN, currentY, leftBoxWidth, 40).fillAndStroke(COLOR_BG, COLOR_BORDER);
-        doc.fillColor(COLOR_TEXT).fontSize(14)
-            .text('الإجمالي العام', MARGIN + leftBoxWidth - 100, currentY + 12, { width: 90, align: 'right' });
-            
-        doc.rect(MARGIN + 10, currentY + 8, 100, 24).fillAndStroke('#FFF', COLOR_BORDER);
+        doc.fillColor(COLOR_TEXT).fontSize(14);
+        drawText('الاجمالي العام', MARGIN + leftBoxWidth - 120, currentY + 12, { width: 110, align: 'right' });
+
+        // Total value box
+        doc.rect(MARGIN + 10, currentY + 8, 110, 24).fillAndStroke('#FFF', COLOR_BORDER);
         const grandTotal = toNumber(invoice.totalAmount).toFixed(2);
-        doc.fillColor(COLOR_TEXT).fontSize(14).text(grandTotal, MARGIN + 10, currentY + 12, { width: 100, align: 'center' });
-        
-        // Amount in words
+        doc.fillColor(COLOR_TEXT).fontSize(14);
+        drawText(grandTotal, MARGIN + 10, currentY + 12, { width: 110, align: 'center' });
+
+        // Amount in words box
         const totalAmountNum = toNumber(invoice.totalAmount);
         const arabicAmount = tafqeet(totalAmountNum);
-        
-        doc.rect(MARGIN, currentY + 60, leftBoxWidth, 40).stroke();
-        // Title overlap
-        doc.rect(MARGIN + leftBoxWidth - 90, currentY + 52, 80, 16).fill('#FFF');
-        doc.fillColor(COLOR_MUTED).fontSize(10).text('المبلغ بالحروف', MARGIN + leftBoxWidth - 90, currentY + 54, { width: 80, align: 'center' });
-        
-        doc.fillColor(COLOR_TEXT).fontSize(12)
-            .text(`فقط وقدره ( ${arabicAmount} ) لا غير.`, MARGIN, currentY + 75, { width: leftBoxWidth, align: 'center' });
 
-        // Right side: Financials
-        const rightBoxX = PAGE_WIDTH - MARGIN - 200;
-        doc.lineWidth(2).strokeColor(COLOR_TEXT).rect(rightBoxX, currentY, 200, 100).stroke();
-        
-        doc.rect(rightBoxX, currentY, 200, 20).fill(COLOR_TEXT);
-        doc.fillColor('#FFF').fontSize(12).text('كشف الحساب', rightBoxX, currentY + 4, { width: 200, align: 'center' });
-        
-        doc.lineWidth(1).strokeColor(COLOR_BORDER);
+        doc.rect(MARGIN, currentY + 60, leftBoxWidth, 40).stroke();
+        // Title label overlap
+        doc.rect(MARGIN + leftBoxWidth - 90, currentY + 52, 80, 16).fill('#FFF');
+        doc.fillColor(COLOR_MUTED).fontSize(10);
+        drawText('المبلغ بالحروف', MARGIN + leftBoxWidth - 90, currentY + 54, { width: 80, align: 'center' });
+
+        doc.fillColor(COLOR_TEXT).fontSize(11);
+        drawText(`فقط وقدره ( ${arabicAmount} ) لا غير.`, MARGIN + 5, currentY + 72, { width: leftBoxWidth - 10, align: 'center' });
+
+        // === RIGHT: كشف الحساب ===
+        doc.lineWidth(2).strokeColor(COLOR_DARK).rect(finBoxX, currentY, finBoxWidth, 100).stroke();
+
+        // Header
+        doc.rect(finBoxX, currentY, finBoxWidth, 20).fill(COLOR_DARK);
+        doc.fillColor('#FFF').fontSize(12);
+        drawText('كشف الحساب', finBoxX, currentY + 4, { width: finBoxWidth, align: 'center' });
+
         // Grid lines
-        doc.moveTo(rightBoxX, currentY + 40).lineTo(rightBoxX + 200, currentY + 40).stroke();
-        doc.moveTo(rightBoxX, currentY + 60).lineTo(rightBoxX + 200, currentY + 60).stroke();
-        doc.moveTo(rightBoxX, currentY + 80).lineTo(rightBoxX + 200, currentY + 80).stroke();
-        doc.moveTo(rightBoxX + 100, currentY + 20).lineTo(rightBoxX + 100, currentY + 100).stroke();
+        doc.lineWidth(0.5).strokeColor(COLOR_BORDER);
+        doc.moveTo(finBoxX, currentY + 40).lineTo(finBoxX + finBoxWidth, currentY + 40).stroke();
+        doc.moveTo(finBoxX, currentY + 60).lineTo(finBoxX + finBoxWidth, currentY + 60).stroke();
+        doc.moveTo(finBoxX, currentY + 80).lineTo(finBoxX + finBoxWidth, currentY + 80).stroke();
+        doc.moveTo(finBoxX + finBoxWidth / 2, currentY + 20).lineTo(finBoxX + finBoxWidth / 2, currentY + 100).stroke();
 
         const drawFinRow = (y: number, label: string, value: string, bgLabel: string, valColor: string) => {
-            doc.rect(rightBoxX + 100, y, 100, 20).fill(bgLabel);
-            doc.fillColor(COLOR_TEXT).fontSize(10).text(label, rightBoxX + 100, y + 5, { width: 90, align: 'right' });
-            doc.fillColor(valColor).fontSize(10).text(value, rightBoxX, y + 5, { width: 100, align: 'center' });
+            doc.rect(finBoxX + finBoxWidth / 2, y, finBoxWidth / 2, 20).fill(bgLabel);
+            doc.fillColor(COLOR_TEXT).fontSize(10);
+            drawText(label, finBoxX + finBoxWidth / 2 + 5, y + 5, { width: finBoxWidth / 2 - 10, align: 'right' });
+            doc.fillColor(valColor).fontSize(10);
+            drawText(value, finBoxX, y + 5, { width: finBoxWidth / 2, align: 'center' });
         };
 
-        const prevBal = Number(invoice.previousBalance || 0).toLocaleString('ar-EG');
-        const finTotal = Number(invoice.totalAmount || 0).toLocaleString('ar-EG');
-        const amountPaid = Number(invoice.amountPaid || 0).toLocaleString('ar-EG');
-        const currBal = Number(invoice.currentBalance || 0).toLocaleString('ar-EG');
+        const prevBal = formatNum(invoice.previousBalance || 0);
+        const finTotal = formatNum(invoice.totalAmount || 0);
+        const amountPaid = formatNum(invoice.amountPaid || 0);
+        const currBal = formatNum(invoice.currentBalance || 0);
 
         drawFinRow(currentY + 20, 'الرصيد السابق', prevBal, COLOR_BG, COLOR_TEXT);
-        drawFinRow(currentY + 40, 'قيمة الفاتورة', finTotal, COLOR_BG, '#1D4ED8'); // Blue
-        drawFinRow(currentY + 60, invoice.paymentMethod === 'CREDIT' ? 'المدفوع (آجل)' : 'المدفوع (نقداً)', amountPaid, COLOR_BG, '#15803D'); // Green
-        drawFinRow(currentY + 80, 'الرصيد المتبقي', currBal, '#E5E7EB', '#DC2626'); // Red
-        
+        drawFinRow(currentY + 40, 'قيمة الفاتورة', finTotal, COLOR_BG, '#1D4ED8');
+        drawFinRow(currentY + 60, invoice.paymentMethod === 'CREDIT' ? 'المدفوع (آجل)' : 'المدفوع (نقداً)', amountPaid, COLOR_BG, '#15803D');
+        drawFinRow(currentY + 80, 'الرصيد المتبقي', currBal, '#E5E7EB', '#DC2626');
+
         currentY += 140;
 
-        // --- Signatures ---
+        // --- SIGNATURES ---
         doc.fillColor(COLOR_MUTED).fontSize(12);
-        
-        // Use dash(5, { space: 5 }) but reset first if needed, though stroke() will consume it
+
+        doc.undash();
         doc.moveTo(MARGIN + 40, currentY).lineTo(MARGIN + 160, currentY).dash(5, { space: 5 }).strokeColor(COLOR_MUTED).stroke();
-        doc.text('توقيع المستلم', MARGIN + 40, currentY + 10, { width: 120, align: 'center' });
-        
+        drawText('توقيع المستلم', MARGIN + 40, currentY + 10, { width: 120, align: 'center' });
+
         doc.moveTo(PAGE_WIDTH - MARGIN - 160, currentY).lineTo(PAGE_WIDTH - MARGIN - 40, currentY).stroke();
-        doc.text('توقيع المسئول', PAGE_WIDTH - MARGIN - 160, currentY + 10, { width: 120, align: 'center' });
+        drawText('توقيع المسئول', PAGE_WIDTH - MARGIN - 160, currentY + 10, { width: 120, align: 'center' });
 
         doc.end();
     });

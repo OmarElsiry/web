@@ -12,6 +12,7 @@ import InvoiceDetailsModal from './InvoiceDetailsModal';
 import { Invoice } from './types';
 import { Spinner } from '@/components/ui';
 import { useLocale } from '@/hooks/useLocale';
+import { getCurrentUser } from '@/app/actions/permissions';
 
 export default function InvoicesPage() {
     const t = useTranslations('Invoices');
@@ -23,6 +24,7 @@ export default function InvoicesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
     
     // Pagination State
     const [page, setPage] = useState(1);
@@ -53,6 +55,9 @@ export default function InvoicesPage() {
     }, [page, limit]);
 
     useEffect(() => {
+        getCurrentUser().then(user => {
+            if (user) setUserRole(user.role);
+        });
         fetchInvoices(1);
         getProducts().then(setAvailableProducts);
     }, [fetchInvoices]);
@@ -272,8 +277,9 @@ export default function InvoicesPage() {
                                 <button
                                     data-id={inv.id}
                                     onClick={handlePrintIconClick}
-                                    className="p-2 bg-secondary/50 hover:bg-primary hover:text-primary-foreground rounded-xl text-muted-foreground transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                                    title={t('printTooltip')}
+                                    disabled={inv.status === 'PENDING_REVIEW' && userRole === 'SALESPERSON'}
+                                    className="p-2 bg-secondary/50 hover:bg-primary hover:text-primary-foreground rounded-xl text-muted-foreground transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 disabled:opacity-30 disabled:hover:bg-secondary/50 disabled:hover:text-muted-foreground"
+                                    title={inv.status === 'PENDING_REVIEW' && userRole === 'SALESPERSON' ? t('details.cannotPrintPending', { defaultValue: 'Cannot print pending invoice' }) : t('printTooltip')}
                                 >
                                     <Printer size={20} />
                                 </button>
@@ -314,6 +320,7 @@ export default function InvoicesPage() {
                     onClose={handleCloseModal}
                     onUpdate={handleUpdate}
                     onOpenRefund={handleOpenRefundModal}
+                    userRole={userRole}
                 />
             )}
 
