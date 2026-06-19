@@ -119,29 +119,6 @@ export default function SalesPage() {
 
     // Autocomplete History
     const [history, setHistory] = useState<Record<string, string[]>>({});
-
-    const saveDefaults = () => {
-        const defaults = {
-            showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
-            warehouseName
-        };
-        localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
-        alert('تم حفظ الإعدادات الافتراضية بنجاح');
-    };
-
-    const updateHistory = (key: string, val: string) => {
-        if (!val) return;
-        setHistory(prev => {
-            const arr = prev[key] || [];
-            if (!arr.includes(val)) {
-                const newArr = [val, ...arr].slice(0, 10);
-                const next = { ...prev, [key]: newArr };
-                localStorage.setItem('sales_autocomplete_history', JSON.stringify(next));
-                return next;
-            }
-            return prev;
-        });
-    };
     const [city, setCity] = useState("دمياط الجديدة");
     const [address, setAddress] = useState("");
     const [phone1, setPhone1] = useState("");
@@ -562,7 +539,7 @@ export default function SalesPage() {
         } finally {
             setProcessing(false);
         }
-    };
+    }, [cart, customerName, phone1, phone2, address, amountPaid, processSale, paymentMethod, selectedStaffId, selectedCustomerId, editFromInvoiceId, updateHistory, warehouseName, city, employeeId, employeeName]);
 
     if (loading) {
         return (
