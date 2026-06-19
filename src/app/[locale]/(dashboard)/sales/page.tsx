@@ -9,7 +9,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle, Zap } from 'lucide-react';
+import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Download, Check, Plus, AlertCircle, Zap } from 'lucide-react';
 import Image from 'next/image';
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import QuickWizard from '@/components/sales/QuickWizard';
@@ -89,9 +89,9 @@ export default function SalesPage() {
     const [loading, setLoading] = useState(true);
     const [checkoutMode, setCheckoutMode] = useState<'standard' | 'quick'>('standard');
 
-    // Automatically set checkoutMode to quick on mobile viewports
+    // Automatically set checkoutMode to quick on mobile and tablet viewports
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
             setCheckoutMode('quick');
         }
     }, []);
@@ -535,34 +535,47 @@ export default function SalesPage() {
                     // Set sequence ID to the actual invoice ID for the printout
                     setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
 
-                    // Wait for state to update, then print, then clear
+                    // Download PDF in background
+                    try {
+                        const pdfRes = await fetch(`/api/invoices/${result.invoice.id}/pdf?download=1`);
+                        if (pdfRes.ok) {
+                            const blob = await pdfRes.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `invoice-${result.invoice.id.slice(-6).toUpperCase()}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }
+                    } catch (pdfErr) {
+                        console.error('PDF download error:', pdfErr);
+                    }
+
+                    // Clear after download
                     setTimeout(() => {
-                        window.print();
-
-                        // Clear after print dialog closes (approximate)
-                        setTimeout(() => {
-                            setShowSuccess(false);
-                            setCart([]);
-                            setCustomerName('');
-                            setSelectedCustomerId(null);
-                            setPhone1('');
-                            setPhone2('');
-                            setAddress('');
+                        setShowSuccess(false);
+                        setCart([]);
+                        setCustomerName('');
+                        setSelectedCustomerId(null);
+                        setPhone1('');
+                        setPhone2('');
+                        setAddress('');
 
 
-                            setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
+                        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
 
-                            setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
-                            setAmountPaid('');
-                            setPreviousBalance(0);
-                            setFilteredProducts([]);
+                        setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
+                        setAmountPaid('');
+                        setPreviousBalance(0);
+                        setFilteredProducts([]);
 
-                            // If this was a reviewer edit, close the tab
-                            if (editFromInvoiceId) {
-                                setTimeout(() => window.close(), 500);
-                            }
-                        }, 1000);
-                    }, 500);
+                        // If this was a reviewer edit, close the tab
+                        if (editFromInvoiceId) {
+                            setTimeout(() => window.close(), 500);
+                        }
+                    }, 1500);
                 }
             } else {
                 setError(result.error || "حدث خطأ أثناء معالجة الفاتورة");
@@ -1242,8 +1255,8 @@ export default function SalesPage() {
                                 <Loader2 className="animate-spin" size={24} />
                             ) : (
                                 <>
-                                    <Printer size={24} />
-                                    <span>إصدار وطباعة الفاتورة</span>
+                                    <Download size={24} />
+                                    <span>إصدار وتحميل الفاتورة</span>
                                 </>
                             )}
                         </button>
@@ -1260,7 +1273,7 @@ export default function SalesPage() {
                         </div>
                         <div className="text-center">
                             <h2 className="text-3xl font-black tracking-tight mb-1">تم إصدار الفاتورة</h2>
-                            <p className="text-gray-500 font-medium">جاري تجهيز الطباعة...</p>
+                            <p className="text-gray-500 font-medium">جاري تحميل الفاتورة...</p>
                         </div>
                     </div>
                 </div>
