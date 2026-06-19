@@ -13,6 +13,10 @@ export interface Invoice {
     date: Date;
     totalAmount: number;
     paymentMethod: string;
+    status?: string;
+    reviewer?: { id: string; name: string | null; username: string } | null;
+    reviewedAt?: Date | null;
+    reviewNote?: string | null;
     previousBalance?: number;
     amountPaid?: number;
     currentBalance?: number;

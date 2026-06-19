@@ -1,8 +1,10 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Download, Database, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Spinner, Button, ErrorBanner } from '@/components/ui';
 
 export default function BackupPage() {
     const t = useTranslations('Navigation');
@@ -47,7 +49,7 @@ export default function BackupPage() {
         } catch (error: unknown) {
             console.error('Backup error:', error);
             setStatus('error');
-            setErrorMessage(error.message || 'An unexpected error occurred');
+            setErrorMessage(error instanceof Error ? error.message : 'An unexpected error occurred');
         } finally {
             setIsBackingUp(false);
         }
@@ -77,23 +79,15 @@ export default function BackupPage() {
                         Depending on the size of your database, this might take a few moments.
                     </p>
                     
-                    <button
+                    <Button
                         onClick={handleBackup}
                         disabled={isBackingUp}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3 px-8 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        loading={isBackingUp}
+                        icon={!isBackingUp ? <Download className="w-5 h-5" /> : undefined}
+                        size="lg"
                     >
-                        {isBackingUp ? (
-                            <>
-                                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                                Generating Backup...
-                            </>
-                        ) : (
-                            <>
-                                <Download className="w-5 h-5" />
-                                Download Backup
-                            </>
-                        )}
-                    </button>
+                        {isBackingUp ? 'Generating Backup...' : 'Download Backup'}
+                    </Button>
                     
                     {status === 'success' && (
                         <div className="mt-6 flex items-center gap-2 text-green-600 bg-green-50 px-4 py-3 rounded-lg border border-green-200">
@@ -103,10 +97,7 @@ export default function BackupPage() {
                     )}
                     
                     {status === 'error' && (
-                        <div className="mt-6 flex items-center gap-2 text-red-600 bg-red-50 px-4 py-3 rounded-lg border border-red-200">
-                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                            <span className="text-left">{errorMessage}</span>
-                        </div>
+                        <ErrorBanner message={errorMessage} className="mt-6" />
                     )}
                 </div>
             </div>

@@ -5,9 +5,11 @@ import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
-import { RefreshCcw, Loader2, User, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { RefreshCcw, User, Filter, ScrollText } from 'lucide-react';
 import clsx from 'clsx';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { PageHeader, Spinner, Th, Pagination } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 interface LogUser {
     id?: string;
@@ -30,7 +32,7 @@ const ITEMS_PER_PAGE = 50;
 
 function LogsContent() {
     const t = useTranslations('Logs');
-    const locale = useLocale();
+    const { locale, isRtl } = useLocale();
 
     const searchParams = useSearchParams();
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -84,18 +86,22 @@ function LogsContent() {
     const handleNextPage = useCallback(() => setPage(p => Math.min(pagination.pages, p + 1)), [pagination.pages]);
 
     return (
-        <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-            <div className="flex items-center justify-between">
-                
-                <button
-                    onClick={fetchLogs}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50"
-                >
-                    <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
-                    {t('refresh')}
-                </button>
-            </div>
+        <div className="space-y-6">
+            <PageHeader
+                icon={ScrollText}
+                title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>}
+                isRtl={isRtl}
+                actions={
+                    <button
+                        onClick={fetchLogs}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
+                        {t('refresh')}
+                    </button>
+                }
+            />
 
             {/* User Filter */}
             <div className="flex items-center gap-3 bg-card p-3 rounded-lg border border-border">
@@ -128,18 +134,18 @@ function LogsContent() {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-secondary/30 text-muted-foreground font-semibold border-b border-border text-xs uppercase tracking-wider">
                             <tr>
-                                <th className="px-6 py-4 text-center">{t('table.action')}</th>
-                                <th className="px-6 py-4 text-center">{t('table.status')}</th>
-                                <th className="px-6 py-4 text-center">{t('table.details')}</th>
-                                <th className="px-6 py-4 text-center">{t('table.reason')}</th>
-                                <th className="px-6 py-4 text-center">{t('table.user')}</th>
-                                <th className="px-6 py-4 text-center">{t('table.email')}</th>
-                                <th className={clsx("px-6 py-4", 'text-center')}>{t('table.time')}</th>
+                                <Th>{t('table.action')}</Th>
+                                <Th>{t('table.status')}</Th>
+                                <Th>{t('table.details')}</Th>
+                                <Th>{t('table.reason')}</Th>
+                                <Th>{t('table.user')}</Th>
+                                <Th>{t('table.email')}</Th>
+                                <Th>{t('table.time')}</Th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground"><Loader2 className="animate-spin mx-auto" /></td></tr>
+                                <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground"><Spinner className="mx-auto" /></td></tr>
                             // eslint-disable-next-line sonarjs/no-nested-conditional
                             ) : logs.length === 0 ? (
                                 <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">{t('empty')}</td></tr>
@@ -180,26 +186,16 @@ function LogsContent() {
 
                 {/* Pagination */}
                 {pagination.pages > 1 && (
-                    <div className="px-6 py-4 border-t border-border flex items-center justify-between bg-secondary/10">
-                        <div className="text-sm text-muted-foreground">
+                    <div className="px-6 py-4 border-t border-border bg-secondary/10">
+                        <div className="text-sm text-muted-foreground mb-2 text-center">
                             {t('pagination.status', { page: page.toLocaleString(locale), total: pagination.pages.toLocaleString(locale), count: pagination.total.toLocaleString(locale) })}
                         </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handlePrevPage}
-                                disabled={page === 1}
-                                className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
-                            >
-                                {locale === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-                            </button>
-                            <button
-                                onClick={handleNextPage}
-                                disabled={page === pagination.pages}
-                                className="p-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
-                            >
-                                {locale === 'ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-                            </button>
-                        </div>
+                        <Pagination
+                            currentPage={page}
+                            totalPages={pagination.pages}
+                            onPageChange={(p) => setPage(p)}
+                            isRtl={isRtl}
+                        />
                     </div>
                 )}
             </div>
@@ -209,7 +205,7 @@ function LogsContent() {
 
 export default function LogsPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>}>
+        <Suspense fallback={<div className="flex justify-center py-12"><Spinner /></div>}>
             <LogsContent />
         </Suspense>
     );

@@ -2,10 +2,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCcw, Search, Calendar, Loader2, FileText, X, AlertTriangle, User } from 'lucide-react';
+import { RefreshCcw, Search, Calendar, FileText, X, AlertTriangle, User } from 'lucide-react';
 import { getRefunds } from '@/app/actions/refunds';
 import clsx from 'clsx';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { PageHeader, Th, Spinner, DateRangeFilter, Pagination } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
+import { endOfDay } from '@/lib/utils/date';
 
 interface RefundItem {
     id: string;
@@ -30,8 +33,7 @@ interface Refund {
 export default function RefundHistoryPage() {
     const t = useTranslations('Refunds');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
 
     const [refunds, setRefunds] = useState<Refund[]>([]);
     const [loading, setLoading] = useState(true);
@@ -43,10 +45,15 @@ export default function RefundHistoryPage() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalServerItems, setTotalServerItems] = useState(0);
+    const ITEMS_PER_PAGE = 50;
+
     const fetchRefunds = async () => {
         setLoading(true);
         try {
-            const data = await getRefunds();
+            const [total, data] = await getRefunds(currentPage, ITEMS_PER_PAGE);
+            setTotalServerItems(total);
             setRefunds(data as Refund[]);
         } catch (error) {
             console.error('Failed to fetch refunds:', error);
@@ -57,7 +64,7 @@ export default function RefundHistoryPage() {
 
     useEffect(() => {
         fetchRefunds();
-    }, []);
+    }, [currentPage]);
 
     const filteredRefunds = refunds.filter(ref => {
         const query = searchQuery.toLowerCase();
@@ -71,7 +78,7 @@ export default function RefundHistoryPage() {
         const refDate = new Date(ref.createdAt);
         const matchesDate =
             (!startDate || refDate >= new Date(startDate)) &&
-            (!endDate || refDate <= new Date(new Date(endDate).setHours(23, 59, 59)));
+            (!endDate || refDate <= endOfDay(endDate));
 
         return matchesSearch && matchesDate;
     });
@@ -101,7 +108,7 @@ export default function RefundHistoryPage() {
     }, [selectedRefund]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-red-100 dark:bg-red-950/30 text-red-600 rounded-xl shadow-sm">
@@ -230,6 +237,29 @@ export default function RefundHistoryPage() {
                     ))
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalServerItems > ITEMS_PER_PAGE && (
+                <div className="flex items-center justify-between p-4 bg-card rounded-2xl border border-border shadow-sm">
+                    <button 
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {t('buttons.previous')}
+                    </button>
+                    <span className="text-sm font-bold text-muted-foreground">
+                        Page {currentPage} of {Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
+                    </span>
+                    <button 
+                        disabled={currentPage >= Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {t('buttons.next')}
+                    </button>
+                </div>
+            )}
 
             {/* Refund Details Modal */}
             {selectedRefund && (

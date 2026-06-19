@@ -4,12 +4,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStockMovements } from '@/app/actions/transactions';
 import {
-    History, RefreshCcw, Loader2,
+    History, RefreshCcw,
     ArrowDownLeft, ArrowUpRight, ShoppingCart, ArrowRightLeft,
-    MapPin, Package, Calendar
+    MapPin, Package, Calendar, ChevronLeft, ChevronRight, Loader2
 } from 'lucide-react';
 import clsx from 'clsx';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { PageHeader, Spinner, EmptyState, Pagination } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -35,7 +37,7 @@ interface Transaction {
 
 export default function MovementsPage() {
     const t = useTranslations('Movements');
-    const locale = useLocale();
+    const { locale, isRtl } = useLocale();
 
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,11 +83,13 @@ export default function MovementsPage() {
     };
 
     return (
-        <div className="space-y-6" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                
-
-                <div className="flex flex-wrap items-center gap-2">
+        <div className="space-y-6">
+            <PageHeader
+                icon={History}
+                title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>}
+                isRtl={isRtl}
+                actions={
+                    <div className="flex flex-wrap items-center gap-2">
                     <select
                         value={filterType}
                         onChange={handleFilterTypeChange}
@@ -120,17 +124,16 @@ export default function MovementsPage() {
                         <RefreshCcw size={16} className={loading ? "animate-spin" : ""} />
                         {t('refresh')}
                     </button>
-                </div>
-            </div>
+                    </div>
+                }
+            />
 
             <div className="space-y-4">
                 {loading && (
-                    <div className="flex justify-center py-20"><Loader2 className="animate-spin text-muted-foreground" size={32} /></div>
+                    <div className="flex justify-center py-20"><Spinner size={32} className="text-muted-foreground" /></div>
                 )}
                 {!loading && transactions.length === 0 && (
-                    <div className="text-center py-20 bg-card border border-border rounded-xl text-muted-foreground">
-                        {t('empty')}
-                    </div>
+                    <EmptyState icon={History} title={t('empty')} />
                 )}
                 {!loading && transactions.length > 0 && (
                     transactions.map((tx) => {
@@ -193,27 +196,13 @@ export default function MovementsPage() {
                 )}
 
                 {/* Pagination Controls */}
-                {pagination.pages > 1 && (
-                    <div className="flex justify-center gap-2 pt-4">
-                        <button
-                            onClick={handlePrevPage}
-                            disabled={page === 1}
-                            className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
-                        >
-                            {t('pagination.prev')}
-                        </button>
-                        <span className="px-4 py-2 text-sm text-muted-foreground self-center">
-                            {t('pagination.status', { page: page.toLocaleString(locale), total: pagination.pages.toLocaleString(locale) })}
-                        </span>
-                        <button
-                            onClick={handleNextPage}
-                            disabled={page === pagination.pages}
-                            className="px-4 py-2 rounded-lg border border-border hover:bg-secondary disabled:opacity-30"
-                        >
-                            {t('pagination.next')}
-                        </button>
-                    </div>
-                )}
+                <Pagination
+                    currentPage={page}
+                    totalPages={pagination.pages}
+                    onPageChange={(p) => setPage(p)}
+                    isRtl={isRtl}
+                    disabled={loading}
+                />
             </div>
         </div>
     );

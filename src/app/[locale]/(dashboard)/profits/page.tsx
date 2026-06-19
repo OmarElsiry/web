@@ -1,12 +1,14 @@
-/* eslint-disable sonarjs/cognitive-complexity */
+
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Loader2, Wallet } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Wallet } from 'lucide-react';
 import { getProfitReport } from '@/app/actions/profits';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
+import { PageHeader, StatCard, DateRangeFilter, Spinner } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 interface Invoice {
     id: string;
@@ -18,8 +20,7 @@ interface Invoice {
 export default function ProfitsPage() {
     const t = useTranslations('Profits');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
 
     const [recentSales, setRecentSales] = useState<Invoice[]>([]);
     const [totalRevenue, setTotalRevenue] = useState(0);
@@ -48,103 +49,43 @@ export default function ProfitsPage() {
     }, [startDate, endDate]);
 
     const handleToggleDateFilter = useCallback(() => setShowDateFilter(prev => !prev), []);
-    const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
-    const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
     const handleClearDates = useCallback(() => { setStartDate(''); setEndDate(''); }, []);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
-                        <TrendingUp size={28} />
-                    </div>
-                    <div className={'text-center'}>
-                        
-                        
-                    </div>
-                </div>
-                <button
-                    onClick={handleToggleDateFilter}
-                    className={clsx(
-                        "flex items-center gap-2 px-4 py-3 border rounded-xl transition-all font-bold text-xs uppercase tracking-widest active:scale-95",
-                        showDateFilter ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" : "bg-card border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    <Calendar size={16} />
-                    {t('dateRange')}
-                </button>
-            </div>
-
-            {/* Date Range Inputs */}
-            {showDateFilter && (
-                <div className="flex flex-wrap items-center gap-4 p-4 bg-secondary/20 rounded-2xl border border-border animate-in slide-in-from-top-2 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('from')}</label>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={handleStartDateChange}
-                            className="bg-card border border-border rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('to')}</label>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={handleEndDateChange}
-                            className="bg-card border border-border rounded-xl px-3 py-2 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
-                        />
-                    </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <PageHeader
+                icon={TrendingUp}
+                title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>}
+                isRtl={isRtl}
+                actions={
                     <button
-                        onClick={handleClearDates}
-                        className={clsx("text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 transition-colors", isRtl ? "mr-auto" : "ml-auto")}
+                        onClick={handleToggleDateFilter}
+                        className={clsx(
+                            "flex items-center gap-2 px-4 py-3 border rounded-xl transition-all font-bold text-xs uppercase tracking-widest active:scale-95",
+                            showDateFilter ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" : "bg-card border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+                        )}
                     >
-                        {t('clearFilter')}
+                        <Calendar size={16} />
+                        {t('dateRange')}
                     </button>
-                </div>
+                }
+            />
+
+            {showDateFilter && (
+                <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                    onClear={handleClearDates}
+                    isRtl={isRtl}
+                />
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-green-500/50 transition-all">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-green-50 text-green-600 rounded-lg dark:bg-green-950/20 group-hover:scale-110 transition-transform">
-                            <DollarSign size={20} />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('stats.totalRevenue')}</span>
-                    </div>
-                    <div className={clsx("text-3xl font-black text-green-600 tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
-                        <span>{loading ? '...' : totalRevenue.toLocaleString(locale)}</span>
-                    </div>
-                </div>
-
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-red-500/50 transition-all">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-red-50 text-red-600 rounded-lg dark:bg-red-950/20 group-hover:scale-110 transition-transform">
-                            <TrendingDown size={20} />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('stats.estimatedCost')}</span>
-                    </div>
-                    <div className={clsx("text-3xl font-black text-red-600 tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
-                        <span>{loading ? '...' : estimatedCost.toLocaleString(locale)}</span>
-                    </div>
-                </div>
-
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-orange-500/50 transition-all">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-orange-50 text-orange-600 rounded-lg dark:bg-orange-950/20 group-hover:scale-110 transition-transform">
-                            <Wallet size={20} />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('stats.totalExpenses')}</span>
-                    </div>
-                    <div className={clsx("text-3xl font-black text-orange-600 tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
-                        <span>{loading ? '...' : totalExpenses.toLocaleString(locale)}</span>
-                    </div>
-                </div>
+                <StatCard icon={DollarSign} label={t('stats.totalRevenue')} value={totalRevenue.toLocaleString(locale)} currency={ts('currency')} color="green" isRtl={isRtl} loading={loading} />
+                <StatCard icon={TrendingDown} label={t('stats.estimatedCost')} value={estimatedCost.toLocaleString(locale)} currency={ts('currency')} color="red" isRtl={isRtl} loading={loading} />
+                <StatCard icon={Wallet} label={t('stats.totalExpenses')} value={totalExpenses.toLocaleString(locale)} currency={ts('currency')} color="amber" isRtl={isRtl} loading={loading} />
 
                 <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-primary/50 transition-all relative overflow-hidden">
                     <div className={clsx("absolute top-0 w-1 h-full bg-primary opacity-20", isRtl ? "right-0" : "left-0")} />
@@ -174,7 +115,7 @@ export default function ProfitsPage() {
                 <div className="space-y-4">
                     {loading ? (
                         <div className="flex items-center justify-center p-8 text-muted-foreground animate-pulse font-bold uppercase text-xs tracking-widest">
-                            <Loader2 className="animate-spin mr-2" size={16} />
+                            <Spinner size={16} className="mr-2" />
                             {t('loading')}
                         </div>
                     // eslint-disable-next-line sonarjs/no-nested-conditional

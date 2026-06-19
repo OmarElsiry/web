@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -5,7 +6,8 @@ import { BarChart3, Calendar, Users, Package, Printer, DollarSign, Phone, MapPin
 import { getBuyerReport, getProductReport } from '@/app/actions/analytics';
 import { printElement } from '@/components/ui/PrintExport';
 import clsx from 'clsx';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/useLocale';
 
 interface PurchaseHistory {
     name: string;
@@ -31,7 +33,7 @@ interface ProductData {
 export default function AnalyticsPage() {
     const t = useTranslations('Analytics');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
+    const { locale } = useLocale();
     const [activeTab, setActiveTab] = useState<'buyers' | 'products'>('buyers');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -40,16 +42,21 @@ export default function AnalyticsPage() {
     const [buyerData, setBuyerData] = useState<BuyerData[]>([]);
     const [productData, setProductData] = useState<ProductData[]>([]);
     const [expandedBuyer, setExpandedBuyer] = useState<number | null>(null);
+    const [buyerTotals, setBuyerTotals] = useState({ customers: 0, sales: 0 });
+    const [productTotals, setProductTotals] = useState({ quantity: 0, revenue: 0 });
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [buyers, products] = await Promise.all([
+            const [buyersRes, productsRes] = await Promise.all([
                 getBuyerReport({ startDate, endDate }),
                 getProductReport({ startDate, endDate })
             ]);
-            setBuyerData(buyers);
-            setProductData(products);
+            setBuyerData(buyersRes.data);
+            setBuyerTotals({ customers: buyersRes.totalCustomers, sales: buyersRes.totalSales });
+            
+            setProductData(productsRes.data);
+            setProductTotals({ quantity: productsRes.totalQuantity, revenue: productsRes.totalRevenue });
         } catch (error) {
             console.error(error);
         } finally {
@@ -156,7 +163,7 @@ export default function AnalyticsPage() {
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('buyers.totalCustomers')}</div>
                                         </div>
-                                        <div className="text-3xl font-black">{buyerData.length.toLocaleString(locale)}</div>
+                                        <div className="text-3xl font-black">{buyerTotals.customers.toLocaleString(locale)}</div>
                                     </div>
 
                                     <div className="bg-gradient-to-br from-card to-secondary/30 p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
@@ -167,7 +174,7 @@ export default function AnalyticsPage() {
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('buyers.totalSalesValue')}</div>
                                         </div>
                                         <div className="text-3xl font-black text-green-600">
-                                            {ts('currency')} {buyerData.reduce((sum: number, b: BuyerData) => sum + b.totalSpent, 0).toLocaleString(locale)}
+                                            {ts('currency')} {buyerTotals.sales.toLocaleString(locale)}
                                         </div>
                                     </div>
                                 </div>
@@ -273,7 +280,9 @@ export default function AnalyticsPage() {
                                             </div>
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('products.uniqueProducts')}</div>
                                         </div>
-                                        <div className="text-3xl font-black">{productData.length.toLocaleString(locale)}</div>
+                                        <div className="text-3xl font-black">
+                                            {productData.length === 50 ? '50+' : productData.length.toLocaleString(locale)}
+                                        </div>
                                     </div>
 
                                     <div className="bg-gradient-to-br from-card to-secondary/30 p-6 rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow">
@@ -284,7 +293,7 @@ export default function AnalyticsPage() {
                                             <div className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('products.totalUnits')}</div>
                                         </div>
                                         <div className="text-3xl font-black text-orange-600">
-                                            {productData.reduce((sum: number, p: ProductData) => sum + p.quantitySold, 0).toLocaleString(locale)} {t('products.items')}
+                                            {productTotals.quantity.toLocaleString(locale)} {t('products.items')}
                                         </div>
                                     </div>
                                 </div>

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
-import { FileText, Filter, Search, Calendar, Loader2, Printer, Download } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { FileText, Filter, Search, Calendar, Printer, Download } from 'lucide-react';
 import { getInvoices } from '@/app/actions/invoices';
 import { printElement } from '@/components/ui/PrintExport';
 import RefundModal from '@/components/RefundModal';
@@ -10,18 +10,24 @@ import clsx from 'clsx';
 import { getProducts } from '@/app/actions/sales';
 import InvoiceDetailsModal from './InvoiceDetailsModal';
 import { Invoice } from './types';
+import { Spinner } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 export default function InvoicesPage() {
     const t = useTranslations('Invoices');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
     
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [showRefundModal, setShowRefundModal] = useState(false);
+    
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 50;
     
     // Products for adding new items
     const [availableProducts, setAvailableProducts] = useState<Array<{ id: string, name: string, sku: string, baseSellingPrice?: number }>>([]);
@@ -31,24 +37,30 @@ export default function InvoicesPage() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    const fetchInvoices = useCallback(async () => {
-        const data = await getInvoices();
-        setInvoices(data as unknown as Invoice[]);
-        setLoading(false);
-    }, []);
+    const fetchInvoices = useCallback(async (pageNum = page) => {
+        setLoading(true);
+        try {
+            const response = await getInvoices(pageNum, limit);
+            // Type cast response.data to Invoice[]
+            setInvoices(response.data as unknown as Invoice[]);
+            setTotalPages(response.totalPages);
+            setPage(response.page);
+        } catch (error) {
+            console.error("Failed to fetch invoices", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, limit]);
 
     useEffect(() => {
-        getInvoices().then(data => {
-            setInvoices(data as unknown as Invoice[]);
-            setLoading(false);
-        });
+        fetchInvoices(1);
         getProducts().then(setAvailableProducts);
-    }, []);
+    }, [fetchInvoices]);
 
     const handleUpdate = useCallback(() => {
-        fetchInvoices();
+        fetchInvoices(page);
         setSelectedInvoice(null);
-    }, [fetchInvoices]);
+    }, [fetchInvoices, page]);
 
     const handlePrintReport = useCallback(() => {
         const dateRangeStr = startDate || endDate ? `<p>${t('report.period', { start: startDate || 'Start', end: endDate || 'Now' })}</p>` : '';
@@ -120,7 +132,7 @@ export default function InvoicesPage() {
     }, [invoices, searchQuery, startDate, endDate]);
 
     return (
-        <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 
                 <div className="flex gap-2">
@@ -199,7 +211,7 @@ export default function InvoicesPage() {
             <div className="space-y-4">
                 {loading && (
                     <div className="flex justify-center p-12 text-muted-foreground">
-                        <Loader2 className="animate-spin mr-2" size={32} />
+                        <Spinner size={32} className="mr-2" />
                     </div>
                 )}
                 {!loading && filteredInvoices.length === 0 && (
@@ -254,6 +266,29 @@ export default function InvoicesPage() {
                     ))
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-8">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1 || loading}
+                        className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
+                    >
+                        {t('previousPage', { defaultValue: 'Previous' })}
+                    </button>
+                    <span className="font-medium text-sm text-muted-foreground">
+                        {t('pageOf', { current: page, total: totalPages, defaultValue: `Page ${page} of ${totalPages}` })}
+                    </span>
+                    <button
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages || loading}
+                        className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
+                    >
+                        {t('nextPage', { defaultValue: 'Next' })}
+                    </button>
+                </div>
+            )}
 
             {/* Details Modal */}
             {selectedInvoice && (

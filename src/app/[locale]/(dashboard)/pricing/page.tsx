@@ -2,16 +2,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Tag, Edit, Percent, Loader2, X, Check } from 'lucide-react';
+import { Tag, Edit, Percent, X, Check } from 'lucide-react';
 import { getInventory, updateProduct, bulkUpdatePricing } from '@/app/actions/inventory';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
+import { PageHeader, Th, Spinner, Modal, Button, FormField, Input } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 export default function PricingPage() {
     const t = useTranslations('Pricing');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
     
     const [products, setProducts] = useState<Array<{ id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }>>([]);
     const [loading, setLoading] = useState(true);
@@ -29,17 +30,23 @@ export default function PricingPage() {
     const [bulkType, setBulkType] = useState<'markup' | 'increase'>('markup');
     const [bulkSubmitting, setBulkSubmitting] = useState(false);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalServerItems, setTotalServerItems] = useState(0);
+    const ITEMS_PER_PAGE = 50;
+
     const loadData = () => {
         setLoading(true);
-        getInventory().then(data => {
-            setProducts(data);
+        getInventory(currentPage, ITEMS_PER_PAGE).then(([total, data]) => {
+            setTotalServerItems(total);
+            setProducts(data as any);
             setLoading(false);
         });
     };
 
     useEffect(() => {
         loadData();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentPage]);
 
     const handleEditClick = (item: { id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }) => {
         setEditingProduct(item.product);
@@ -83,7 +90,7 @@ export default function PricingPage() {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
@@ -169,6 +176,29 @@ export default function PricingPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalServerItems > ITEMS_PER_PAGE && (
+                <div className="flex justify-between items-center mt-4">
+                    <button
+                        disabled={currentPage === 1 || loading}
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {ts('buttons.previous')}
+                    </button>
+                    <span className="text-sm font-bold text-muted-foreground">
+                        Page {currentPage} of {Math.ceil(totalServerItems / ITEMS_PER_PAGE)}
+                    </span>
+                    <button
+                        disabled={currentPage >= Math.ceil(totalServerItems / ITEMS_PER_PAGE) || loading}
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
+                    >
+                        {ts('buttons.next')}
+                    </button>
+                </div>
+            )}
 
             {/* Single Edit Modal */}
             {isEditModalOpen && (

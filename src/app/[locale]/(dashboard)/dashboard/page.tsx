@@ -1,6 +1,6 @@
 import { getDashboardStats } from '@/app/actions/dashboard';
 import { getAuditLogs } from '@/app/actions/audit';
-import { RefreshCcw, ShoppingCart, Activity, User } from 'lucide-react';
+import { RefreshCcw, ShoppingCart, Activity } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
@@ -94,6 +94,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                                 <div key={i} className="flex-1 flex flex-col items-center gap-3 group relative">
                                     <div
                                         className="w-full bg-primary/20 group-hover:bg-primary transition-all rounded-t-lg relative"
+                                        // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
                                         style={{ height: `${heightPercent}%` }}
                                     >
                                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 transition-all scale-75 group-hover:scale-100">

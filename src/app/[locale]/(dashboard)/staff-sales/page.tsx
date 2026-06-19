@@ -1,19 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, Fragment, useCallback } from 'react';
-import { UserCheck, Trophy, Phone, Eye, X, FileDown, Calendar, DollarSign, Loader2, Award } from 'lucide-react';
+import { UserCheck, Trophy, Phone, Eye, X, FileDown, Calendar, DollarSign, Award } from 'lucide-react';
 import { getStaffList, getStaffSalesDetail } from '@/app/actions/staff';
 import clsx from 'clsx';
-import { useTranslations, useLocale } from 'next-intl';
-
-type Period = 'day' | 'week' | 'month' | '2months' | '6months' | 'all';
-
-interface StaffMember {
-    id: string;
-    name: string | null;
-    username: string;
-    phone?: string | null;
-}
+import { useTranslations } from 'next-intl';
+import { PageHeader, Th, Spinner, StatCard } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
+import type { StaffMember } from '@/types/shared';
 
 interface InvoiceItem {
     id: string;
@@ -36,11 +30,12 @@ interface StaffSalesDetail {
     invoices: Invoice[];
 }
 
+type Period = 'day' | 'week' | 'month' | '2months' | '6months' | 'all';
+
 export default function StaffSalesPage() {
     const t = useTranslations('StaffSales');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
 
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [salesData, setSalesData] = useState<Record<string, { total: number, count: number }>>({});
@@ -53,10 +48,6 @@ export default function StaffSalesPage() {
     const [modalLoading, setModalLoading] = useState(false);
 
     const printRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -74,6 +65,10 @@ export default function StaffSalesPage() {
             setLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const openModal = useCallback(async (staffMember: StaffMember) => {
         setSelectedStaff(staffMember);
@@ -169,29 +164,19 @@ export default function StaffSalesPage() {
     });
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
-                        <UserCheck size={28} />
-                    </div>
-                    <div className={'text-center'}>
-                        
-                        
-                    </div>
-                </div>
-            </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <PageHeader icon={UserCheck} title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>} isRtl={isRtl} />
 
             <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                     <thead className="bg-secondary/30 text-muted-foreground border-b border-border">
                         <tr>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.rank')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.staff')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.phone')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.transactions')}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.totalSales', { currency: ts('currency') })}</th>
-                            <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.actions')}</th>
+                            <Th>{t('table.rank')}</Th>
+                            <Th>{t('table.staff')}</Th>
+                            <Th>{t('table.phone')}</Th>
+                            <Th>{t('table.transactions')}</Th>
+                            <Th>{t('table.totalSales', { currency: ts('currency') })}</Th>
+                            <Th>{t('table.actions')}</Th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -200,10 +185,7 @@ export default function StaffSalesPage() {
                                 return (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                            <div className="flex flex-col items-center justify-center gap-3">
-                                                <Loader2 className="animate-spin text-primary" size={32} />
-                                                <span className="font-bold uppercase text-xs tracking-widest">{t('loading')}</span>
-                                            </div>
+                                            <Spinner size={32} label={t('loading')} />
                                         </td>
                                     </tr>
                                 );
@@ -308,29 +290,8 @@ export default function StaffSalesPage() {
 
                         {/* Stats Summary */}
                         <div className="p-8 grid grid-cols-2 gap-6 bg-secondary/5">
-                            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-primary/50 transition-all">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-primary/10 text-primary rounded-lg group-hover:scale-110 transition-transform">
-                                        <Calendar size={18} />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.transactions')}</span>
-                                </div>
-                                <div className="text-3xl font-black tabular-nums">
-                                    {modalLoading ? '...' : (modalData?.totalTransactions || 0).toLocaleString(locale)}
-                                </div>
-                            </div>
-                            <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-green-500/50 transition-all">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-green-50 text-green-600 rounded-lg dark:bg-green-950/20 group-hover:scale-110 transition-transform">
-                                        <DollarSign size={18} />
-                                    </div>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.totalSales')}</span>
-                                </div>
-                                <div className={clsx("text-3xl font-black text-green-600 tabular-nums flex items-center gap-2", isRtl ? "flex-row-reverse" : "flex-row")}>
-                                    <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
-                                    <span>{modalLoading ? '...' : (modalData?.totalSales || 0).toLocaleString(locale)}</span>
-                                </div>
-                            </div>
+                            <StatCard icon={Calendar} label={t('modal.transactions')} value={modalLoading ? '...' : (modalData?.totalTransactions || 0).toLocaleString(locale)} color="primary" />
+                            <StatCard icon={DollarSign} label={t('modal.totalSales')} value={modalLoading ? '...' : (modalData?.totalSales || 0).toLocaleString(locale)} currency={ts('currency')} color="green" isRtl={isRtl} />
                         </div>
 
                         {/* Invoices List */}
@@ -349,10 +310,7 @@ export default function StaffSalesPage() {
                                             return (
                                                 <tr>
                                                     <td colSpan={3} className="py-12 text-center text-muted-foreground">
-                                                        <div className="flex flex-col items-center justify-center gap-3">
-                                                            <Loader2 className="animate-spin text-primary" size={32} />
-                                                            <span className="font-bold uppercase text-[10px] tracking-widest">{t('modal.loading')}</span>
-                                                        </div>
+                                                        <Spinner size={32} label={t('modal.loading')} />
                                                     </td>
                                                 </tr>
                                             );

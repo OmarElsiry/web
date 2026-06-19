@@ -224,7 +224,7 @@ ${report.employees.map(emp => `
     }, [categoryFilter, expenses]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">

@@ -405,7 +405,7 @@ export default function InventoryReportPage() {
       </div>
 
       <ReportHeader 
-        locale={locale} 
+
         isRtl={isRtl} 
         isLoading={isLoading} 
         fetchData={fetchData} 

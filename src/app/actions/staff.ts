@@ -1,6 +1,8 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { getStartDateForPeriod, Period } from '@/lib/utils/date';
+import { serializeInvoice, toNumber } from '@/lib/utils/decimal';
 
 // Get all staff members with their basic info
 export async function getStaffList() {
@@ -25,33 +27,12 @@ export async function getStaffSalesDetail(
 ) {
     const prisma = getPrisma();
 
-    const now = new Date();
-    let startDate: Date | undefined;
-
-    switch (period) {
-        case 'day':
-            startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            break;
-        case 'week':
-            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-        case 'month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            break;
-        case '2months':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-            break;
-        case '6months':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-            break;
-        case 'all':
-        default:
-            startDate = undefined;
-    }
+    const startDate = getStartDateForPeriod(period as Period);
 
     const invoices = await prisma.invoice.findMany({
         where: {
             userId,
+            status: 'ACCEPTED',
             ...(startDate && { date: { gte: startDate } })
         },
         include: {
@@ -62,7 +43,7 @@ export async function getStaffSalesDetail(
         orderBy: { date: 'desc' }
     });
 
-    const totalSales = invoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+    const totalSales = invoices.reduce((sum, inv) => sum + toNumber(inv.totalAmount), 0);
     const totalTransactions = invoices.length;
 
     return {
@@ -70,7 +51,7 @@ export async function getStaffSalesDetail(
             ...inv,
             items: inv.items.map(it => ({
                 ...it,
-                quantity: Number(it.quantity)
+                quantity: toNumber(it.quantity)
             }))
         })),
         totalSales,
@@ -78,3 +59,45 @@ export async function getStaffSalesDetail(
         period
     };
 }
+
+// Get a salesperson's full invoice portfolio with status info
+export async function getStaffPortfolio(
+    userId: string,
+    filter?: { status?: 'ACCEPTED' | 'PENDING_REVIEW' | 'DECLINED'; period?: 'day' | 'week' | 'month' | 'all' }
+) {
+    const prisma = getPrisma();
+
+    const startDate = getStartDateForPeriod((filter?.period || 'all') as Period);
+
+    const where: Record<string, unknown> = { userId };
+    if (filter?.status) where.status = filter.status;
+    if (startDate) where.date = { gte: startDate };
+
+    const invoices = await prisma.invoice.findMany({
+        where: where as any,
+        include: {
+            items: { include: { product: true } },
+            reviewer: { select: { id: true, name: true, username: true } },
+            revisedFrom: { select: { id: true } },
+            revisedBy: { select: { id: true } },
+        },
+        orderBy: { date: 'desc' }
+    });
+
+    const statusCounts = {
+        pending: invoices.filter(i => i.status === 'PENDING_REVIEW').length,
+        accepted: invoices.filter(i => i.status === 'ACCEPTED').length,
+        declined: invoices.filter(i => i.status === 'DECLINED').length,
+    };
+
+    const acceptedTotal = invoices
+        .filter(i => i.status === 'ACCEPTED')
+        .reduce((sum, inv) => sum + toNumber(inv.totalAmount), 0);
+
+    return {
+        invoices: invoices.map(inv => serializeInvoice(inv)),
+        statusCounts,
+        acceptedTotal
+    };
+}
+

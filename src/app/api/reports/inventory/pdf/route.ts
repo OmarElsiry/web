@@ -19,7 +19,7 @@ type ProductWithInventory = {
     }[];
 };
 
-function drawDocumentHeader(doc: typeof PDFDocument | unknown, tableTop: number) {
+function drawDocumentHeader(doc: InstanceType<typeof PDFDocument>, tableTop: number) {
     doc.fillColor('#1A365D')
        .fontSize(22)
        .text('Inventory & Valuation Report', { align: 'center' })
@@ -42,7 +42,7 @@ function drawDocumentHeader(doc: typeof PDFDocument | unknown, tableTop: number)
     doc.moveTo(40, tableTop + 18).lineTo(555, tableTop + 18).strokeColor('#E2E8F0').lineWidth(1).stroke();
 }
 
-function printSummaryBox(doc: typeof PDFDocument | unknown, productsCount: number, grandTotalStock: number, grandTotalCostVal: number, grandTotalSellVal: number, y: number, hasArabicFont: boolean) {
+function printSummaryBox(doc: InstanceType<typeof PDFDocument>, productsCount: number, grandTotalStock: number, grandTotalCostVal: number, grandTotalSellVal: number, y: number, hasArabicFont: boolean) {
     if (y > 720) {
         doc.addPage();
         if (hasArabicFont) doc.font('ArabicFont');
@@ -63,7 +63,7 @@ function printSummaryBox(doc: typeof PDFDocument | unknown, productsCount: numbe
     doc.text(`Total Retail Valuation: EGP ${grandTotalSellVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 35, { align: 'right', width: 240 });
 }
 
-function processProductRow(doc: typeof PDFDocument | unknown, product: ProductWithInventory, y: number, hasArabicFont: boolean) {
+function processProductRow(doc: InstanceType<typeof PDFDocument>, product: ProductWithInventory, y: number, hasArabicFont: boolean) {
     const totalStock = product.inventoryItems.reduce((acc, curr) => acc + Number(curr.quantity), 0);
     const cost = Number(product.costPrice);
     const sell = Number(product.baseSellingPrice);

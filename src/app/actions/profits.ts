@@ -1,11 +1,8 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-
-interface DateRange {
-    startDate?: string;
-    endDate?: string;
-}
+import { DateRange, endOfDay, buildDateRangeFilter } from '@/lib/utils/date';
+import { toNumber } from '@/lib/utils/decimal';
 
 export async function getProfitReport({ startDate, endDate }: DateRange = {}) {
     const prisma = getPrisma();
@@ -14,12 +11,10 @@ export async function getProfitReport({ startDate, endDate }: DateRange = {}) {
     const params: any[] = [];
     
     if (startDate && endDate) {
-        // We use string interpolation for the where clause since Prisma's $queryRawUnsafe 
-        // handles the actual parameter bindings safely via $1, $2
         whereClause = 'WHERE "Invoice"."status" = \'ACCEPTED\' AND "Invoice"."date" >= $1 AND "Invoice"."date" <= $2';
         params.push(
             new Date(startDate), 
-            new Date(new Date(endDate).setHours(23, 59, 59))
+            endOfDay(endDate)
         );
     } else {
         whereClause = 'WHERE "Invoice"."status" = \'ACCEPTED\'';
@@ -44,10 +39,7 @@ export async function getProfitReport({ startDate, endDate }: DateRange = {}) {
         where: {
             status: 'ACCEPTED',
             ...(startDate && endDate ? {
-                date: {
-                    gte: new Date(startDate),
-                    lte: new Date(new Date(endDate).setHours(23, 59, 59))
-                }
+                date: buildDateRangeFilter(startDate, endDate)
             } : {})
         },
         take: 5,
@@ -63,16 +55,13 @@ export async function getProfitReport({ startDate, endDate }: DateRange = {}) {
     const expensesRes = await prisma.expense.aggregate({
         _sum: { amount: true },
         where: startDate && endDate ? {
-            date: {
-                gte: new Date(startDate),
-                lte: new Date(new Date(endDate).setHours(23, 59, 59))
-            }
+            date: buildDateRangeFilter(startDate, endDate)
         } : undefined
     });
 
-    const totalRevenue = Number(revenueRes[0]?.totalRevenue || 0);
-    const totalCost = Number(costRes[0]?.totalCost || 0);
-    const totalExpenses = Number(expensesRes._sum.amount || 0);
+    const totalRevenue = toNumber(revenueRes[0]?.totalRevenue);
+    const totalCost = toNumber(costRes[0]?.totalCost);
+    const totalExpenses = toNumber(expensesRes._sum.amount);
     const netProfit = totalRevenue - totalCost - totalExpenses;
 
     return {
@@ -82,7 +71,7 @@ export async function getProfitReport({ startDate, endDate }: DateRange = {}) {
         netProfit,
         recentSales: recentSalesRes.map(sale => ({
             ...sale,
-            totalAmount: Number(sale.totalAmount)
+            totalAmount: toNumber(sale.totalAmount)
         }))
     };
 }

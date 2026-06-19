@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
+import { useLocale } from '@/hooks/useLocale';
 import { Search, RefreshCcw, Save, Filter } from 'lucide-react';
 import { getStocktakeItems, reconcileStock, StockAdjustment } from '@/app/actions/stocktake';
 import clsx from 'clsx';
@@ -17,7 +18,7 @@ interface Product {
 
 export default function StocktakePage() {
     const t = useTranslations('Stocktake');
-    const locale = useLocale();
+    const { locale } = useLocale();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -27,10 +28,6 @@ export default function StocktakePage() {
     // Map of productId -> actualStock
     const [counts, setCounts] = useState<Record<string, number>>({});
     const [saving, setSaving] = useState(false);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -45,6 +42,10 @@ export default function StocktakePage() {
             setLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
 
     const handleCountChange = useCallback((id: string, value: string) => {
         const num = parseInt(value);

@@ -90,16 +90,22 @@ export default function ProductsPage() {
         initialQuantity: 0
     });
 
+    const [totalServerItems, setTotalServerItems] = useState(0);
+
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [prods, cats] = await Promise.all([getUnifiedProducts(), getCategories()]);
+            const [[total, prods], cats] = await Promise.all([
+                getUnifiedProducts(currentPage, ITEMS_PER_PAGE, searchQuery), 
+                getCategories()
+            ]);
             setProducts(prods);
+            setTotalServerItems(total);
             setCategories(cats);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [currentPage, searchQuery, categoryFilter]);
 
     useEffect(() => { void fetchData(); }, [fetchData]);
 
@@ -319,11 +325,8 @@ export default function ProductsPage() {
     }, [products, searchQuery, categoryFilter, sortField, sortOrder]);
 
     // Pagination
-    const totalPages = Math.ceil(filteredAndSortedItems.length / ITEMS_PER_PAGE);
-    const paginatedItems = filteredAndSortedItems.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const totalPages = Math.ceil(totalServerItems / ITEMS_PER_PAGE);
+    const paginatedItems = filteredAndSortedItems;
 
     const renderSortableHeader = (field: SortField, children: React.ReactNode, className = "") => (
         <th
@@ -339,7 +342,7 @@ export default function ProductsPage() {
     );
 
     return (
-        <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 
                 <div className="flex gap-2">

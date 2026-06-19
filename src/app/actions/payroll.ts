@@ -1,11 +1,12 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { toNumber } from '@/lib/utils/decimal';
+import { logger } from '@/lib/utils/logger';
 
 export async function getPayrollReport(month: number, year: number) {
     const prisma = getPrisma();
 
-    // Calculate start and end of the month
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
@@ -14,6 +15,7 @@ export async function getPayrollReport(month: number, year: number) {
             include: {
                 sales: {
                     where: {
+                        status: 'ACCEPTED',
                         date: {
                             gte: startDate,
                             lte: endDate
@@ -24,9 +26,9 @@ export async function getPayrollReport(month: number, year: number) {
         });
 
         const payroll = users.map(user => {
-            const totalSalesAmount = user.sales.reduce((sum, invoice) => sum + Number(invoice.totalAmount), 0);
-            const baseSalary = Number(user.baseSalary || 0);
-            const commissionRate = Number(user.commissionRate || 0);
+            const totalSalesAmount = user.sales.reduce((sum, invoice) => sum + toNumber(invoice.totalAmount), 0);
+            const baseSalary = toNumber(user.baseSalary);
+            const commissionRate = toNumber(user.commissionRate);
             const commissionAmount = totalSalesAmount * commissionRate;
             const totalPayout = baseSalary + commissionAmount;
 
@@ -44,7 +46,7 @@ export async function getPayrollReport(month: number, year: number) {
 
         return { success: true, payroll };
     } catch (error) {
-        console.error('Error generating payroll report:', error);
+        logger.error('Error generating payroll report:', error);
         return { success: false, error: 'Failed to generate payroll report' };
     }
 }

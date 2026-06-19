@@ -1,3 +1,4 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -5,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { X, FileText, RefreshCcw, Loader2, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
 import { undoInvoice } from '@/app/actions/invoices';
+
 import { Invoice } from './types';
 
 interface InvoiceDetailsModalProps {
@@ -14,6 +16,13 @@ interface InvoiceDetailsModalProps {
     onUpdate: () => void;
     onOpenRefund: () => void;
 }
+
+const Field = ({ label, value, important = false }: { label: string, value: React.ReactNode, important?: boolean }) => (
+    <div className="flex flex-col">
+        <span className="mb-1 text-[10px] font-bold text-muted-foreground uppercase">{label}</span>
+        <div className={clsx("font-medium", important && "font-bold text-lg")}>{value}</div>
+    </div>
+);
 
 export default function InvoiceDetailsModal({
     invoice,
@@ -51,12 +60,6 @@ export default function InvoiceDetailsModal({
         window.open(`/invoices/${invoice.id}/print`, '_blank');
     }, [invoice.id]);
 
-    const Field = ({ label, value, important = false }: { label: string, value: React.ReactNode, important?: boolean }) => (
-        <div className="flex flex-col">
-            <span className="mb-1 text-[10px] font-bold text-muted-foreground uppercase">{label}</span>
-            <div className={clsx("font-medium", important && "font-bold text-lg")}>{value}</div>
-        </div>
-    );
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>

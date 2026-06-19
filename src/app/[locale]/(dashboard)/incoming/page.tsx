@@ -1,11 +1,14 @@
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Truck, Plus, Loader2, X, Check } from 'lucide-react';
+import { Truck, Plus, Check } from 'lucide-react';
 import { getIncomingTransactions, getLocations, createIncomingStock } from '@/app/actions/incoming';
 import { getProducts } from '@/app/actions/sales';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
+import { PageHeader, Th, Spinner, Modal, Button, FormField, Select, Input, Textarea } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 interface IncomingItem {
     id: string;
@@ -31,8 +34,7 @@ interface Location {
 export default function IncomingStockPage() {
     const t = useTranslations('Incoming');
     const ts = useTranslations('Sales');
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
+    const { locale, isRtl } = useLocale();
     
     const [items, setItems] = useState<IncomingItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -101,17 +103,17 @@ export default function IncomingStockPage() {
     }, []);
 
     return (
-        <div className="space-y-6" dir={isRtl ? 'rtl' : 'ltr'}>
-            <div className="flex items-center justify-between">
-                
-                <button
-                    onClick={handleOpenModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl transition-all shadow-sm active:scale-95 font-bold text-sm"
-                >
-                    <Plus size={16} />
-                    {t('newOrder')}
-                </button>
-            </div>
+        <div className="space-y-6">
+            <PageHeader
+                icon={Truck}
+                title={<h1 className="text-3xl font-black tracking-tighter uppercase text-foreground">{t('title')}</h1>}
+                isRtl={isRtl}
+                actions={
+                    <Button onClick={handleOpenModal} icon={<Plus size={16} />}>
+                        {t('newOrder')}
+                    </Button>
+                }
+            />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="bg-card p-6 rounded-2xl border border-border shadow-sm group hover:border-primary/50 transition-colors">
@@ -132,22 +134,19 @@ export default function IncomingStockPage() {
                     <table className="w-full text-sm">
                         <thead className="bg-secondary/30 text-muted-foreground border-b border-border">
                             <tr>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.product')}</th>
-                                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{t('table.quantity')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.supplier')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.totalCost')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.date')}</th>
-                                <th className={clsx("px-6 py-4 font-black text-[10px] uppercase tracking-widest", 'text-center')}>{t('table.status')}</th>
+                                <Th>{t('table.product')}</Th>
+                                <Th>{t('table.quantity')}</Th>
+                                <Th>{t('table.supplier')}</Th>
+                                <Th>{t('table.totalCost')}</Th>
+                                <Th>{t('table.date')}</Th>
+                                <Th>{t('table.status')}</Th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                                        <div className="flex flex-col items-center justify-center gap-3">
-                                            <Loader2 className="animate-spin text-primary" size={32} />
-                                            <span className="font-bold uppercase text-xs tracking-widest">{t('table.loading')}</span>
-                                        </div>
+                                        <Spinner size={32} label={t('table.loading')} />
                                     </td>
                                 </tr>
                             )}
@@ -184,96 +183,65 @@ export default function IncomingStockPage() {
                 </div>
             </div>
 
-            {/* Modal Overlay */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-md rounded-3xl border border-border shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-border flex items-center justify-between bg-secondary/20">
-                            <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-                                <Truck className="text-primary" size={24} />
-                                {t('modal.title')}
-                            </h3>
-                            <button onClick={handleCloseModal} className="p-2 hover:bg-secondary rounded-full transition-colors">
-                                <X size={20} />
-                            </button>
-                        </div>
+            {/* Modal */}
+            <Modal
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+                title={t('modal.title')}
+                icon={<Truck size={20} />}
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <FormField label={t('modal.product')} required>
+                        <Select required value={formData.productId} onChange={handleProductIdChange}>
+                            <option value="">{t('modal.chooseItem')}</option>
+                            {products.map(p => (
+                                <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
+                            ))}
+                        </Select>
+                    </FormField>
 
-                        <form onSubmit={handleSubmit} className={clsx("p-6 space-y-4", 'text-center')}>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.product')}</label>
-                                <select
-                                    className="w-full p-4 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-sm"
-                                    required
-                                    value={formData.productId}
-                                    onChange={handleProductIdChange}
-                                >
-                                    <option value="">{t('modal.chooseItem')}</option>
-                                    {products.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.quantity')}</label>
-                                    <input
-                                        type="number"
-                                        min="0.01"
-                                        step="any"
-                                        className="w-full p-4 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all font-black text-sm"
-                                        required
-                                        value={formData.quantity}
-                                        onChange={handleQuantityChange}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.location')}</label>
-                                    <select
-                                        className="w-full p-4 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all font-bold text-sm"
-                                        required
-                                        value={formData.locationId}
-                                        onChange={handleLocationIdChange}
-                                    >
-                                        <option value="">{t('modal.selectBranch')}</option>
-                                        {locations.map(l => (
-                                            <option key={l.id} value={l.id}>{l.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('modal.notes')}</label>
-                                <textarea
-                                    className="w-full p-4 rounded-2xl border border-border bg-background focus:ring-2 focus:ring-primary/10 focus:border-primary outline-none transition-all resize-none h-24 font-medium text-sm"
-                                    placeholder={t('modal.notesPlaceholder')}
-                                    value={formData.notes}
-                                    onChange={handleNotesChange}
-                                />
-                            </div>
-
-                            <div className="pt-4 flex gap-3">
-                                <button
-                                    type="button"
-                                    onClick={handleCloseModal}
-                                    className="flex-1 px-4 py-4 rounded-2xl border border-border hover:bg-secondary font-black text-xs uppercase tracking-widest transition-all"
-                                >
-                                    {t('modal.cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="flex-1 px-4 py-4 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xl shadow-primary/20"
-                                >
-                                    {submitting ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
-                                    {t('modal.add')}
-                                </button>
-                            </div>
-                        </form>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label={t('modal.quantity')} required>
+                            <Input
+                                type="number"
+                                min="0.01"
+                                step="any"
+                                required
+                                value={formData.quantity}
+                                onChange={handleQuantityChange}
+                                className="font-black"
+                            />
+                        </FormField>
+                        <FormField label={t('modal.location')} required>
+                            <Select required value={formData.locationId} onChange={handleLocationIdChange}>
+                                <option value="">{t('modal.selectBranch')}</option>
+                                {locations.map(l => (
+                                    <option key={l.id} value={l.id}>{l.name}</option>
+                                ))}
+                            </Select>
+                        </FormField>
                     </div>
-                </div>
-            )}
+
+                    <FormField label={t('modal.notes')}>
+                        <Textarea
+                            placeholder={t('modal.notesPlaceholder')}
+                            value={formData.notes}
+                            onChange={handleNotesChange}
+                            className="h-24"
+                        />
+                    </FormField>
+
+                    <div className="pt-4 flex gap-3">
+                        <Button type="button" variant="outline" fullWidth onClick={handleCloseModal}>
+                            {t('modal.cancel')}
+                        </Button>
+                        <Button type="submit" fullWidth loading={submitting} icon={!submitting ? <Check size={18} /> : undefined}>
+                            {t('modal.add')}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }

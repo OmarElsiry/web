@@ -1,6 +1,8 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { toNumber } from '@/lib/utils/decimal';
+import { logger } from '@/lib/utils/logger';
 
 export async function getDebts() {
     const prisma = getPrisma();
@@ -23,17 +25,17 @@ export async function getDebts() {
                 id: c.id,
                 name: c.name,
                 phone: c.phone,
-                balance: Number(c.balance)
+                balance: toNumber(c.balance)
             })),
             sellerDebts: suppliers.map(s => ({
                 id: s.id,
                 name: s.name,
                 phone: s.phone,
-                balance: Number(s.balance)
+                balance: toNumber(s.balance)
             }))
         };
     } catch (error) {
-        console.error('Error fetching debts:', error);
+        logger.error('Error fetching debts:', error);
         return { success: false, error: 'Failed to fetch debts' };
     }
 }

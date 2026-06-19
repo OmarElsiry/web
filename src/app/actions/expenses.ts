@@ -3,7 +3,11 @@
 
 import getPrisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUser } from './auth';
+import { getCurrentUser } from '@/lib/auth/session';
+import { buildDateRangeFilter } from '@/lib/utils/date';
+import { calcSkip } from '@/lib/utils/pagination';
+import { toNumber } from '@/lib/utils/decimal';
+import { logger } from '@/lib/utils/logger';
 
 export async function createExpense(data: {
     description: string;
@@ -31,7 +35,7 @@ export async function createExpense(data: {
         revalidatePath('/expenses');
         return { success: true };
     } catch (error) {
-        console.error('Create Expense Error:', error);
+        logger.error('Create Expense Error:', error);
         return { success: false, error: 'Failed to create expense' };
     }
 }
@@ -41,13 +45,10 @@ export async function getExpenses(page: number = 1, limit: number = 50, startDat
 
     const where: any = {};
     if (startDate && endDate) {
-        where.date = {
-            gte: new Date(startDate),
-            lte: new Date(new Date(endDate).setHours(23, 59, 59))
-        };
+        where.date = buildDateRangeFilter(startDate, endDate);
     }
 
-    const skip = (page - 1) * limit;
+    const skip = calcSkip(page, limit);
 
     const [totalCount, expenses, salaryAgg, nonSalaryAgg] = await Promise.all([
         prisma.expense.count({ where }),
@@ -74,13 +75,13 @@ export async function getExpenses(page: number = 1, limit: number = 50, startDat
 
     const mapped = expenses.map(e => ({
         ...e,
-        amount: Number(e.amount),
+        amount: toNumber(e.amount),
         date: e.date.toISOString(),
         userName: e.user.name || e.user.username
     }));
 
-    const salaryTotal = Number(salaryAgg._sum.amount || 0);
-    const nonSalaryTotal = Number(nonSalaryAgg._sum.amount || 0);
+    const salaryTotal = toNumber(salaryAgg._sum.amount);
+    const nonSalaryTotal = toNumber(nonSalaryAgg._sum.amount);
     const grandTotal = salaryTotal + nonSalaryTotal;
     const salaryPercent = grandTotal > 0 ? Number(((salaryTotal / grandTotal) * 100).toFixed(1)) : 0;
 
@@ -100,10 +101,7 @@ export async function getSalaryReport(startDate: string, endDate: string) {
     const salaries = await prisma.expense.findMany({
         where: {
             category: 'SALARY',
-            date: {
-                gte: new Date(startDate),
-                lte: new Date(new Date(endDate).setHours(23, 59, 59))
-            }
+            date: buildDateRangeFilter(startDate, endDate)
         },
         include: {
             user: { select: { name: true, username: true } }
@@ -114,20 +112,20 @@ export async function getSalaryReport(startDate: string, endDate: string) {
     // Group by employee
     const employeeMap = new Map<string, { name: string; total: number; entries: { date: string; amount: number; description: string }[] }>();
 
-    salaries.forEach(s => {
+        salaries.forEach(s => {
         const name = s.user.name || s.user.username;
         if (!employeeMap.has(s.userId)) {
             employeeMap.set(s.userId, { name, total: 0, entries: [] });
         }
         const emp = employeeMap.get(s.userId)!;
-        const amount = Number(s.amount);
+        const amount = toNumber(s.amount);
         emp.total += amount;
         emp.entries.push({ date: s.date.toISOString(), amount, description: s.description });
     });
 
     return {
         period: { startDate, endDate },
-        grandTotal: salaries.reduce((s, e) => s + Number(e.amount), 0),
+        grandTotal: salaries.reduce((s, e) => s + toNumber(e.amount), 0),
         employees: Array.from(employeeMap.values()).sort((a, b) => b.total - a.total)
     };
 }

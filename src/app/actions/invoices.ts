@@ -2,19 +2,12 @@
 
 import getPrisma from '@/lib/prisma';
 import { PrismaClient, Prisma } from '@/generated/client';
-
-async function updateInventoryStock(tx: Prisma.TransactionClient, productId: string, locId: string, quantityDelta: number) {
-    if (!locId || quantityDelta === 0) return;
-    const inventory = await tx.inventory.findFirst({ where: { productId, locationId: locId } });
-    if (inventory) {
-        const newStock = Number(inventory.quantity) + quantityDelta;
-        if (newStock < 0) {
-            const product = await tx.product.findUnique({ where: { id: productId } });
-            throw new Error(`Insufficient stock for ${product?.name || productId}. Available: ${Number(inventory.quantity)}`);
-        }
-        await tx.inventory.update({ where: { id: inventory.id }, data: { quantity: newStock } });
-    }
-}
+import { adjustStock, getDefaultLocation } from '@/lib/utils/stock';
+import { serializeInvoice, serializeInvoiceItem, toNumber } from '@/lib/utils/decimal';
+import { revalidateInvoicePaths, revalidateUndoInvoicePaths } from '@/lib/utils/revalidation';
+import { safeLogActivity, logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/lib/utils/errors';
+import { calcSkip } from '@/lib/utils/pagination';
 
 async function handleInvoiceItemsUpdate(
     tx: Prisma.TransactionClient, 
@@ -28,7 +21,7 @@ async function handleInvoiceItemsUpdate(
 
     const removedItems = existingItems.filter(ei => !incomingExistingIds.includes(ei.id));
     for (const removed of removedItems) {
-        if (locId) await updateInventoryStock(tx, removed.productId, locId, Number(removed.quantity));
+        if (locId) await adjustStock(tx, removed.productId, locId, Number(removed.quantity));
         await tx.invoiceItem.delete({ where: { id: removed.id } });
     }
 
@@ -37,7 +30,7 @@ async function handleInvoiceItemsUpdate(
         if (!existingItem) continue;
 
         const qtyDelta = Number(existingItem.quantity) - updatedItem.quantity;
-        if (locId) await updateInventoryStock(tx, updatedItem.productId, locId, qtyDelta);
+        if (locId) await adjustStock(tx, updatedItem.productId, locId, qtyDelta);
 
         const subtotal = updatedItem.quantity * updatedItem.unitPrice;
         await tx.invoiceItem.update({
@@ -48,7 +41,7 @@ async function handleInvoiceItemsUpdate(
     }
 
     for (const newItem of incomingItems.filter(i => i.id.startsWith('new-'))) {
-        if (locId) await updateInventoryStock(tx, newItem.productId, locId, -newItem.quantity);
+        if (locId) await adjustStock(tx, newItem.productId, locId, -newItem.quantity);
         const subtotal = newItem.quantity * newItem.unitPrice;
         await tx.invoiceItem.create({
             data: { invoiceId, productId: newItem.productId, quantity: newItem.quantity, unitPrice: newItem.unitPrice, subtotal }
@@ -60,52 +53,55 @@ async function handleInvoiceItemsUpdate(
 }
 
 // Update type definition if not global, but for now we'll imply it from usage
-export async function getInvoices() {
-    const prisma: PrismaClient = getPrisma();
-
-    // Fetch latest 50 for now (pagination can be added later)
+export async function getAllInvoices() {
+    const prisma = getPrisma();
     const invoices = await prisma.invoice.findMany({
-        take: 50,
-        orderBy: { date: 'desc' },
         include: {
-            user: {
-                select: { id: true, name: true, username: true, phone: true, address: true }
-            },
-            items: {
-                include: {
-                    product: true
+            items: { include: { product: true } },
+            customer: true,
+            user: true,
+            refunds: { include: { items: true } }
+        },
+        orderBy: { date: 'desc' }
+    });
+    
+    return invoices.map(inv => serializeInvoice(inv, { includeRefundableQty: true }));
+}
+
+export async function getInvoices(page: number = 1, limit: number = 50) {
+    const prisma: PrismaClient = getPrisma();
+    const skip = calcSkip(page, limit);
+
+    const [totalCount, invoices] = await Promise.all([
+        prisma.invoice.count(),
+        prisma.invoice.findMany({
+            skip,
+            take: limit,
+            orderBy: { date: 'desc' },
+            include: {
+                user: {
+                    select: { id: true, name: true, username: true, phone: true, address: true }
+                },
+                items: {
+                    include: {
+                        product: true
+                    }
+                },
+                refunds: {
+                    include: { items: true }
                 }
-            },
-            refunds: {
-                include: { items: true }
             }
-        }
-    });
+        })
+    ]);
 
-    return invoices.map(inv => {
-        const refundedQtyMap = new Map<string, number>();
-        inv.refunds?.forEach(ref => {
-            ref.items.forEach(ri => {
-                const current = refundedQtyMap.get(ri.productId) || 0;
-                refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
-            });
-        });
+    const mappedInvoices = invoices.map(inv => serializeInvoice(inv, { includeRefundableQty: true }));
 
-        return {
-            ...inv,
-            totalAmount: Number(inv.totalAmount),
-            previousBalance: Number(inv.previousBalance || 0),
-            amountPaid: Number(inv.amountPaid || 0),
-            currentBalance: Number(inv.currentBalance || 0),
-            items: inv.items.map(item => ({
-                ...item,
-                quantity: Number(item.quantity),
-                unitPrice: Number(item.unitPrice),
-                subtotal: Number(item.subtotal),
-                refundableQuantity: Math.max(0, Number(item.quantity) - (refundedQtyMap.get(item.productId) || 0))
-            }))
-        };
-    });
+    return {
+        data: mappedInvoices,
+        totalCount,
+        page,
+        totalPages: Math.ceil(totalCount / limit)
+    };
 }
 
 export async function getInvoiceById(id: string) {
@@ -134,33 +130,7 @@ export async function getInvoiceById(id: string) {
 
     if (!invoice) return null;
 
-    const refundedQtyMap = new Map<string, number>();
-    invoice.refunds?.forEach(ref => {
-        ref.items.forEach(ri => {
-            const current = refundedQtyMap.get(ri.productId) || 0;
-            refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
-        });
-    });
-
-    return {
-        ...invoice,
-        totalAmount: Number(invoice.totalAmount),
-        previousBalance: Number(invoice.previousBalance || 0),
-        amountPaid: Number(invoice.amountPaid || 0),
-        currentBalance: Number(invoice.currentBalance || 0),
-        items: invoice.items.map(item => ({
-            ...item,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unitPrice),
-            subtotal: Number(item.subtotal),
-            refundableQuantity: Math.max(0, Number(item.quantity) - (refundedQtyMap.get(item.productId) || 0)),
-            // Ensure product fields are accessible
-            productCode: item.product.sku,
-            productName: item.product.name,
-            productUnit: item.product.unit,
-            categoryName: item.product.category?.name
-        }))
-    };
+    return serializeInvoice(invoice as any, { includeProductFields: true, includeRefundableQty: true });
 }
 
 export async function updateInvoice(
@@ -199,7 +169,7 @@ export async function updateInvoice(
             let newTotalAmount = Number(existing.totalAmount);
 
             if (data.items !== undefined) {
-                const loc = await tx.location.findFirst();
+                const loc = await getDefaultLocation(tx, { createIfMissing: false });
                 newTotalAmount = await handleInvoiceItemsUpdate(tx, invoiceId, existing.items, data.items, loc?.id);
             }
 
@@ -229,7 +199,7 @@ export async function updateInvoice(
             if (existing.customerId) {
                 // Customer balance = latest invoice's currentBalance (running total)
                 const latestInvoice = await tx.invoice.findFirst({
-                    where: { customerId: existing.customerId },
+                    where: { customerId: existing.customerId, status: 'ACCEPTED' },
                     orderBy: { date: 'desc' },
                     select: { currentBalance: true }
                 });
@@ -245,31 +215,19 @@ export async function updateInvoice(
             return updatedInvoice;
         }, { timeout: 15000 });
 
-        // Revalidate all dependent paths
-        const { revalidatePath } = await import('next/cache');
-        revalidatePath('/dashboard');
-        revalidatePath('/invoices');
-        revalidatePath('/analytics');
-        revalidatePath('/profits');
-        revalidatePath('/customers');
-        revalidatePath('/sales');
+        revalidateInvoicePaths();
 
         return {
             success: true,
             invoice: {
                 ...result,
-                totalAmount: Number(result.totalAmount),
-                items: result.items.map(it => ({
-                    ...it,
-                    quantity: Number(it.quantity),
-                    unitPrice: Number(it.unitPrice),
-                    subtotal: Number(it.subtotal)
-                }))
+                totalAmount: toNumber(result.totalAmount),
+                items: result.items.map(it => serializeInvoiceItem(it as any))
             }
         };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to update invoice:', message);
+        const message = getErrorMessage(error, 'Unknown error');
+        logger.error('Failed to update invoice:', error);
         return { success: false, error: message || 'Failed to update invoice.' };
     }
 }
@@ -293,20 +251,12 @@ export async function undoInvoice(invoiceId: string, userId?: string) {
                 throw new Error('Cannot undo an invoice that has associated refunds. Please delete or revert the refunds first.');
             }
 
-            const loc = await tx.location.findFirst();
+            const loc = await getDefaultLocation(tx, { createIfMissing: false });
 
             // 2. Restore inventory
             if (loc) {
                 for (const item of existing.items) {
-                    const inventory = await tx.inventory.findFirst({
-                        where: { productId: item.productId, locationId: loc.id }
-                    });
-                    if (inventory) {
-                        await tx.inventory.update({
-                            where: { id: inventory.id },
-                            data: { quantity: Number(inventory.quantity) + Number(item.quantity) }
-                        });
-                    }
+                    await adjustStock(tx, item.productId, loc.id, Number(item.quantity));
                 }
             }
 
@@ -355,32 +305,14 @@ export async function undoInvoice(invoiceId: string, userId?: string) {
         }, { timeout: 15000 });
 
         // 7. Audit Log
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity(
-                'DELETE',
-                `Undid invoice #${invoiceId}`,
-                userId
-            );
-        } catch (e) {
-            console.error('Failed to log activity:', e);
-        }
+        await safeLogActivity('DELETE', `Undid invoice #${invoiceId}`, userId);
 
-        const { revalidatePath } = await import('next/cache');
-        revalidatePath('/dashboard');
-        revalidatePath('/invoices');
-        revalidatePath('/analytics');
-        revalidatePath('/profits');
-        revalidatePath('/customers');
-        revalidatePath('/sales');
-        revalidatePath('/inventory');
-        revalidatePath('/inventory/transactions');
-        revalidatePath('/logs');
+        revalidateUndoInvoicePaths();
 
         return { success: true };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Failed to undo invoice:', message);
+        const message = getErrorMessage(error, 'Unknown error');
+        logger.error('Failed to undo invoice:', error);
         return { success: false, error: message || 'Failed to undo invoice.' };
     }
 }

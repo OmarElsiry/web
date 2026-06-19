@@ -4,6 +4,7 @@
 import getPrisma from '@/lib/prisma';
 import { createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 export async function getUsers() {
     const prisma = getPrisma();
@@ -122,6 +123,6 @@ export async function updateUser(id: string, formData: FormData) {
         revalidatePath('/users');
         return { success: true };
     } catch (err: any) {
-        return { error: err.message || 'Failed to update user' };
+        return { error: getErrorMessage(err, 'Failed to update user') };
     }
 }

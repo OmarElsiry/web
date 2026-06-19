@@ -3,11 +3,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, Printer, Edit2, Search, Landmark, Loader2 } from 'lucide-react';
+import { Filter, Printer, Edit2, Search, Landmark } from 'lucide-react';
 import { canEditDebts } from '@/app/actions/permissions';
 import BulkImportDropzone from '@/components/BulkImportDropzone';
 import PrePrintEditModal from '@/components/PrePrintEditModal';
-import { useLocale } from 'next-intl';
+import { PageHeader, Th, Spinner } from '@/components/ui';
+import { useLocale } from '@/hooks/useLocale';
 
 interface Customer {
   id: string;
@@ -19,8 +20,7 @@ interface Customer {
 }
 
 export default function DebtsPage() {
-  const locale = useLocale();
-  const isRtl = locale === 'ar';
+  const { locale, isRtl } = useLocale();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [governorates, setGovernorates] = useState<string[]>([]);
@@ -86,38 +86,37 @@ export default function DebtsPage() {
   const handleCloseEditModal = useCallback(() => setEditingCustomer(null), []);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 text-primary rounded-xl shadow-sm">
-            <Landmark size={28} />
-          </div>
-          <div>
+      <PageHeader
+        icon={Landmark}
+        title={
+          <div className="text-left">
             <h1 className="text-2xl font-black tracking-tighter uppercase">{isRtl ? 'تقرير المديونيات' : 'Debts Report'}</h1>
             <p className="text-muted-foreground text-sm font-bold">{isRtl ? 'عرض مديونيات العملاء حسب المحافظة' : 'View customer debts by governorate'}</p>
           </div>
-        </div>
-        
-        <div className="flex gap-3">
-          {canEdit && (
-            <button 
-              onClick={handleShowBulkImport}
-              className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-xl hover:bg-secondary transition-all shadow-sm text-xs font-black uppercase tracking-widest"
+        }
+        isRtl={isRtl}
+        actions={
+          <div className="flex gap-3">
+            {canEdit && (
+              <button
+                onClick={handleShowBulkImport}
+                className="flex items-center gap-2 bg-card border border-border text-foreground px-4 py-2 rounded-xl hover:bg-secondary transition-all shadow-sm text-xs font-black uppercase tracking-widest"
+              >
+                {isRtl ? 'إضافة بالجملة' : 'Bulk Import'}
+              </button>
+            )}
+            <button
+              onClick={handlePrintTable}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 text-xs font-black uppercase tracking-widest active:scale-95"
             >
-              {isRtl ? 'إضافة بالجملة' : 'Bulk Import'}
+              <Printer className="w-4 h-4" />
+              {isRtl ? 'طباعة الجدول' : 'Print Table'}
             </button>
-          )}
-          
-          <button 
-            onClick={handlePrintTable}
-            className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 text-xs font-black uppercase tracking-widest active:scale-95"
-          >
-            <Printer className="w-4 h-4" />
-            {isRtl ? 'طباعة الجدول' : 'Print Table'}
-          </button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
       {/* Permission Banner */}
       {!canEdit && (
@@ -167,21 +166,18 @@ export default function DebtsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-secondary/30 text-muted-foreground border-b border-border">
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{isRtl ? 'اسم العميل' : 'Customer'}</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{isRtl ? 'المحافظة' : 'Governorate'}</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{isRtl ? 'رقم الهاتف' : 'Phone'}</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center">{isRtl ? 'إجمالي المديونية' : 'Total Debt'}</th>
-                <th className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-center print:hidden">{isRtl ? 'إجراءات' : 'Actions'}</th>
+                <Th align="center">{isRtl ? 'اسم العميل' : 'Customer'}</Th>
+                <Th align="center">{isRtl ? 'المحافظة' : 'Governorate'}</Th>
+                <Th align="center">{isRtl ? 'رقم الهاتف' : 'Phone'}</Th>
+                <Th align="center">{isRtl ? 'إجمالي المديونية' : 'Total Debt'}</Th>
+                <Th align="center" className="print:hidden">{isRtl ? 'إجراءات' : 'Actions'}</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-3">
-                      <Loader2 className="animate-spin text-primary" size={32} />
-                      <span className="font-bold uppercase text-xs tracking-widest">{isRtl ? 'جاري التحميل...' : 'Loading...'}</span>
-                    </div>
+                    <Spinner size={32} label={isRtl ? 'جاري التحميل...' : 'Loading...'} />
                   </td>
                 </tr>
               ) : filteredCustomers.length === 0 ? (
