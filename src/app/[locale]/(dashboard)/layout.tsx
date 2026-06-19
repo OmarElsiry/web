@@ -300,18 +300,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 md:hidden"
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
                     onClick={handleCloseSidebar}
                 />
             )}
 
             {/* Sidebar */}
             <aside className={clsx(
-                "fixed md:relative z-30 w-64 h-full bg-card border-r border-border flex flex-col transition-transform duration-300",
+                "fixed lg:relative z-30 w-64 h-full bg-card border-r border-border flex flex-col transition-transform duration-300",
                 !isSidebarOpen
                     ? locale === 'ar'
-                        ? "translate-x-full md:translate-x-0"
-                        : "-translate-x-full md:translate-x-0"
+                        ? "translate-x-full lg:translate-x-0"
+                        : "-translate-x-full lg:translate-x-0"
                     : "translate-x-0",
                 locale === 'ar' ? "right-0 border-l border-r-0" : "left-0"
             )}>
@@ -324,7 +324,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </h1>
                     <button
                         onClick={handleToggleSidebar}
-                        className="md:hidden ml-auto p-2 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background hover:scale-105 active:scale-95 flex items-center justify-center"
+                        className="lg:hidden ml-auto p-2 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary border border-border/50 hover:border-border rounded-xl transition-all duration-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background hover:scale-105 active:scale-95 flex items-center justify-center"
                         aria-label="Close sidebar"
                     >
                         <X size={18} className="transition-transform duration-300 hover:rotate-90" />
@@ -388,7 +388,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Main Content */}
             <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <header className="h-16 border-b border-border bg-card/50 backdrop-blur px-6 flex items-center justify-between">
-                    <button onClick={handleToggleSidebar} className="p-2 hover:bg-secondary rounded-lg md:hidden">
+                    <button onClick={handleToggleSidebar} className="p-2 hover:bg-secondary rounded-lg lg:hidden">
                         <Menu />
                     </button>
                     <div className="flex items-center gap-4">

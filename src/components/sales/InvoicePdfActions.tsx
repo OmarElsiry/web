@@ -109,15 +109,7 @@ export default function InvoicePdfActions({ invoiceId }: InvoicePdfActionsProps)
                 )}
             </button>
 
-            <a
-                href={`/invoices/${invoiceId}/print`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-secondary text-secondary-foreground py-3 rounded-xl font-bold text-base hover:bg-secondary/80 transition-all"
-            >
-                <FileText size={20} />
-                {isRtl ? 'معاينة الفاتورة للطباعة' : 'Print Preview'}
-            </a>
+
         </div>
     );
 }
