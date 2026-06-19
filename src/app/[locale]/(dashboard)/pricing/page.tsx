@@ -235,6 +235,7 @@ export default function PricingPage() {
                                 </label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={editCost}
                                     onChange={handleEditCostChange}
                                     className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
@@ -247,6 +248,7 @@ export default function PricingPage() {
                                 </label>
                                 <input
                                     type="number"
+                                    min="0"
                                     value={editSell}
                                     onChange={handleEditSellChange}
                                     className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold"
@@ -356,6 +358,7 @@ export default function PricingPage() {
                                 <div className="relative">
                                     <input
                                         type="number"
+                                        min="0"
                                         value={bulkPercentage}
                                         onChange={handleBulkPercentageChange}
                                         className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold pr-10"
