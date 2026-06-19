@@ -2,7 +2,13 @@
 
 import getPrisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getCurrentUser } from './permissions';
+import { getCurrentUser } from '@/lib/auth/session';
+import { isPrismaUniqueConstraintError } from '@/lib/utils/errors';
+import { buildCustomerSearchFilter } from '@/lib/utils/search';
+import { calcSkip } from '@/lib/utils/pagination';
+import { toNumber } from '@/lib/utils/decimal';
+import { safeLogActivity, logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/lib/utils/errors';
 
 export async function searchCustomers(query: string) {
     if (!query || query.length < 2) return [];
@@ -11,12 +17,7 @@ export async function searchCustomers(query: string) {
 
     // Search in Customers (New Model)
     const customers = await prisma.customer.findMany({
-        where: {
-            OR: [
-                { name: { contains: query, mode: 'insensitive' } },
-                { phone: { contains: query, mode: 'insensitive' } }
-            ]
-        },
+        where: buildCustomerSearchFilter(query),
         include: {
             group: true
         },
@@ -28,7 +29,7 @@ export async function searchCustomers(query: string) {
         name: c.name,
         phone: c.phone || 'N/A',
         address: c.address || 'N/A',
-        balance: Number(c.balance),
+        balance: toNumber(c.balance),
         group: c.group?.name || 'No Group',
         type: 'CUSTOMER'
     }));
@@ -36,7 +37,7 @@ export async function searchCustomers(query: string) {
 
 export async function getCustomersList(page: number = 1, limit: number = 50) {
     const prisma = getPrisma();
-    const skip = (page - 1) * limit;
+    const skip = calcSkip(page, limit);
 
     const [totalCount, customers] = await Promise.all([
         prisma.customer.count(),
@@ -151,12 +152,10 @@ export async function createCustomer(data: {
         revalidatePath('/customers');
         return { success: true, customer };
     } catch (error: unknown) {
-        const err = error as { code?: string };
-        // Handle unique constraint violation (name + phone combo)
-        if (err?.code === 'P2002') {
+        if (isPrismaUniqueConstraintError(error)) {
             return { success: false, error: 'A customer with this name and phone already exists.' };
         }
-        console.error('Failed to create customer:', err);
+        logger.error('Failed to create customer:', error);
         return { success: false, error: 'Failed to create customer. Please try again.' };
     }
 }
@@ -212,11 +211,10 @@ export async function updateCustomer(
         revalidatePath('/profits');
         return { success: true, customer };
     } catch (error: unknown) {
-        const err = error as { code?: string };
-        if (err?.code === 'P2002') {
+        if (isPrismaUniqueConstraintError(error)) {
             return { success: false, error: 'A customer with this name and phone already exists.' };
         }
-        console.error('Failed to update customer:', err);
+        logger.error('Failed to update customer:', error);
         return { success: false, error: 'Failed to update customer. Please try again.' };
     }
 }
@@ -245,7 +243,7 @@ export async function deleteCustomer(id: string) {
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error: unknown) {
-        console.error('Failed to delete customer:', error);
+        logger.error('Failed to delete customer:', error);
         return { success: false, error: 'Failed to delete customer. Please try again.' };
     }
 }
@@ -286,18 +284,12 @@ export async function recordCustomerPayment(
             return { payment, newBalance, customerName: customer.name };
         });
 
-        try {
-            const { logActivity } = await import('./audit');
-            const noteSuffix = note ? `. Note: ${note}` : '';
-            const logDetails = `Customer "${result.customerName}" paid ${amount}. Recorded by ${currentUser.name || currentUser.username}. New balance: ${result.newBalance}${noteSuffix}`;
-            await logActivity(
-                'PAYMENT',
-                logDetails,
-                currentUser.id
-            );
-        } catch (e) {
-            console.error('Failed to log payment activity:', e);
-        }
+        const noteSuffix = note ? `. Note: ${note}` : '';
+        await safeLogActivity(
+            'PAYMENT',
+            `Customer "${result.customerName}" paid ${amount}. Recorded by ${currentUser.name || currentUser.username}. New balance: ${result.newBalance}${noteSuffix}`,
+            currentUser.id
+        );
 
         revalidatePath('/customers');
         revalidatePath('/customers/profile');
@@ -305,8 +297,8 @@ export async function recordCustomerPayment(
 
         return { success: true, newBalance: result.newBalance };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : 'Failed to record payment.';
-        console.error('Failed to record payment:', message);
+        const message = getErrorMessage(error, 'Failed to record payment.');
+        logger.error('Failed to record payment:', error);
         return { success: false, error: message };
     }
 }

@@ -1,47 +1,26 @@
 'use server';
 
-import getPrisma from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions';
+import { hasRole } from '@/lib/auth/session';
 
 export async function getCurrentUser() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) return null;
-
-    const prisma = getPrisma();
-    const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: {
-            id: true,
-            username: true,
-            name: true,
-            role: true,
-            permissions: true,
-            phone: true,
-            address: true,
-        }
-    });
-
-    return dbUser;
+    const { getCurrentUser } = await import('@/lib/auth/session');
+    return getCurrentUser();
 }
 
 async function getUserPermissions() {
+    const { getCurrentUser } = await import('@/lib/auth/session');
     const user = await getCurrentUser();
     if (!user) return [];
 
-    // ROOT users should always have access to all tabs
     if (user.role === 'ROOT') {
         return DEFAULT_PERMISSIONS['ROOT'] || [];
     }
 
-    // If user has custom permissions, use those
     if (user.permissions && user.permissions.length > 0) {
         return user.permissions;
     }
 
-    // Otherwise, use default permissions for their role
     return DEFAULT_PERMISSIONS[user.role] || [];
 }
 
@@ -77,7 +56,5 @@ export async function getMenuItemsForUser() {
 }
 
 export async function canEditDebts() {
-    const user = await getCurrentUser();
-    if (!user) return false;
-    return user.role === 'ROOT' || user.role === 'ADMIN';
+    return hasRole('ROOT', 'ADMIN');
 }

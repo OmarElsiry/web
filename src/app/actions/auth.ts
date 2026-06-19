@@ -1,21 +1,11 @@
 'use server';
 
-import getPrisma from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export async function getCurrentUser() {
-    const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-
-    if (!authUser) return null;
-
-    const prisma = getPrisma();
-    const user = await prisma.user.findUnique({
-        where: { id: authUser.id }
-    });
-
-    return user;
+    const { getCurrentUser } = await import('@/lib/auth/session');
+    return getCurrentUser();
 }
 
 export async function signOut() {

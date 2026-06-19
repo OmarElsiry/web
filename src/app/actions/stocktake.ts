@@ -1,12 +1,12 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { toNumber } from '@/lib/utils/decimal';
+import { revalidatePaths } from '@/lib/utils/revalidation';
 
 export async function getStocktakeItems() {
     const prisma = getPrisma();
 
-    // Fetch products with their inventory
     const products = await prisma.product.findMany({
         select: {
             id: true,
@@ -28,12 +28,12 @@ export async function getStocktakeItems() {
         name: p.name,
         sku: p.sku,
         category: p.category?.name || 'Uncategorized',
-        price: Number(p.baseSellingPrice),
-        stock: p.inventoryItems.reduce((sum, item) => sum + Number(item.quantity), 0),
+        price: toNumber(p.baseSellingPrice),
+        stock: p.inventoryItems.reduce((sum, item) => sum + toNumber(item.quantity), 0),
         locations: p.inventoryItems.map(item => ({
             id: item.locationId,
             name: item.location.name,
-            quantity: Number(item.quantity)
+            quantity: toNumber(item.quantity)
         }))
     }));
 }
@@ -122,9 +122,7 @@ export async function reconcileStock(adjustments: StockAdjustment[]) {
         }
     });
 
-    revalidatePath('/stocktake');
-    revalidatePath('/products');
-    revalidatePath('/movements');
+    revalidatePaths(['/stocktake', '/products', '/movements']);
 
     return { success: true };
 }

@@ -1,7 +1,8 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
+import { toNumber } from '@/lib/utils/decimal';
+import { revalidatePaths } from '@/lib/utils/revalidation';
 
 export async function getIncomingTransactions() {
     const prisma = getPrisma();
@@ -23,9 +24,9 @@ export async function getIncomingTransactions() {
             id: item.id,
             transactionId: tx.id,
             productName: item.product.name,
-            quantity: Number(item.quantity),
+            quantity: toNumber(item.quantity),
             supplier: tx.notes || 'External Supplier',
-            costPrice: Number(item.product.costPrice) * Number(item.quantity),
+            costPrice: toNumber(item.product.costPrice) * toNumber(item.quantity),
             status: 'received' as const,
             date: tx.date
         }))
@@ -84,8 +85,6 @@ export async function createIncomingStock(data: {
         return { transaction, inventory };
     });
 
-    revalidatePath('/inventory');
-    revalidatePath('/incoming');
-    revalidatePath('/dashboard');
+    revalidatePaths(['/inventory', '/incoming', '/dashboard']);
     return result;
 }

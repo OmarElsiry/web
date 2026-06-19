@@ -3,28 +3,16 @@
 
 import getPrisma from '@/lib/prisma';
 import { Prisma } from '@/generated/client';
-import { revalidatePath } from 'next/cache';
 import { SaleSchema } from '@/lib/validations';
-import { getCurrentUser } from '@/app/actions/permissions';
-
-async function deductStock(tx: Prisma.TransactionClient, items: { productId: string, quantity: number }[], locId: string) {
-    for (const item of items) {
-        const inventory = await tx.inventory.findFirst({
-            where: { productId: item.productId, locationId: locId }
-        });
-
-        const available = inventory ? Number(inventory.quantity) - Number(inventory.reservedQuantity) : 0;
-        if (available < item.quantity) {
-            const product = await tx.product.findUnique({ where: { id: item.productId } });
-            throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
-        }
-
-        await tx.inventory.update({
-            where: { id: inventory!.id },
-            data: { quantity: { decrement: item.quantity } }
-        });
-    }
-}
+import { getCurrentUser } from '@/lib/auth/session';
+import { isReviewer } from '@/lib/auth/session';
+import { deductStock, reserveStock, getDefaultLocation } from '@/lib/utils/stock';
+import { toNumber } from '@/lib/utils/decimal';
+import { buildProductSearchFilter } from '@/lib/utils/search';
+import { revalidateSalePaths } from '@/lib/utils/revalidation';
+import { safeLogActivity, logger } from '@/lib/utils/logger';
+import { getErrorMessage } from '@/lib/utils/errors';
+import { validateOrFail } from '@/lib/validations';
 
 async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerId?: string, buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string }) {
     let finalCustomerId = customerId;
@@ -63,12 +51,7 @@ export async function getProducts(search?: string, limit: number = 200) {
     // Get default location for stock lookup
     const location = await prisma.location.findFirst();
 
-    const whereClause = search ? {
-        OR: [
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { sku: { contains: search, mode: 'insensitive' as const } }
-        ]
-    } : {};
+    const whereClause = search ? buildProductSearchFilter(search) : {};
 
     // Get products with category
     const products = await prisma.product.findMany({
@@ -89,33 +72,28 @@ export async function getProducts(search?: string, limit: number = 200) {
     }) : [];
 
     // Map inventory to a lookup (available = quantity - reserved)
-    const stockMap = new Map(inventories.map(inv => [inv.productId, Number(inv.quantity) - Number(inv.reservedQuantity)]));
+    const stockMap = new Map(inventories.map(inv => [inv.productId, toNumber(inv.quantity) - toNumber(inv.reservedQuantity)]));
 
     return products.map(p => ({
         id: p.id,
         name: p.name,
         sku: p.sku,
-        baseSellingPrice: Number(p.baseSellingPrice),
-        costPrice: Number(p.costPrice),
+        baseSellingPrice: toNumber(p.baseSellingPrice),
+        costPrice: toNumber(p.costPrice),
         categoryId: p.categoryId,
         category: p.category,
-        stock: Number(stockMap.get(p.id) || 0)
+        stock: toNumber(stockMap.get(p.id) || 0)
     }));
 }
 
 export async function getCategories() {
-    const prisma = getPrisma();
-    return prisma.category.findMany({ orderBy: { name: 'asc' } });
+    const { getCategories } = await import('./inventory');
+    return getCategories();
 }
 
 export async function getStaffList() {
-    const prisma = getPrisma();
-    // Fetch users who are likely staff (e.g., ADMIN or READ_ONLY, or just all users)
-    // For now, fetch all users.
-    return prisma.user.findMany({
-        select: { id: true, username: true, name: true, role: true },
-        orderBy: { name: 'asc' }
-    });
+    const { getStaffList } = await import('./staff');
+    return getStaffList();
 }
 
 export async function processSale(
@@ -129,7 +107,7 @@ export async function processSale(
     reviewerEditOf?: string
 ) {
     // Validate inputs using Zod
-    const parsed = SaleSchema.safeParse({
+    const validation = validateOrFail(SaleSchema, {
         items,
         paymentMethod,
         buyerInfo,
@@ -139,10 +117,7 @@ export async function processSale(
         customerId,
         reviewerEditOf
     });
-
-    if (!parsed.success) {
-        return { success: false, error: `Validation Error: ${(parsed.error as any).errors.map((e: any) => e.message).join(', ')}` };
-    }
+    if (!validation.success) return validation;
 
     const prisma = getPrisma();
 
@@ -151,13 +126,10 @@ export async function processSale(
 
     // Check if the current user is a reviewer (permission-based review trigger)
     const currentUser = await getCurrentUser();
-    const isReviewer = !!currentUser && (
-        currentUser.role === 'ROOT' || currentUser.role === 'ADMIN' ||
-        (currentUser.permissions || []).includes('review')
-    );
+    const userIsReviewer = isReviewer(currentUser);
 
     // Reviewer editing on behalf of a salesperson → always accepted, no review
-    const isReviewerEdit = !!reviewerEditOf && isReviewer;
+    const isReviewerEdit = !!reviewerEditOf && userIsReviewer;
 
     // 1. Calculate Total & Detect Price Overrides
     let totalAmount = 0;
@@ -190,37 +162,18 @@ export async function processSale(
     }
 
     // Non-reviewers with a price override → pending review; reviewers (including edit flow) → accepted
-    const needsReview = !isReviewerEdit && !isReviewer && hasPriceOverride;
+    const needsReview = !isReviewerEdit && !userIsReviewer && hasPriceOverride;
 
     // 2. Transaction
     try {
         const invoice = await prisma.$transaction(async (tx) => {
             // Find or create location
-            let loc = await tx.location.findFirst();
-            if (!loc) {
-                loc = await tx.location.create({
-                    data: { name: "Main Warehouse", type: "WAREHOUSE" }
-                });
-            }
+            const loc = await getDefaultLocation(tx);
+            if (!loc) throw new Error('No location found');
 
             if (needsReview) {
                 // PENDING REVIEW: reserve stock (don't deduct), don't update customer balance, no SALE transaction
-                for (const item of items) {
-                    const inv = await tx.inventory.findFirst({
-                        where: { productId: item.productId, locationId: loc.id }
-                    });
-                    const available = inv ? Number(inv.quantity) - Number(inv.reservedQuantity) : 0;
-                    if (available < item.quantity) {
-                        const product = await tx.product.findUnique({ where: { id: item.productId } });
-                        throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
-                    }
-                    if (inv) {
-                        await tx.inventory.update({
-                            where: { id: inv.id },
-                            data: { reservedQuantity: { increment: item.quantity } }
-                        });
-                    }
-                }
+                await reserveStock(tx, items, loc.id);
 
                 const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
 
@@ -300,53 +253,42 @@ export async function processSale(
         });
 
         // 3. Audit Log
-        try {
-            const { logActivity } = await import('./audit');
-            const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
-            const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
-            const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
+        const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
+        const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
+        const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
 
-            if (needsReview) {
-                await logActivity(
-                    'SALE_PENDING',
-                    `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
-                    currentUser?.id || userId
-                );
-            } else {
-                await logActivity(
-                    'SALE',
-                    `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
-                    currentUser?.id || userId
-                );
-            }
-        } catch (e) {
-            console.error('Failed to log activity:', e);
+        if (needsReview) {
+            await safeLogActivity(
+                'SALE_PENDING',
+                `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
+                currentUser?.id || userId
+            );
+        } else {
+            await safeLogActivity(
+                'SALE',
+                `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
+                currentUser?.id || userId
+            );
         }
 
-        revalidatePath('/dashboard');
-        revalidatePath('/inventory');
-        revalidatePath('/sales');
-        revalidatePath('/logs');
-        revalidatePath('/reviews');
-        revalidatePath('/portfolio');
-        revalidatePath('/inventory/transactions');
+        revalidateSalePaths();
 
         return {
             success: true,
             needsReview,
             invoice: {
                 ...invoice,
-                totalAmount: Number(invoice.totalAmount),
+                totalAmount: toNumber(invoice.totalAmount),
                 items: invoice.items.map(it => ({
                     ...it,
-                    unitPrice: Number(it.unitPrice),
-                    subtotal: Number(it.subtotal)
+                    unitPrice: toNumber(it.unitPrice),
+                    subtotal: toNumber(it.subtotal)
                 }))
             }
         };
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : "An unexpected error occurred during the sale.";
-        console.error("Sale processing failed:", message);
+        const message = getErrorMessage(error, "An unexpected error occurred during the sale.");
+        logger.error("Sale processing failed:", error);
         return {
             success: false,
             error: message

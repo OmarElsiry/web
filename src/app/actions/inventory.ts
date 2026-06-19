@@ -2,33 +2,49 @@
 
 import getPrisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { isPrismaUniqueConstraintError } from '@/lib/utils/errors';
+import { getDefaultLocation } from '@/lib/utils/stock';
+import { safeLogActivity, logger } from '@/lib/utils/logger';
+import { revalidateInventoryPaths, revalidatePaths } from '@/lib/utils/revalidation';
+import { calcSkip } from '@/lib/utils/pagination';
+import { serializeProduct } from '@/lib/utils/decimal';
+import { buildProductSearchFilter } from '@/lib/utils/search';
 
-export async function getInventory() {
+export async function getInventory(page: number = 1, limit: number = 50) {
     const prisma = getPrisma();
+    const skip = calcSkip(page, limit);
 
-    const inventory = await prisma.inventory.findMany({
-        include: {
-            product: {
-                include: {
-                    category: true
-                }
+    const [totalCount, inventory] = await Promise.all([
+        prisma.inventory.count(),
+        prisma.inventory.findMany({
+            skip,
+            take: limit,
+            include: {
+                product: {
+                    include: {
+                        category: true
+                    }
+                },
+                location: true
             },
-            location: true
-        },
-        orderBy: {
-            product: { name: 'asc' }
-        }
-    });
+            orderBy: {
+                product: { name: 'asc' }
+            }
+        })
+    ]);
 
-    return inventory.map(item => ({
-        ...item,
-        quantity: Number(item.quantity),
-        product: {
-            ...item.product,
-            costPrice: Number(item.product.costPrice),
-            baseSellingPrice: Number(item.product.baseSellingPrice)
-        }
-    }));
+    return [
+        totalCount,
+        inventory.map(item => ({
+            ...item,
+            quantity: Number(item.quantity),
+            product: {
+                ...item.product,
+                costPrice: Number(item.product.costPrice),
+                baseSellingPrice: Number(item.product.baseSellingPrice)
+            }
+        }))
+    ] as const;
 }
 
 export async function getCategories() {
@@ -48,17 +64,12 @@ export async function createCategory(name: string) {
             data: { name }
         });
 
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('CREATE_CATEGORY', `Created category "${name}"`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('CREATE_CATEGORY', `Created category "${name}"`);
 
         revalidatePath('/products');
         return { success: true, category };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === 'P2002') {
+        if (isPrismaUniqueConstraintError(error)) {
             return { success: false, error: 'Category name already exists.' };
         }
         return { success: false, error: 'Failed to create category.' };
@@ -92,12 +103,7 @@ export async function deleteCategory(id: string) {
             await tx.category.delete({ where: { id } });
         });
 
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('DELETE_CATEGORY', `Deleted category ID: ${id} along with its products`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('DELETE_CATEGORY', `Deleted category ID: ${id} along with its products`);
 
         revalidatePath('/products');
         return { success: true };
@@ -150,12 +156,8 @@ export async function createProduct(data: {
             });
 
             // 2. Self-healing Location (Ensure at least one location exists)
-            let location = await tx.location.findFirst();
-            if (!location) {
-                location = await tx.location.create({
-                    data: { name: "Main Warehouse", type: "WAREHOUSE" }
-                });
-            }
+            const location = await getDefaultLocation(tx);
+            if (!location) throw new Error('No location available');
 
             // 3. Create Initial Inventory if provided
             if (data.initialQuantity !== undefined && data.initialQuantity > 0) {
@@ -186,27 +188,16 @@ export async function createProduct(data: {
         });
 
         // 4. Audit Log
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('CREATE_PRODUCT', `Created product "${data.name}" (${data.sku})`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('CREATE_PRODUCT', `Created product "${data.name}" (${data.sku})`);
 
-        revalidatePath('/inventory');
-        revalidatePath('/sales');
-        revalidatePath('/dashboard');
+        revalidateInventoryPaths();
 
         return {
             success: true,
-            product: {
-                ...product,
-                costPrice: Number(product.costPrice),
-                baseSellingPrice: Number(product.baseSellingPrice)
-            }
+            product: serializeProduct(product)
         };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string; meta?: { target?: string | string[] } }).code === 'P2002' && (error as { meta?: { target?: string | string[] } }).meta?.target?.includes('sku')) {
+        if (isPrismaUniqueConstraintError(error)) {
             return {
                 success: false,
                 error: 'SKU already exists. Please use a unique code.'
@@ -219,52 +210,62 @@ export async function createProduct(data: {
     }
 }
 
-export async function getUnifiedProducts() {
+export async function getUnifiedProducts(page: number = 1, limit: number = 50, search?: string) {
     const prisma = getPrisma();
+    const skip = calcSkip(page, limit);
 
-    const products = await prisma.product.findMany({
-        include: {
-            category: true,
-            inventoryItems: {
-                include: { location: true }
-            }
-        },
-        orderBy: { name: 'asc' }
-    });
+    const whereClause = search ? buildProductSearchFilter(search) : {};
 
-    // Compute grand total stock across all products
-    const grandTotal = products.reduce((sum, p) =>
-        sum + p.inventoryItems.reduce((s, inv) => s + Number(inv.quantity), 0), 0
-    );
+    const [totalCount, grandTotalResult, products] = await Promise.all([
+        prisma.product.count({ where: whereClause }),
+        prisma.inventory.aggregate({ _sum: { quantity: true } }),
+        prisma.product.findMany({
+            where: whereClause,
+            skip,
+            take: limit,
+            include: {
+                category: true,
+                inventoryItems: {
+                    include: { location: true }
+                }
+            },
+            orderBy: { name: 'asc' }
+        })
+    ]);
 
-    return products.map(p => {
-        const totalStock = p.inventoryItems.reduce((s, inv) => s + Number(inv.quantity), 0);
-        const percentOfTotal = grandTotal > 0 ? Number(((totalStock / grandTotal) * 100).toFixed(1)) : 0;
+    const grandTotal = Number(grandTotalResult._sum.quantity || 0);
 
-        return {
-            id: p.id,
-            name: p.name,
-            sku: p.sku,
-            unit: p.unit,
-            categoryId: p.categoryId,
-            categoryName: p.category?.name || 'Uncategorized',
-            costPrice: Number(p.costPrice),
-            baseSellingPrice: Number(p.baseSellingPrice),
-            retailPrice: Number(p.retailPrice),
-            lowestRetailPrice: Number(p.lowestRetailPrice),
-            wholesalePrice: Number(p.wholesalePrice),
-            lowestWholesalePrice: Number(p.lowestWholesalePrice),
-            image: p.image,
-            totalStock,
-            percentOfTotal,
-            locationBreakdown: p.inventoryItems.map(inv => ({
-                locationId: inv.locationId,
-                locationName: inv.location.name,
-                locationType: inv.location.type,
-                quantity: Number(inv.quantity)
-            }))
-        };
-    });
+    return [
+        totalCount,
+        products.map(p => {
+            const totalStock = p.inventoryItems.reduce((s, inv) => s + Number(inv.quantity), 0);
+            const percentOfTotal = grandTotal > 0 ? Number(((totalStock / grandTotal) * 100).toFixed(1)) : 0;
+
+            return {
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                unit: p.unit,
+                categoryId: p.categoryId,
+                categoryName: p.category?.name || 'Uncategorized',
+                costPrice: Number(p.costPrice),
+                baseSellingPrice: Number(p.baseSellingPrice),
+                retailPrice: Number(p.retailPrice),
+                lowestRetailPrice: Number(p.lowestRetailPrice),
+                wholesalePrice: Number(p.wholesalePrice),
+                lowestWholesalePrice: Number(p.lowestWholesalePrice),
+                image: p.image,
+                totalStock,
+                percentOfTotal,
+                locationBreakdown: p.inventoryItems.map(inv => ({
+                    locationId: inv.locationId,
+                    locationName: inv.location.name,
+                    locationType: inv.location.type,
+                    quantity: Number(inv.quantity)
+                }))
+            };
+        })
+    ] as const;
 }
 
 export async function updateProduct(id: string, data: {
@@ -301,27 +302,16 @@ export async function updateProduct(id: string, data: {
         });
 
         // Audit Log
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('UPDATE_PRODUCT', `Updated product "${data.name}" (${data.sku})`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('UPDATE_PRODUCT', `Updated product "${data.name}" (${data.sku})`);
 
-        revalidatePath('/inventory');
-        revalidatePath('/sales');
-        revalidatePath('/dashboard');
+        revalidateInventoryPaths();
 
         return {
             success: true,
-            product: {
-                ...product,
-                costPrice: Number(product.costPrice),
-                baseSellingPrice: Number(product.baseSellingPrice)
-            }
+            product: serializeProduct(product)
         };
     } catch (error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string; meta?: { target?: string | string[] } }).code === 'P2002' && (error as { meta?: { target?: string | string[] } }).meta?.target?.includes('sku')) {
+        if (isPrismaUniqueConstraintError(error)) {
             return {
                 success: false,
                 error: 'SKU already exists. Please use a unique code.'
@@ -361,21 +351,13 @@ export async function deleteProduct(id: string) {
             await tx.product.delete({ where: { id } });
         });
 
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('DELETE_PRODUCT', `Deleted product "${product.name}" (${product.sku})`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('DELETE_PRODUCT', `Deleted product "${product.name}" (${product.sku})`);
 
-        revalidatePath('/products');
-        revalidatePath('/inventory');
-        revalidatePath('/sales');
-        revalidatePath('/dashboard');
+        revalidatePaths(['/products', '/inventory', '/sales', '/dashboard']);
 
         return { success: true };
     } catch (error) {
-        console.error('Failed to delete product:', error);
+        logger.error('Failed to delete product:', error);
         return { success: false, error: 'Failed to delete product.' };
     }
 }
@@ -403,21 +385,13 @@ export async function bulkUpdatePricing(percentage: number, type: 'markup' | 'in
             })
         );
 
-        try {
-            const { logActivity } = await import('./audit');
-            await logActivity('BULK_UPDATE_PRICING', `Applied ${percentage}% ${type} to all products`);
-        } catch (e) {
-            console.error('Audit log failed', e);
-        }
+        await safeLogActivity('BULK_UPDATE_PRICING', `Applied ${percentage}% ${type} to all products`);
 
-        revalidatePath('/pricing');
-        revalidatePath('/products');
-        revalidatePath('/inventory');
-        revalidatePath('/sales');
+        revalidatePaths(['/pricing', '/products', '/inventory', '/sales']);
         
         return { success: true };
     } catch (error) {
-        console.error('Failed to bulk update pricing:', error);
+        logger.error('Failed to bulk update pricing:', error);
         return { success: false, error: 'Failed to bulk update pricing.' };
     }
 }

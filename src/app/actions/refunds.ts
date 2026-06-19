@@ -2,8 +2,13 @@
 'use server'
 
 import getPrisma from '@/lib/prisma';
-import { revalidatePath } from 'next/cache';
 import { PrismaClient } from '@/generated/client';
+import { RefundSchema, validateOrFail } from '@/lib/validations';
+import { buildRefundedQtyMap } from '@/lib/utils/decimal';
+import { revalidateRefundPaths } from '@/lib/utils/revalidation';
+import { getErrorMessage } from '@/lib/utils/errors';
+import { logger } from '@/lib/utils/logger';
+import { calcSkip } from '@/lib/utils/pagination';
 
 // Types
 type RefundItemInput = {
@@ -27,14 +32,9 @@ async function verifyInvoiceQuantities(tx: any, invoiceId: string, items: Refund
     });
 
     if (!invoice) throw new Error("Invoice not found.");
+    if (invoice.status !== 'ACCEPTED') throw new Error("Cannot refund a pending or declined invoice.");
 
-    const refundedQtyMap = new Map<string, number>();
-    invoice.refunds.forEach((ref: any) => {
-        ref.items.forEach((ri: any) => {
-            const current = refundedQtyMap.get(ri.productId) || 0;
-            refundedQtyMap.set(ri.productId, current + Number(ri.quantity));
-        });
-    });
+    const refundedQtyMap = buildRefundedQtyMap(invoice.refunds as any);
 
     for (const item of items) {
         const invoiceItem = invoice.items.find((ii: any) => ii.productId === item.productId);
@@ -118,6 +118,9 @@ async function processRefundStockUpdates(tx: any, items: RefundItemInput[], user
 }
 
 export async function createRefund(data: CreateRefundInput) {
+    const validation = validateOrFail(RefundSchema, data);
+    if (!validation.success) return validation;
+
     const prisma: PrismaClient = getPrisma();
     const { invoiceId, userId, items, reason } = data;
 
@@ -153,40 +156,48 @@ export async function createRefund(data: CreateRefundInput) {
             await processRefundStockUpdates(tx, items, userId, invoiceId, reason);
         });
 
-        revalidatePath('/invoices');
-        revalidatePath('/products');
-        revalidatePath('/analytics');
+        revalidateRefundPaths();
         return { success: true };
     } catch (error) {
-        console.error('Refund creation failed:', error);
-        return { success: false, error: error instanceof Error ? error.message : 'Failed to create refund' };
+        logger.error('Refund creation failed:', error);
+        return { success: false, error: getErrorMessage(error, 'Failed to create refund') };
     }
 }
 
-export async function getRefunds() {
+export async function getRefunds(page: number = 1, limit: number = 50) {
     const prisma: PrismaClient = getPrisma();
-    try {
-        const refunds = await prisma.refund.findMany({
-            include: {
-                user: true,
-                items: {
-                    include: { product: true }
-                },
-                invoice: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+    const skip = calcSkip(page, limit);
 
-        return refunds.map((ref: any) => ({
-            ...ref,
-            totalAmount: Number(ref.totalAmount),
-            items: (ref.items || []).map((item: any) => ({
-                ...item,
-                unitPrice: Number(item.unitPrice)
+    try {
+        const [totalCount, refunds] = await Promise.all([
+            prisma.refund.count(),
+            prisma.refund.findMany({
+                skip,
+                take: limit,
+                include: {
+                    user: true,
+                    items: {
+                        include: { product: true }
+                    },
+                    invoice: true
+                },
+                orderBy: { createdAt: 'desc' }
+            })
+        ]);
+
+        return [
+            totalCount,
+            refunds.map((ref: any) => ({
+                ...ref,
+                totalAmount: Number(ref.totalAmount),
+                items: (ref.items || []).map((item: any) => ({
+                    ...item,
+                    unitPrice: Number(item.unitPrice)
+                }))
             }))
-        }));
+        ] as const;
     } catch (error) {
-        console.error("Error fetching refunds:", error);
-        return [];
+        logger.error("Error fetching refunds:", error);
+        return [0, []] as const;
     }
 }

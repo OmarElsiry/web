@@ -2,6 +2,9 @@
 'use server';
 
 import getPrisma from '@/lib/prisma';
+import { calcSkip } from '@/lib/utils/pagination';
+import { endOfDay } from '@/lib/utils/date';
+import { logger } from '@/lib/utils/logger';
 
 export async function getStockMovements(
     page = 1,
@@ -15,29 +18,26 @@ export async function getStockMovements(
     }
 ) {
     const prisma = getPrisma();
-    const skip = (page - 1) * limit;
+    const skip = calcSkip(page, limit);
 
     try {
         const whereClause: any = {};
         if (filters?.type && filters.type !== 'ALL') whereClause.type = filters.type;
         if (filters?.locationId && filters.locationId !== 'ALL') {
-            // Check both from and to locations
             whereClause.OR = [
                 { fromLocationId: filters.locationId },
                 { toLocationId: filters.locationId }
             ];
         }
-        // Product filter is trickier because it's a relation on items
         if (filters?.productId && filters.productId !== 'ALL') {
             whereClause.items = {
                 some: { productId: filters.productId }
             };
         }
-        // Date range filter
         if (filters?.startDate || filters?.endDate) {
             whereClause.date = {};
             if (filters.startDate) whereClause.date.gte = new Date(filters.startDate);
-            if (filters.endDate) whereClause.date.lte = new Date(new Date(filters.endDate).setHours(23, 59, 59));
+            if (filters.endDate) whereClause.date.lte = endOfDay(filters.endDate);
         }
 
         const [movements, total] = await Promise.all([
@@ -76,7 +76,7 @@ export async function getStockMovements(
             }
         };
     } catch (error) {
-        console.error('Get stock movements error:', error);
+        logger.error('Get stock movements error:', error);
         return { success: false, error: 'Failed to fetch stock movements' };
     }
 }
