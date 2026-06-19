@@ -437,25 +437,25 @@ export default function DebtsPage() {
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="bg-secondary/30 text-muted-foreground border-b border-border">
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'التاريخ' : 'Date'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'النوع' : 'Type'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'البيان' : 'Description'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                              <th className="hidden sm:table-cell px-4 py-3 text-center font-black text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'المندوب' : 'Salesperson'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest text-red-600">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest text-red-600 whitespace-nowrap">
                                 {isRtl ? 'مدين' : 'Debit'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest text-green-600">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest text-green-600 whitespace-nowrap">
                                 {isRtl ? 'دائن' : 'Credit'}
                               </th>
-                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                              <th className="px-2 sm:px-4 py-3 text-center font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
                                 {isRtl ? 'الرصيد' : 'Balance'}
                               </th>
                             </tr>
@@ -463,27 +463,27 @@ export default function DebtsPage() {
                           <tbody className="divide-y divide-border">
                             {statementData.timeline.map((entry) => (
                               <tr key={entry.id} className="hover:bg-primary/5 transition-colors">
-                                <td className="px-4 py-3 text-center tabular-nums text-muted-foreground whitespace-nowrap">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center tabular-nums text-muted-foreground whitespace-nowrap text-[10px] sm:text-sm">
                                   {new Date(entry.date).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
                                     year: 'numeric',
                                     month: 'short',
                                     day: 'numeric',
                                   })}
                                 </td>
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center whitespace-nowrap">
                                   {entry.type === 'INVOICE' ? (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-red-500/10 text-red-600 border border-red-500/20">
-                                      <FileText className="w-3 h-3" />
+                                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-red-500/10 text-red-600 border border-red-500/20">
+                                      <FileText className="w-3 h-3 hidden sm:inline" />
                                       {isRtl ? 'فاتورة' : 'Invoice'}
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-green-500/10 text-green-600 border border-green-500/20">
-                                      <CreditCard className="w-3 h-3" />
+                                    <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-green-500/10 text-green-600 border border-green-500/20">
+                                      <CreditCard className="w-3 h-3 hidden sm:inline" />
                                       {isRtl ? 'دفعة' : 'Payment'}
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-center text-foreground font-bold text-xs">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center text-foreground font-bold text-[10px] sm:text-xs whitespace-nowrap">
                                   {entry.description}
                                   {entry.paymentMethod && (
                                     <span className="mx-1 text-muted-foreground">
@@ -491,18 +491,18 @@ export default function DebtsPage() {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-center">
+                                <td className="hidden sm:table-cell px-4 py-3 text-center">
                                   <span className="text-xs font-bold text-muted-foreground">
                                     {entry.salesperson || (isRtl ? '-' : '-')}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-center font-black tabular-nums text-red-600">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-red-600 text-[10px] sm:text-sm">
                                   {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
                                 </td>
-                                <td className="px-4 py-3 text-center font-black tabular-nums text-green-600">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-green-600 text-[10px] sm:text-sm">
                                   {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
                                 </td>
-                                <td className="px-4 py-3 text-center font-black tabular-nums">
+                                <td className="px-2 sm:px-4 py-2 sm:py-3 text-center font-black tabular-nums text-[10px] sm:text-sm">
                                   <span className={entry.balance > 0 ? 'text-red-600' : entry.balance < 0 ? 'text-green-600' : 'text-muted-foreground'}>
                                     {entry.balance.toFixed(2)}
                                   </span>
@@ -512,16 +512,19 @@ export default function DebtsPage() {
                           </tbody>
                           <tfoot className="bg-secondary/30 border-t-2 border-border">
                             <tr>
-                              <td colSpan={4} className="px-4 py-3 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">
+                              <td colSpan={3} className="sm:hidden px-2 py-3 font-black uppercase text-[10px] tracking-widest text-muted-foreground text-center">
                                 {isRtl ? 'الإجمالي' : 'Total'}
                               </td>
-                              <td className="px-4 py-3 text-center font-black tabular-nums text-red-600 text-base">
+                              <td colSpan={4} className="hidden sm:table-cell px-4 py-3 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">
+                                {isRtl ? 'الإجمالي' : 'Total'}
+                              </td>
+                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-red-600 text-xs sm:text-base">
                                 {statementData.totals.totalDebit.toFixed(2)}
                               </td>
-                              <td className="px-4 py-3 text-center font-black tabular-nums text-green-600 text-base">
+                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-green-600 text-xs sm:text-base">
                                 {statementData.totals.totalCredit.toFixed(2)}
                               </td>
-                              <td className="px-4 py-3 text-center font-black tabular-nums text-primary text-base">
+                              <td className="px-2 sm:px-4 py-3 text-center font-black tabular-nums text-primary text-xs sm:text-base">
                                 {statementData.totals.currentBalance.toFixed(2)}
                               </td>
                             </tr>
