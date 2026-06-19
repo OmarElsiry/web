@@ -49,6 +49,12 @@ export type StockAdjustment = {
 export async function reconcileStock(adjustments: StockAdjustment[]) {
     const prisma = getPrisma();
 
+    for (const adj of adjustments) {
+        if (typeof adj.actualStock !== 'number' || isNaN(adj.actualStock) || adj.actualStock < 0) {
+            return { success: false, error: 'Actual stock count cannot be negative.' };
+        }
+    }
+
     // Get a default location (e.g., WAREHOUSE) if needed
     const defaultLocation = await prisma.location.findFirst({
         where: { type: 'WAREHOUSE' }

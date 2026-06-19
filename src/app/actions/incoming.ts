@@ -46,6 +46,13 @@ export async function createIncomingStock(data: {
     locationId: string;
     notes?: string;
 }) {
+    if (!data.productId || !data.locationId) {
+        return { success: false, error: 'Product and location are required.' };
+    }
+    if (typeof data.quantity !== 'number' || isNaN(data.quantity) || data.quantity <= 0) {
+        return { success: false, error: 'Quantity must be a positive number.' };
+    }
+
     const prisma = getPrisma();
 
     const result = await prisma.$transaction(async (tx) => {

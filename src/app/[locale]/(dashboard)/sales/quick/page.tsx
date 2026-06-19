@@ -477,7 +477,12 @@ export default function QuickSalePage() {
                                     step="0.01"
                                     className="w-full pl-16 pr-4 py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black"
                                     value={amountPaid}
-                                    onChange={(e) => setAmountPaid(e.target.value)}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        if (v === '' || v === '-') return setAmountPaid('0');
+                                        const n = Number(v);
+                                        setAmountPaid(isNaN(n) ? '0' : String(Math.max(0, n)));
+                                    }}
                                     onFocus={(e) => e.target.select()}
                                 />
                             </div>

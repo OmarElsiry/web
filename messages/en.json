@@ -184,33 +184,57 @@
       "SALARY": "Salaries Only",
       "OTHER": "Non-Salary Only"
     },
-    "buttons": {
-      "salaryPdf": "Salary PDF",
-      "newExpense": "New Expense"
-    },
-    "form": {
-      "title": "Add New Expense",
-      "description": "Description",
-      "descriptionPlaceholder": "Make coffee, electricity...",
-      "amount": "Amount ({currency})",
-      "whoSpent": "Who Spent?",
-      "selectStaff": "Select Staff...",
-      "category": "Category",
-      "selectCategory": "Select Category...",
-      "date": "Date",
-      "save": "Save Expense",
-      "saving": "Saving..."
-    },
-    "table": {
-      "date": "Date",
-      "description": "Description",
-      "category": "Category",
-      "spentBy": "Spent By",
-      "amount": "Amount",
-      "actions": "Actions",
-      "loading": "Loading expenses...",
-      "noResults": "No expenses found for this period."
-    },
+  "buttons": {
+    "salaryPdf": "Salary PDF",
+    "newExpense": "New Expense",
+    "cancel": "Cancel",
+    "previous": "Previous",
+    "next": "Next",
+    "clear": "Clear"
+  },
+  "search": {
+    "placeholder": "Search description..."
+  },
+  "breakdown": {
+    "title": "Category Breakdown",
+    "subtitle": "Totals per category for the selected period",
+    "category": "Category",
+    "count": "Entries",
+    "total": "Total",
+    "share": "Share",
+    "empty": "No expenses recorded in this period."
+  },
+  "delete": {
+    "title": "Delete Expense",
+    "confirm": "Delete",
+    "loading": "Deleting..."
+  },
+  "form": {
+    "title": "Add New Expense",
+    "description": "Description",
+    "descriptionPlaceholder": "Make coffee, electricity...",
+    "amount": "Amount ({currency})",
+    "whoSpent": "Who Spent?",
+    "selectStaff": "Select Staff...",
+    "category": "Category",
+    "selectCategory": "Select Category...",
+    "date": "Date",
+    "save": "Save Expense",
+    "saving": "Saving...",
+    "cancel": "Cancel"
+  },
+  "table": {
+    "date": "Date",
+    "description": "Description",
+    "category": "Category",
+    "spentBy": "Spent By",
+    "amount": "Amount",
+    "actions": "Actions",
+    "loading": "Loading expenses...",
+    "noResults": "No expenses found for this period.",
+    "noCategory": "Uncategorized",
+    "pageInfo": "Page {current} of {total}"
+  },
     "categoriesList": {
       "SALARY": "Salary",
       "Utilities": "Utilities",

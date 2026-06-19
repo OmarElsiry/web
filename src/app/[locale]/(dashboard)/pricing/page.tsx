@@ -94,9 +94,9 @@ export default function PricingPage() {
     }, []);
     const closeBulkModal = useCallback(() => setIsBulkModalOpen(false), []);
     const closeEditModal = useCallback(() => setIsEditModalOpen(false), []);
-    const handleBulkPercentageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setBulkPercentage(e.target.value === '' ? '' : Number(e.target.value)), []);
-    const handleEditCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditCost(Number(e.target.value)), []);
-    const handleEditSellChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditSell(Number(e.target.value)), []);
+    const handleBulkPercentageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setBulkPercentage(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0)), []);
+    const handleEditCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditCost(Math.max(0, Number(e.target.value) || 0)), []);
+    const handleEditSellChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditSell(Math.max(0, Number(e.target.value) || 0)), []);
     const handlePrevPage = useCallback(() => setCurrentPage(p => Math.max(1, p - 1)), []);
     const handleNextPage = useCallback(() => setCurrentPage(p => p + 1), []);
     const setBulkTypeMarkup = useCallback(() => setBulkType('markup'), []);

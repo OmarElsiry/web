@@ -8,6 +8,7 @@ import { buildDateRangeFilter } from '@/lib/utils/date';
 import { calcSkip } from '@/lib/utils/pagination';
 import { toNumber } from '@/lib/utils/decimal';
 import { logger } from '@/lib/utils/logger';
+import { ExpenseSchema, validateOrFail } from '@/lib/validations';
 
 export async function createExpense(data: {
     description: string;
@@ -16,6 +17,9 @@ export async function createExpense(data: {
     category?: string;
     date?: string;
 }) {
+    const validation = validateOrFail(ExpenseSchema, data);
+    if (!validation.success) return validation;
+
     const prisma = getPrisma();
     const currentUser = await getCurrentUser();
 
@@ -40,20 +44,38 @@ export async function createExpense(data: {
     }
 }
 
-export async function getExpenses(page: number = 1, limit: number = 50, startDate?: string, endDate?: string) {
+export async function getExpenses(
+    page: number = 1,
+    limit: number = 50,
+    startDate?: string,
+    endDate?: string,
+    category?: string,
+    search?: string
+) {
     const prisma = getPrisma();
 
-    const where: any = {};
+    // Date-only filter drives the KPI metrics and the category breakdown so
+    // they always reflect the full picture for the selected period.
+    const dateWhere: any = {};
     if (startDate && endDate) {
-        where.date = buildDateRangeFilter(startDate, endDate);
+        dateWhere.date = buildDateRangeFilter(startDate, endDate);
+    }
+
+    // The table query additionally respects the active category and search term.
+    const tableWhere: any = { ...dateWhere };
+    if (category && category !== 'ALL') {
+        tableWhere.category = category;
+    }
+    if (search && search.trim()) {
+        tableWhere.description = { contains: search.trim(), mode: 'insensitive' };
     }
 
     const skip = calcSkip(page, limit);
 
-    const [totalCount, expenses, salaryAgg, nonSalaryAgg] = await Promise.all([
-        prisma.expense.count({ where }),
+    const [totalCount, expenses, salaryAgg, nonSalaryAgg, grouped] = await Promise.all([
+        prisma.expense.count({ where: tableWhere }),
         prisma.expense.findMany({
-            where,
+            where: tableWhere,
             include: {
                 user: {
                     select: { name: true, username: true }
@@ -65,11 +87,17 @@ export async function getExpenses(page: number = 1, limit: number = 50, startDat
         }),
         prisma.expense.aggregate({
             _sum: { amount: true },
-            where: { ...where, category: 'SALARY' }
+            where: { ...dateWhere, category: 'SALARY' }
         }),
         prisma.expense.aggregate({
             _sum: { amount: true },
-            where: { ...where, category: { not: 'SALARY' } }
+            where: { ...dateWhere, category: { not: 'SALARY' } }
+        }),
+        prisma.expense.groupBy({
+            by: ['category'],
+            where: dateWhere,
+            _sum: { amount: true },
+            _count: { _all: true }
         })
     ]);
 
@@ -85,13 +113,22 @@ export async function getExpenses(page: number = 1, limit: number = 50, startDat
     const grandTotal = salaryTotal + nonSalaryTotal;
     const salaryPercent = grandTotal > 0 ? Number(((salaryTotal / grandTotal) * 100).toFixed(1)) : 0;
 
+    const categoryBreakdown = grouped
+        .map(g => ({
+            category: g.category || 'Other',
+            count: g._count._all,
+            total: toNumber(g._sum.amount)
+        }))
+        .sort((a, b) => b.total - a.total);
+
     return {
         totalCount,
         expenses: mapped,
         salaryTotal,
         nonSalaryTotal,
         grandTotal,
-        salaryPercent
+        salaryPercent,
+        categoryBreakdown
     };
 }
 
@@ -132,9 +169,18 @@ export async function getSalaryReport(startDate: string, endDate: string) {
 
 export async function deleteExpense(id: string) {
     const prisma = getPrisma();
-    await prisma.expense.delete({ where: { id } });
-    revalidatePath('/expenses');
-    return { success: true };
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) throw new Error('Unauthorized');
+
+    try {
+        await prisma.expense.delete({ where: { id } });
+        revalidatePath('/expenses');
+        return { success: true };
+    } catch (error) {
+        logger.error('Delete Expense Error:', error);
+        return { success: false, error: 'Failed to delete expense' };
+    }
 }
 
 export async function getMonthlyExpenseSummary(year: number) {

@@ -9,6 +9,7 @@ import { revalidateInventoryPaths, revalidatePaths } from '@/lib/utils/revalidat
 import { calcSkip } from '@/lib/utils/pagination';
 import { serializeProduct } from '@/lib/utils/decimal';
 import { buildProductSearchFilter } from '@/lib/utils/search';
+import { ProductSchema, validateOrFail } from '@/lib/validations';
 
 export async function getInventory(page: number = 1, limit: number = 50) {
     const prisma = getPrisma();
@@ -126,6 +127,24 @@ export async function createProduct(data: {
     image?: string;
     initialQuantity?: number;
 }) {
+    const validation = validateOrFail(ProductSchema, {
+        name: data.name,
+        sku: data.sku,
+        categoryId: data.categoryId,
+        costPrice: data.costPrice,
+        baseSellingPrice: data.baseSellingPrice,
+        retailPrice: data.retailPrice,
+        lowestRetailPrice: data.lowestRetailPrice,
+        wholesalePrice: data.wholesalePrice,
+        lowestWholesalePrice: data.lowestWholesalePrice,
+        unit: data.unit
+    });
+    if (!validation.success) return { success: false, error: validation.error };
+
+    if (data.initialQuantity !== undefined && (typeof data.initialQuantity !== 'number' || isNaN(data.initialQuantity) || data.initialQuantity < 0)) {
+        return { success: false, error: 'Opening stock cannot be negative.' };
+    }
+
     const prisma = getPrisma();
 
     try {
@@ -144,12 +163,12 @@ export async function createProduct(data: {
                     name: data.name,
                     sku: data.sku,
                     categoryId: data.categoryId,
-                    costPrice: data.costPrice,
-                    baseSellingPrice: data.baseSellingPrice,
-                    retailPrice: data.retailPrice || 0,
-                    lowestRetailPrice: data.lowestRetailPrice || 0,
-                    wholesalePrice: data.wholesalePrice || 0,
-                    lowestWholesalePrice: data.lowestWholesalePrice || 0,
+                    costPrice: Math.max(0, data.costPrice),
+                    baseSellingPrice: Math.max(0, data.baseSellingPrice),
+                    retailPrice: Math.max(0, data.retailPrice || 0),
+                    lowestRetailPrice: Math.max(0, data.lowestRetailPrice || 0),
+                    wholesalePrice: Math.max(0, data.wholesalePrice || 0),
+                    lowestWholesalePrice: Math.max(0, data.lowestWholesalePrice || 0),
                     unit: data.unit || 'piece',
                     image: data.image
                 }
@@ -281,6 +300,20 @@ export async function updateProduct(id: string, data: {
     unit?: string;
     image?: string;
 }) {
+    const validation = validateOrFail(ProductSchema, {
+        name: data.name,
+        sku: data.sku,
+        categoryId: data.categoryId,
+        costPrice: data.costPrice,
+        baseSellingPrice: data.baseSellingPrice,
+        retailPrice: data.retailPrice,
+        lowestRetailPrice: data.lowestRetailPrice,
+        wholesalePrice: data.wholesalePrice,
+        lowestWholesalePrice: data.lowestWholesalePrice,
+        unit: data.unit
+    });
+    if (!validation.success) return { success: false, error: validation.error };
+
     const prisma = getPrisma();
 
     try {
@@ -290,12 +323,12 @@ export async function updateProduct(id: string, data: {
                 name: data.name,
                 sku: data.sku,
                 categoryId: data.categoryId,
-                costPrice: data.costPrice,
-                baseSellingPrice: data.baseSellingPrice,
-                retailPrice: data.retailPrice || 0,
-                lowestRetailPrice: data.lowestRetailPrice || 0,
-                wholesalePrice: data.wholesalePrice || 0,
-                lowestWholesalePrice: data.lowestWholesalePrice || 0,
+                costPrice: Math.max(0, data.costPrice),
+                baseSellingPrice: Math.max(0, data.baseSellingPrice),
+                retailPrice: Math.max(0, data.retailPrice || 0),
+                lowestRetailPrice: Math.max(0, data.lowestRetailPrice || 0),
+                wholesalePrice: Math.max(0, data.wholesalePrice || 0),
+                lowestWholesalePrice: Math.max(0, data.lowestWholesalePrice || 0),
                 unit: data.unit || 'piece',
                 image: data.image
             }
@@ -363,6 +396,9 @@ export async function deleteProduct(id: string) {
 }
 
 export async function bulkUpdatePricing(percentage: number, type: 'markup' | 'increase') {
+    if (typeof percentage !== 'number' || isNaN(percentage) || percentage < 0) {
+        return { success: false, error: 'Percentage cannot be negative.' };
+    }
     const prisma = getPrisma();
     try {
         const products = await prisma.product.findMany();

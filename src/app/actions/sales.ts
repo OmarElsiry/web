@@ -195,6 +195,11 @@ export async function processSale(
         const discount = Number(item.discountValue) || 0;
         const effectivePrice = manualPrice - discount / item.quantity;
         const lineTotal = manualPrice * item.quantity - discount;
+
+        if (lineTotal < 0) {
+            return { success: false, error: 'Discount cannot exceed the line total.' };
+        }
+
         totalAmount += lineTotal;
 
         if (item.unitPrice !== undefined && Number(item.unitPrice) !== Number(product.baseSellingPrice)) {

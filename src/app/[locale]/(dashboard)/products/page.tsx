@@ -237,10 +237,10 @@ export default function ProductsPage() {
     const handleFormNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value })), []);
     const handleFormSkuChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, sku: e.target.value })), []);
     const handleFormCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, categoryId: e.target.value })), []);
-    const handleFormCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, costPrice: Number(e.target.value) })), []);
-    const handleFormPriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, baseSellingPrice: Number(e.target.value) })), []);
+    const handleFormCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, costPrice: Math.max(0, Number(e.target.value) || 0) })), []);
+    const handleFormPriceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, baseSellingPrice: Math.max(0, Number(e.target.value) || 0) })), []);
     const handleFormUnitChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, unit: e.target.value })), []);
-    const handleFormQtyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, initialQuantity: Number(e.target.value) })), []);
+    const handleFormQtyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, initialQuantity: Math.max(0, Number(e.target.value) || 0) })), []);
     const handleNewCategoryNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setNewCategoryName(e.target.value), []);
 
     const handleToggleExpandRow = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {

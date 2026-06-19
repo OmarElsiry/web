@@ -22,25 +22,25 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             <h1 className="text-3xl font-black mb-8">{t('subtitle')}</h1>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-all">
+                <div className="p-6 rounded-2xl bg-card border border-border">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('metrics.totalRevenue')}</div>
                     <div className="text-2xl font-black">{ts('currency')} {Number(stats.revenue).toLocaleString(locale)}</div>
                     <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground/60 mt-1">{t('metrics.lifetime')}</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-all">
+                <div className="p-6 rounded-2xl bg-card border border-border">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('metrics.inventoryValue')}</div>
                     <div className="text-2xl font-black">{stats.activeInventory.toLocaleString(locale)} <span className="text-xs font-medium text-muted-foreground">Units</span></div>
                     <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground/60 mt-1">{t('metrics.totalStock')}</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-all">
+                <div className="p-6 rounded-2xl bg-card border border-border">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('metrics.salesToday')}</div>
                     <div className="text-2xl font-black">{ts('currency')} {Number(stats.salesToday).toLocaleString(locale)}</div>
                     <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground/60 mt-1">{t('metrics.fromMidnight')}</p>
                 </div>
 
-                <div className="p-6 rounded-2xl bg-card border border-border shadow-sm group hover:border-primary/50 transition-all">
+                <div className="p-6 rounded-2xl bg-card border border-border">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('metrics.activeVehicles')}</div>
                     <div className="text-2xl font-black">{stats.activeVehicles.toLocaleString(locale)}</div>
                     <p className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground/60 mt-1">{t('metrics.onTheRoad')}</p>
@@ -48,9 +48,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Link href="/sales" className="p-5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group">
+                <Link href="/sales" className="p-5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-primary text-primary-foreground rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-primary/20">
+                        <div className="p-3 bg-primary text-primary-foreground rounded-xl">
                             <ShoppingCart size={20} />
                         </div>
                         <div>
@@ -60,9 +60,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                     </div>
                 </Link>
 
-                <Link href="/incoming" prefetch={false} className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-all group">
+                <Link href="/incoming" prefetch={false} className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-colors">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-500 text-white rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/20">
+                        <div className="p-3 bg-blue-500 text-white rounded-xl">
                             <RefreshCcw size={20} />
                         </div>
                         <div>
@@ -74,7 +74,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-4 rounded-2xl border border-border bg-card text-card-foreground p-6 shadow-sm overflow-hidden flex flex-col">
+                <div className="col-span-4 rounded-2xl border border-border bg-card text-card-foreground p-6 overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between mb-8">
                         <div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{t('sections.salesRevenue')}</div>
@@ -99,7 +99,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                                         // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
                                         style={{ height: `${heightPercent}%` }}
                                     >
-                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 transition-all scale-75 group-hover:scale-100">
+                                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 whitespace-nowrap z-20 transition-opacity">
                                             {ts('currency')} {day.amount.toLocaleString(locale)}
                                         </div>
                                     </div>
@@ -109,7 +109,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                         })}
                     </div>
                 </div>
-                <div className="col-span-3 rounded-2xl border border-border bg-card text-card-foreground p-6 shadow-sm flex flex-col">
+                <div className="col-span-3 rounded-2xl border border-border bg-card text-card-foreground p-6 flex flex-col">
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-6">{t('sections.recentSales')}</div>
                     <div className="space-y-4 flex-1">
                         {stats.recentSales.length === 0 ? (
@@ -118,7 +118,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                             </div>
                         ) : (
                             stats.recentSales.map((sale) => (
-                                <div key={sale.id} className="flex items-center justify-between group hover:bg-secondary/30 p-3 rounded-xl transition-all -mx-3">
+                                <div key={sale.id} className="flex items-center justify-between p-3 rounded-xl">
                                     <div>
                                         <div className="text-xs font-black tracking-tight mb-1">Invoice #{sale.id.slice(0, 8).toUpperCase()}</div>
                                         <div className="text-[10px] font-black uppercase tracking-tighter text-muted-foreground">
@@ -137,7 +137,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
 
             {/* Recent Activity Widget */}
             <div className="grid gap-4">
-                <div className="rounded-2xl border border-border bg-card text-card-foreground p-8 shadow-sm">
+                <div className="rounded-2xl border border-border bg-card text-card-foreground p-8">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-primary/10 text-primary rounded-lg">
@@ -158,9 +158,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
                             </div>
                         ) : (
                             recentLogs.map((log) => (
-                                <div key={log.id} className="p-5 rounded-2xl bg-secondary/10 border border-border flex flex-col gap-4 group hover:border-primary/30 transition-all">
+                                <div key={log.id} className="p-5 rounded-2xl bg-secondary/10 border border-border flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-white dark:bg-black border border-border shadow-sm">
+                                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
                                             {log.action}
                                         </span>
                                         <span className="text-[10px] font-bold text-muted-foreground/60">{new Date(log.timestamp).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>

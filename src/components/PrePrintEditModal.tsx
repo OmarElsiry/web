@@ -23,7 +23,7 @@ export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: P
   const [isSaving, setIsSaving] = useState(false);
 
   const handleBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setBalance(Number(e.target.value));
+    setBalance(Math.max(0, Number(e.target.value) || 0));
   }, []);
 
   const handleDiscountTypeFixed = useCallback(() => {
@@ -35,7 +35,7 @@ export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: P
   }, []);
 
   const handleDiscountValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setDiscountValue(Number(e.target.value));
+    setDiscountValue(Math.max(0, Number(e.target.value) || 0));
   }, []);
 
   useEffect(() => {
@@ -84,6 +84,7 @@ export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: P
             <div className="relative">
               <input 
                 type="number" 
+                min="0"
                 value={balance}
                 onChange={handleBalanceChange}
                 className="w-full pl-4 pr-10 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white/50"
@@ -116,6 +117,7 @@ export default memo(function PrePrintEditModal({ customer, onClose, onPrint }: P
             <div className="relative">
               <input 
                 type="number" 
+                min="0"
                 value={discountValue}
                 onChange={handleDiscountValueChange}
                 className="w-full pl-4 pr-10 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"

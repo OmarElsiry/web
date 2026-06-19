@@ -86,11 +86,11 @@ export function ProductModal({
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.costLabel')}</label>
-                            <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.costPrice} onChange={handleFormCostChange} />
+                            <input type="number" min="0" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.costPrice} onChange={handleFormCostChange} />
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.sellLabel')}</label>
-                            <input type="number" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.baseSellingPrice} onChange={handleFormPriceChange} />
+                            <input type="number" min="0" step="0.01" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.baseSellingPrice} onChange={handleFormPriceChange} />
                         </div>
                     </div>
                     {!isEditMode && (

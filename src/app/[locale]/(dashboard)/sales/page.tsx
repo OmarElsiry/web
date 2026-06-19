@@ -369,19 +369,25 @@ export default function SalesPage() {
     const updateItem = useCallback((id: string, updates: Partial<CartItem>) => {
         setCart(prev => prev.map(item => {
             if (item.id !== id) return item;
-            
-            const newItem = { ...item, ...updates };
-            
-            if (updates.quantity !== undefined && updates.quantity > item.product.stock) {
+
+            const sanitized: Partial<CartItem> = { ...updates };
+            if (sanitized.quantity !== undefined) sanitized.quantity = Math.max(0, Number(sanitized.quantity) || 0);
+            if (sanitized.priceOverride !== undefined) sanitized.priceOverride = Math.max(0, Number(sanitized.priceOverride) || 0);
+            if (sanitized.discountPercent !== undefined && sanitized.discountPercent !== '') sanitized.discountPercent = Math.max(0, Number(sanitized.discountPercent) || 0);
+            if (sanitized.discountValue !== undefined && sanitized.discountValue !== '') sanitized.discountValue = Math.max(0, Number(sanitized.discountValue) || 0);
+
+            const newItem = { ...item, ...sanitized };
+
+            if (sanitized.quantity !== undefined && sanitized.quantity > item.product.stock) {
                 setError(`الكمية المتاحة من ${item.product.name} هي ${item.product.stock} فقط`);
                 setTimeout(() => setError(null), 3000);
                 newItem.quantity = item.product.stock;
             }
-            
-            if (updates.discountPercent !== undefined && updates.discountPercent !== '') {
-                newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(updates.discountPercent) / 100);
+
+            if (sanitized.discountPercent !== undefined && sanitized.discountPercent !== '') {
+                newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(sanitized.discountPercent) / 100);
             }
-            
+
             return newItem;
         }));
     }, []);
@@ -415,8 +421,8 @@ export default function SalesPage() {
     }, [staffList]);
     const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWarehouseName(e.target.value), []);
     const handleCustomerCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerCode(e.target.value), []);
-    const handlePreviousBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPreviousBalance(Number(e.target.value)), []);
-    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value)), []);
+    const handlePreviousBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPreviousBalance(Math.max(0, Number(e.target.value) || 0)), []);
+    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0)), []);
 
     const showCustomerSuggestionsHandler = useCallback(() => setShowCustomerSuggestions(true), []);
     const showProductDropdownHandler = useCallback(() => setShowProductDropdown(true), []);
@@ -962,11 +968,11 @@ export default function SalesPage() {
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
                                                         <span className="text-xs text-gray-500 font-bold block">الكمية</span>
-                                                        <input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold text-black" />
+                                                        <input type="number" min="0" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold text-black" />
                                                     </div>
                                                     <div>
                                                         <span className="text-xs text-gray-500 font-bold block">السعر</span>
-                                                        <input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold" />
+                                                        <input type="number" min="0" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold" />
                                                     </div>
                                                 </div>
 
@@ -974,10 +980,10 @@ export default function SalesPage() {
                                                     <div className="grid grid-cols-2 gap-2 p-2 bg-gray-100 rounded">
                                                         <span className="text-xs text-gray-600 font-bold col-span-2 block">الخصم</span>
                                                         {showDiscountPercent && (
-                                                            <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-blue-700" placeholder="نسبة %" />
+                                                            <input type="number" min="0" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-blue-700" placeholder="نسبة %" />
                                                         )}
                                                         {showDiscountValue && (
-                                                            <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-red-600" placeholder="قيمة" />
+                                                            <input type="number" min="0" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-red-600" placeholder="قيمة" />
                                                         )}
                                                     </div>
                                                 )}
@@ -1054,13 +1060,13 @@ export default function SalesPage() {
                                             {showItemCode && <td className="border-l border-gray-300 py-2 px-1 text-center font-mono text-gray-600"><input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
                                             <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-center"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
                                             {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600"><input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
-                                            <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
-                                            <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
+                                            <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" min="0" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
+                                            <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" min="0" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
                                             {(showDiscountPercent || showDiscountValue) && (
                                                 <td className="border-l border-gray-300 p-1 text-center">
                                                     <div className="flex flex-col gap-1 justify-center items-center h-full">
-                                                        {showDiscountPercent && <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
-                                                        {showDiscountValue && <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
+                                                        {showDiscountPercent && <input type="number" min="0" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
+                                                        {showDiscountValue && <input type="number" min="0" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
                                                     </div>
                                                 </td>
                                             )}
@@ -1140,8 +1146,9 @@ export default function SalesPage() {
                                 <div className="p-2 font-black text-center text-gray-700">
                                     <input 
                                         type="number" 
+                                        min="0"
                                         value={previousBalance} 
-                                        onChange={e => setPreviousBalance(Number(e.target.value))}
+                                        onChange={e => setPreviousBalance(Math.max(0, Number(e.target.value) || 0))}
                                         className="w-full bg-transparent outline-none text-center print-hide-spinners" 
                                     />
                                 </div>
@@ -1156,8 +1163,9 @@ export default function SalesPage() {
                                 <div className="p-1 border-t border-gray-200 text-green-600 flex items-center justify-center group bg-green-50/30 hover:bg-green-50 transition-colors relative">
                                     <input 
                                         type="number" 
+                                        min="0"
                                         value={amountPaid === '' ? '' : amountPaid} 
-                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
+                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))}
                                         placeholder="0"
                                         className="w-full bg-transparent outline-none text-center font-black text-lg print-hide-spinners" 
                                     />
