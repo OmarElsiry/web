@@ -125,9 +125,9 @@ export async function getBuyerReport({ startDate, endDate }: DateRange, limit: n
     const historyRows = await prisma.$queryRaw<PurchaseHistoryRow[]>`
         WITH Sales AS (
             SELECT
-                COALESCE(i."customerName", 'Unknown') as customerName,
-                COALESCE(i."customerPhone", 'N/A') as customerPhone,
-                p.name as productName,
+                COALESCE(i."customerName", 'Unknown') as "customerName",
+                COALESCE(i."customerPhone", 'N/A') as "customerPhone",
+                p.name as "productName",
                 SUM(ii.quantity) as qty
             FROM "InvoiceItem" ii
             JOIN "Invoice" i ON ii."invoiceId" = i.id
@@ -136,9 +136,9 @@ export async function getBuyerReport({ startDate, endDate }: DateRange, limit: n
             GROUP BY COALESCE(i."customerName", 'Unknown'), COALESCE(i."customerPhone", 'N/A'), p.name
         ), Refunds AS (
             SELECT
-                COALESCE(i."customerName", 'Unknown') as customerName,
-                COALESCE(i."customerPhone", 'N/A') as customerPhone,
-                p.name as productName,
+                COALESCE(i."customerName", 'Unknown') as "customerName",
+                COALESCE(i."customerPhone", 'N/A') as "customerPhone",
+                p.name as "productName",
                 SUM(ri.quantity) as qty
             FROM "RefundItem" ri
             JOIN "Refund" r ON ri."refundId" = r.id

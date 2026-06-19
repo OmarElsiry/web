@@ -50,7 +50,7 @@ export default function StocktakePage() {
     const handleCountChange = useCallback((id: string, value: string) => {
         const num = parseInt(value);
         if (!isNaN(num)) {
-            setCounts(prev => ({ ...prev, [id]: num }));
+            setCounts(prev => ({ ...prev, [id]: Math.max(0, num) }));
         }
     }, []);
 
@@ -242,6 +242,7 @@ export default function StocktakePage() {
                                                 <div className="flex items-center justify-center">
                                                     <input
                                                         type="number"
+                                                        min="0"
                                                         value={actual}
                                                         data-id={product.id}
                                                         onChange={handleCountChangeCb}

@@ -49,14 +49,17 @@ export default function AnalyticsPage() {
         setLoading(true);
         try {
             const [buyersRes, productsRes] = await Promise.all([
-                getBuyerReport({ startDate, endDate }),
-                getProductReport({ startDate, endDate })
+                getBuyerReport({ startDate, endDate }).catch(e => { console.error('Buyer report failed:', e); return null; }),
+                getProductReport({ startDate, endDate }).catch(e => { console.error('Product report failed:', e); return null; })
             ]);
-            setBuyerData(buyersRes.data);
-            setBuyerTotals({ customers: buyersRes.totalCustomers, sales: buyersRes.totalSales });
-            
-            setProductData(productsRes.data);
-            setProductTotals({ quantity: productsRes.totalQuantity, revenue: productsRes.totalRevenue });
+            if (buyersRes) {
+                setBuyerData(buyersRes.data);
+                setBuyerTotals({ customers: buyersRes.totalCustomers, sales: buyersRes.totalSales });
+            }
+            if (productsRes) {
+                setProductData(productsRes.data);
+                setProductTotals({ quantity: productsRes.totalQuantity, revenue: productsRes.totalRevenue });
+            }
         } catch (error) {
             console.error(error);
         } finally {

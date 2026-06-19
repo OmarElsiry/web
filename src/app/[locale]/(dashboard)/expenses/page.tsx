@@ -239,7 +239,11 @@ export default function ExpensesPage() {
     }, []);
 
     const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, description: e.target.value })), []);
-    const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, amount: e.target.value })), []);
+    const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = e.target.value;
+        if (v === '') return setFormData(prev => ({ ...prev, amount: '' }));
+        setFormData(prev => ({ ...prev, amount: String(Math.max(0, Number(v) || 0)) }));
+    }, []);
     const handleUserIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, userId: e.target.value })), []);
     const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFormData(prev => ({ ...prev, category: e.target.value })), []);
     const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, date: e.target.value })), []);

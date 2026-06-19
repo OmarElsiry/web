@@ -1,12 +1,11 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable sonarjs/no-unused-vars */
 /* eslint-disable sonarjs/no-dead-store */
- 
- 
+  
+  
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Invoice } from '../../types';
@@ -68,6 +67,9 @@ export default function InvoicePrintPage() {
             });
         }
     }, [id]);
+
+    const toggleSettings = useCallback(() => setShowSettings(prev => !prev), []);
+    const handlePrint = useCallback(() => window.print(), []);
 
     if (loading) {
         return (
@@ -197,7 +199,7 @@ export default function InvoicePrintPage() {
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
                     {showSettings && <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>}
                     <button 
-                        onClick={() => setShowSettings(!showSettings)} 
+                        onClick={toggleSettings} 
                         className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
                         title={showSettings ? "إخفاء" : "إظهار"}
                     >

@@ -186,7 +186,11 @@ export default function CustomersPage() {
     const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, address: e.target.value })), []);
     const handleGovernorateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, governorate: e.target.value })), []);
 
-    const handlePaymentAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value), []);
+    const handlePaymentAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const v = e.target.value;
+        if (v === '') return setPaymentAmount('');
+        setPaymentAmount(String(Math.max(0, Number(v) || 0)));
+    }, []);
     const handlePaymentNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentNote(e.target.value), []);
 
     // --- Payment ---

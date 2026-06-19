@@ -90,7 +90,7 @@ export default function IncomingStockPage() {
     }, []);
     
     const handleQuantityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, quantity: parseFloat(e.target.value) || 0 }));
+        setFormData(prev => ({ ...prev, quantity: Math.max(0, parseFloat(e.target.value) || 0) }));
     }, []);
     
     const handleLocationIdChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
