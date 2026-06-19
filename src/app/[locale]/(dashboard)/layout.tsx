@@ -127,17 +127,24 @@ const SidebarGroup = ({
 
     if (items.length === 0) return null;
 
+    const isEffectivelyOpen = isOpen || items.length === 1;
+
     return (
         <div className="space-y-1 mb-2">
             <button 
-                onClick={onToggle}
-                className="w-full flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
+                onClick={items.length === 1 ? undefined : onToggle}
+                className={clsx(
+                    "w-full flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider transition-colors",
+                    items.length === 1 ? "cursor-default" : "hover:text-foreground"
+                )}
             >
                 {t(`groups.${id}`)}
-                {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} className="rtl:rotate-180" />}
+                {items.length > 1 && (
+                    isEffectivelyOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} className="rtl:rotate-180" />
+                )}
             </button>
             
-            <div className={clsx("space-y-1 transition-all duration-300 ease-in-out overflow-hidden", isOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0")}>
+            <div className={clsx("space-y-1 transition-all duration-300 ease-in-out overflow-hidden", isEffectivelyOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0")}>
                 {items.map((item) => (
                     <SidebarItem
                         key={item.to}

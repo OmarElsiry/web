@@ -23,6 +23,7 @@ export default function StocktakePage() {
     const [categories, setCategories] = useState<Awaited<ReturnType<typeof getCategories>>>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [savingSingleId, setSavingSingleId] = useState<string | null>(null);
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState('');
@@ -31,7 +32,6 @@ export default function StocktakePage() {
 
     // Expand states (for inventory breakdown)
     const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
-    const [showCostValue, setShowCostValue] = useState(false);
 
     // Map of productId -> actualStock count input
     const [counts, setCounts] = useState<Record<string, number>>({});
@@ -129,6 +129,23 @@ export default function StocktakePage() {
         }
     }, [hasAdjustments, adjustments, loadData, t]);
 
+    const handleSaveSingle = useCallback(async (productId: string, actualStock: number, currentStock: number) => {
+        setSavingSingleId(productId);
+        try {
+            const res = await reconcileStock([{ productId, currentStock, actualStock }]);
+            if (res && 'success' in res && res.success === false) {
+                alert(res.error || t('error'));
+            } else {
+                await loadData(false);
+            }
+        } catch (error) {
+            alert(t('error'));
+            console.error(error);
+        } finally {
+            setSavingSingleId(null);
+        }
+    }, [loadData, t]);
+
     // Filtered products for display
     const filteredAndSortedProducts = useMemo(() => {
         let result = products;
@@ -185,7 +202,6 @@ export default function StocktakePage() {
         document.body.removeChild(link);
     }, [filteredAndSortedProducts]);
 
-    const toggleCostValue = useCallback(() => setShowCostValue(prev => !prev), []);
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
     const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedCategory(e.target.value), []);
     const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as any), []);
@@ -297,103 +313,65 @@ export default function StocktakePage() {
 
             {/* Tab 1: Valuation Summary Cards */}
             {activeTab === 'list' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in duration-300">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 opacity-90">
-                            <Package size={20} />
-                            <span className="font-medium text-xs uppercase tracking-wider">{t('statsProducts')}</span>
-                        </div>
-                        <div className="text-3xl font-black">{totalProducts}</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-in fade-in duration-300">
+                    <div className="bg-card text-foreground rounded-lg p-3 shadow-sm border border-border">
+                        <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1">{t('statsProducts')}</div>
+                        <div className="text-xl font-black">{totalProducts}</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 opacity-90">
-                            <Layers size={20} />
-                            <span className="font-medium text-xs uppercase tracking-wider">{t('statsUnits')}</span>
-                        </div>
-                        <div className="text-3xl font-black">{totalStockUnits.toLocaleString(locale)}</div>
+                    <div className="bg-card text-foreground rounded-lg p-3 shadow-sm border border-border">
+                        <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1">{t('statsUnits')}</div>
+                        <div className="text-xl font-black">{totalStockUnits.toLocaleString(locale)}</div>
                     </div>
 
-                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl p-5 shadow-sm">
-                        <div className="flex items-center gap-3 mb-2 opacity-90">
-                            <TrendingUp size={20} />
-                            <span className="font-medium text-xs uppercase tracking-wider">{t('statsValueRetail')}</span>
-                        </div>
-                        <div className="text-3xl font-black">
-                            {totalValueSelling.toLocaleString(locale)} <span className="text-sm font-medium opacity-75">{isRtl ? 'ج.م' : 'EGP'}</span>
+                    <div className="bg-card text-foreground rounded-lg p-3 shadow-sm border border-border">
+                        <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1">{t('statsValueRetail')}</div>
+                        <div className="text-xl font-black">
+                            {totalValueSelling.toLocaleString(locale)} <span className="text-xs font-bold opacity-75">{isRtl ? 'ج.م' : 'EGP'}</span>
                         </div>
                     </div>
 
-                    <div 
-                        className={clsx(
-                            "rounded-2xl p-5 shadow-sm border-2 cursor-pointer transition-all duration-300",
-                            showCostValue 
-                                ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white border-transparent" 
-                                : "bg-card border-dashed border-muted-foreground/30 hover:bg-secondary/50"
-                        )}
-                        onClick={toggleCostValue}
-                    >
-                        <div className="flex items-center gap-3 mb-2 opacity-90 text-xs font-bold uppercase tracking-wider">
-                            <DollarSign size={20} />
-                            <span>{t('statsValueCost')}</span>
+                    <div className="bg-card text-foreground rounded-lg p-3 shadow-sm border border-border">
+                        <div className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-1">{t('statsValueCost')}</div>
+                        <div className="text-xl font-black">
+                            {totalValueCost.toLocaleString(locale)} <span className="text-xs font-bold opacity-75">{isRtl ? 'ج.م' : 'EGP'}</span>
                         </div>
-                        {showCostValue ? (
-                            <div className="text-3xl font-black animate-in fade-in zoom-in-95 duration-200">
-                                {totalValueCost.toLocaleString(locale)} <span className="text-sm font-medium opacity-75">{isRtl ? 'ج.م' : 'EGP'}</span>
-                            </div>
-                        ) : (
-                            <div className="text-sm font-bold text-muted-foreground flex items-center h-9">
-                                {t('tapToReveal')}
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
 
             {/* Filters Section */}
-            <div className="flex flex-row items-center gap-1.5 sm:gap-4 bg-card p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-border shadow-sm w-full">
-                <div className="relative flex-[1.5] sm:flex-1 min-w-0">
-                    <Search className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground w-3.5 h-3.5 sm:w-4 sm:h-4", isRtl ? "right-2 sm:right-3" : "left-2 sm:left-3")} />
-                    <input
-                        type="text"
-                        placeholder={t('searchProductSku')}
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                        className={clsx(
-                            "w-full py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold",
-                            isRtl ? "pr-6 sm:pr-10 pl-2 sm:pl-4" : "pl-6 sm:pl-10 pr-2 sm:pr-4"
-                        )}
-                    />
-                </div>
-                <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-                    <Filter className="text-muted-foreground hidden sm:block w-4 h-4" />
-                    <select
-                        value={selectedCategory}
-                        onChange={handleCategoryChange}
-                        className="w-full px-1 sm:px-4 py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold cursor-pointer text-foreground"
-                    >
-                        <option value="all">{t('filterAll')}</option>
-                        {categories.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </select>
-                </div>
+            <div className="grid grid-cols-2 md:flex md:flex-row gap-2 w-full">
+                <input
+                    type="text"
+                    placeholder={t('searchProductSku')}
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium col-span-2 md:col-span-1 md:flex-1"
+                />
+                <select
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium cursor-pointer text-foreground md:flex-1"
+                >
+                    <option value="all">{t('filterAll')}</option>
+                    {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
 
                 {activeTab === 'list' && (
-                    <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider hidden xl:block">{t('sortBy')}</label>
-                        <select
-                            value={sortBy}
-                            onChange={handleSortChange}
-                            className="w-full px-1 sm:px-4 py-1.5 sm:py-2.5 bg-background border border-input rounded-lg sm:rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-[clamp(10px,2.5vw,14px)] sm:text-sm font-bold cursor-pointer text-foreground"
-                        >
-                            <option value="name">{t('sortName')}</option>
-                            <option value="stockAsc">{t('sortStockAsc')}</option>
-                            <option value="stockDesc">{t('sortStockDesc')}</option>
-                            <option value="priceDesc">{t('sortPriceDesc')}</option>
-                            <option value="priceAsc">{t('sortPriceAsc')}</option>
-                        </select>
-                    </div>
+                    <select
+                        value={sortBy}
+                        onChange={handleSortChange}
+                        className="w-full px-3 py-2 bg-background border border-input rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm font-medium cursor-pointer text-foreground md:flex-1"
+                    >
+                        <option value="name">{t('sortName')}</option>
+                        <option value="stockAsc">{t('sortStockAsc')}</option>
+                        <option value="stockDesc">{t('sortStockDesc')}</option>
+                        <option value="priceDesc">{t('sortPriceDesc')}</option>
+                        <option value="priceAsc">{t('sortPriceAsc')}</option>
+                    </select>
                 )}
             </div>
 
@@ -402,39 +380,43 @@ export default function StocktakePage() {
                 /* INVENTORY LIST TAB */
                 <div className="space-y-4 animate-in fade-in duration-300">
                     {/* Mobile list view */}
-                    <div className="md:hidden space-y-3">
+                    <div className="md:hidden grid grid-cols-2 gap-2">
                         {filteredAndSortedProducts.map(p => (
-                            <div key={p.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                            <div key={p.id} className="bg-card rounded-xl border border-border shadow-sm overflow-hidden flex flex-col">
                                 <div 
-                                    className="p-4 flex gap-4 items-start cursor-pointer"
+                                    className="p-2.5 flex gap-2.5 items-start cursor-pointer flex-1"
                                     data-product-id={p.id}
                                     onClick={handleProductClick}
                                 >
-                                    <div className="flex-1 text-left">
-                                        <div className="text-xs font-bold text-primary mb-1">{p.categoryName}</div>
-                                        <div className="font-bold text-base leading-tight mb-1 text-foreground">{p.name}</div>
-                                        {p.sku && <div className="text-xs text-muted-foreground font-mono">{p.sku}</div>}
-                                        
-                                        <div className="mt-3 font-black text-foreground">
-                                            {p.baseSellingPrice.toLocaleString(locale)} {isRtl ? 'ج.م' : 'EGP'}
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="flex flex-col items-end justify-between min-h-[80px]">
+                                    <div className="flex flex-col items-center gap-1.5 shrink-0 mt-0.5">
                                         <div className={clsx(
-                                            "px-3 py-1.5 rounded-lg font-black text-lg",
+                                            "w-9 h-9 flex items-center justify-center rounded-lg font-black text-sm shadow-sm",
                                             (() => {
-                                                if (p.totalStock <= 0) return "bg-red-100 text-red-600 dark:bg-red-950/20 dark:text-red-400";
-                                                if (p.totalStock < 5) return "bg-red-50 text-red-600 dark:bg-red-950/10 dark:text-red-400";
-                                                if (p.totalStock < 20) return "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/20 dark:text-yellow-400";
-                                                return "bg-green-100 text-green-700 dark:bg-green-950/20 dark:text-green-400";
+                                                if (p.totalStock <= 0) return "bg-red-500 text-white";
+                                                if (p.totalStock < 5) return "bg-red-400 text-white";
+                                                if (p.totalStock < 20) return "bg-amber-400 text-amber-950";
+                                                return "bg-emerald-500 text-white";
                                             })()
                                         )}>
                                             {p.totalStock}
                                         </div>
-                                        <button className="text-muted-foreground p-1 hover:text-foreground">
-                                            {expandedProductId === p.id ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                        <button className="text-muted-foreground p-0.5 hover:text-foreground bg-secondary/40 rounded-full">
+                                            {expandedProductId === p.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                         </button>
+                                    </div>
+                                    
+                                    <div className="flex-1 text-left min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded leading-none">{p.categoryName}</span>
+                                            <span className="font-bold text-xs leading-tight text-foreground line-clamp-1">{p.name}</span>
+                                        </div>
+                                        
+                                        <div className="mt-1 flex flex-col gap-0.5">
+                                            <div className="font-black text-foreground text-[13px]">
+                                                {p.baseSellingPrice.toLocaleString(locale)} <span className="text-[10px]">{isRtl ? 'ج.م' : 'EGP'}</span>
+                                            </div>
+                                            {p.sku && <div className="text-[9px] text-muted-foreground font-mono truncate">{p.sku}</div>}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -602,12 +584,22 @@ export default function StocktakePage() {
                                                     {diff === 0 ? (
                                                         <span className="text-muted-foreground/30">—</span>
                                                     ) : (
-                                                        <span className={clsx(
-                                                            "font-black text-sm",
-                                                            diff > 0 ? "text-green-600" : "text-red-500"
-                                                        )}>
-                                                            {diff > 0 ? '+' : ''}{diff.toLocaleString(locale)}
-                                                        </span>
+                                                        <div className="flex flex-col items-center gap-1.5">
+                                                            <span className={clsx(
+                                                                "font-black text-sm",
+                                                                diff > 0 ? "text-green-600" : "text-red-500"
+                                                            )}>
+                                                                {diff > 0 ? '+' : ''}{diff.toLocaleString(locale)}
+                                                            </span>
+                                                            <button 
+                                                                onClick={() => handleSaveSingle(product.id, actual, product.totalStock)}
+                                                                disabled={savingSingleId === product.id}
+                                                                className="text-[9px] font-bold uppercase tracking-widest bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-2 py-1 rounded shadow-sm transition-all disabled:opacity-50 flex items-center gap-1"
+                                                            >
+                                                                {savingSingleId === product.id && <Loader2 size={10} className="animate-spin" />}
+                                                                {isRtl ? 'اعتماد التعديل' : 'Mark as Fixed'}
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </td>
                                             </tr>

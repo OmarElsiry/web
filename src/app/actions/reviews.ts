@@ -169,11 +169,8 @@ export async function editInvoice(invoiceId: string) {
     await requireReviewer();
 
     try {
-        // Decline the original invoice and release reservation
-        await declineInvoice(invoiceId, 'Reviewer opened edit on behalf of salesperson');
-
-        revalidateReviewPaths();
-
+        // Do nothing to the invoice here. Just return success so the frontend opens the edit tab.
+        // We no longer decline it here because we update the original invoice directly during processSale
         return { success: true };
     } catch (error: unknown) {
         const message = getErrorMessage(error, 'Failed to edit invoice');

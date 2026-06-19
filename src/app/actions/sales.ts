@@ -5,7 +5,7 @@ import { Prisma } from '@/generated/client';
 import { SaleSchema } from '@/lib/validations';
 import { getCurrentUser } from '@/lib/auth/session';
 import { isReviewer } from '@/lib/auth/session';
-import { deductStock, reserveStock, getDefaultLocation } from '@/lib/utils/stock';
+import { deductStock, reserveStock, getDefaultLocation, releaseReservedStock } from '@/lib/utils/stock';
 import { toNumber } from '@/lib/utils/decimal';
 import { buildProductSearchFilter } from '@/lib/utils/search';
 import { revalidateSalePaths } from '@/lib/utils/revalidation';
@@ -277,25 +277,58 @@ export async function processSale(
                 });
             }
 
-            const newInvoice = await tx.invoice.create({
-                data: {
-                    totalAmount,
-                    paymentMethod,
-                    status: 'ACCEPTED',
-                    customerName: buyerInfo?.customerName || null,
-                    customerPhone: buyerInfo?.customerPhone || null,
-                    customerAddress: buyerInfo?.customerAddress || null,
-                    customerId: finalCustomerId || null,
-                    previousBalance,
-                    amountPaid: paid,
-                    currentBalance,
-                    userId: sellerId || null,
-                    ...(isReviewerEdit && { revisedFromInvoiceId: reviewerEditOf }),
-                    ...(clientRequestId && { idempotencyKey: clientRequestId }),
-                    items: { create: invoiceItemsData }
-                },
-                include: { items: true }
-            });
+            let newInvoice;
+
+            if (isReviewerEdit && reviewerEditOf) {
+                const oldInvoice = await tx.invoice.findUnique({ where: { id: reviewerEditOf }, include: { items: true } });
+                if (oldInvoice) {
+                    await releaseReservedStock(tx, oldInvoice.items as any, loc.id);
+                    await tx.invoiceItem.deleteMany({ where: { invoiceId: reviewerEditOf } });
+                    
+                    newInvoice = await tx.invoice.update({
+                        where: { id: reviewerEditOf },
+                        data: {
+                            totalAmount,
+                            paymentMethod,
+                            status: 'ACCEPTED',
+                            customerName: buyerInfo?.customerName || null,
+                            customerPhone: buyerInfo?.customerPhone || null,
+                            customerAddress: buyerInfo?.customerAddress || null,
+                            customerId: finalCustomerId || null,
+                            previousBalance,
+                            amountPaid: paid,
+                            currentBalance,
+                            userId: sellerId || null,
+                            reviewerId: currentUser?.id,
+                            reviewedAt: new Date(),
+                            ...(clientRequestId && { idempotencyKey: clientRequestId }),
+                            items: { create: invoiceItemsData }
+                        },
+                        include: { items: true }
+                    });
+                }
+            }
+
+            if (!newInvoice) {
+                newInvoice = await tx.invoice.create({
+                    data: {
+                        totalAmount,
+                        paymentMethod,
+                        status: 'ACCEPTED',
+                        customerName: buyerInfo?.customerName || null,
+                        customerPhone: buyerInfo?.customerPhone || null,
+                        customerAddress: buyerInfo?.customerAddress || null,
+                        customerId: finalCustomerId || null,
+                        previousBalance,
+                        amountPaid: paid,
+                        currentBalance,
+                        userId: sellerId || null,
+                        ...(clientRequestId && { idempotencyKey: clientRequestId }),
+                        items: { create: invoiceItemsData }
+                    },
+                    include: { items: true }
+                });
+            }
 
             await tx.transaction.create({
                 data: {

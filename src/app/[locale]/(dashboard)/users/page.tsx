@@ -370,23 +370,18 @@ export default function UsersPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     {ALL_PERMISSIONS.map(perm => (
-                                        <label
+                                        <button
+                                            type="button"
                                             key={perm.key}
-                                            className={`flex items-center gap-3 text-[11px] font-bold p-3 rounded-xl cursor-pointer transition-all border ${selectedPermissions.includes(perm.key)
-                                                ? 'bg-primary/5 text-primary border-primary/20 shadow-sm'
-                                                : 'bg-transparent text-muted-foreground border-transparent'
-                                                } ${!useCustomPermissions ? 'opacity-40 grayscale pointer-events-none' : 'hover:bg-secondary/40'}`}
+                                            onClick={() => useCustomPermissions && togglePermission(perm.key)}
+                                            disabled={!useCustomPermissions}
+                                            className={`flex items-center justify-center text-center gap-2 text-[11px] font-bold p-3 rounded-xl cursor-pointer transition-all border ${selectedPermissions.includes(perm.key)
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                                                } ${!useCustomPermissions ? 'opacity-40 grayscale pointer-events-none' : ''}`}
                                         >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedPermissions.includes(perm.key)}
-                                                data-key={perm.key}
-                                                onChange={handleTogglePermissionClick}
-                                                disabled={!useCustomPermissions}
-                                                className="w-4 h-4 rounded border-border text-primary focus:ring-primary/20"
-                                            />
                                             {t(`permissions.${perm.key}` as Parameters<typeof t>[0])}
-                                        </label>
+                                        </button>
                                     ))}
                                 </div>
                                 {!useCustomPermissions && (

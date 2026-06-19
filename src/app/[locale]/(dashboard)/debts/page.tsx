@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Filter, Printer, Edit2, Search, Landmark } from 'lucide-react';
+import { Filter, Printer, Edit2, Search, Landmark, Eye, X, ArrowLeft, FileText, CreditCard, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { canEditDebts } from '@/app/actions/permissions';
 import BulkImportDropzone from '@/components/BulkImportDropzone';
 import PrePrintEditModal from '@/components/PrePrintEditModal';
@@ -17,6 +17,38 @@ interface Customer {
   governorate?: string | null;
   phone?: string | null;
   balance: number;
+  invoices?: { user?: { name?: string | null, username: string } | null }[];
+}
+
+interface TimelineEntry {
+  id: string;
+  date: string;
+  type: 'INVOICE' | 'PAYMENT';
+  description: string;
+  debit: number;
+  credit: number;
+  balance: number;
+  salesperson: string | null;
+  invoiceId?: string;
+  paymentMethod?: string;
+  status?: string;
+}
+
+interface AccountStatement {
+  customer: {
+    id: string;
+    name: string;
+    phone: string | null;
+    address: string | null;
+    governorate: string | null;
+    balance: number;
+  };
+  timeline: TimelineEntry[];
+  totals: {
+    totalDebit: number;
+    totalCredit: number;
+    currentBalance: number;
+  };
 }
 
 export default function DebtsPage() {
@@ -31,6 +63,11 @@ export default function DebtsPage() {
 
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+  // Account statement state
+  const [statementData, setStatementData] = useState<AccountStatement | null>(null);
+  const [statementLoading, setStatementLoading] = useState(false);
+  const [statementCustomerId, setStatementCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
     canEditDebts().then(setCanEdit);
@@ -85,6 +122,33 @@ export default function DebtsPage() {
 
   const handleCloseEditModal = useCallback(() => setEditingCustomer(null), []);
 
+  // Account statement handlers
+  const handleViewStatement = useCallback(async (customerId: string) => {
+    setStatementCustomerId(customerId);
+    setStatementLoading(true);
+    setStatementData(null);
+    try {
+      const res = await fetch(`/api/customers/${customerId}/account-statement`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      setStatementData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStatementLoading(false);
+    }
+  }, []);
+
+  const handleCloseStatement = useCallback(() => {
+    setStatementCustomerId(null);
+    setStatementData(null);
+  }, []);
+
+  const handleViewStatementClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const id = e.currentTarget.dataset.id;
+    if (id) void handleViewStatement(id);
+  }, [handleViewStatement]);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       {/* Header */}
@@ -122,13 +186,13 @@ export default function DebtsPage() {
       {!canEdit && (
         <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-orange-600 text-xs font-black uppercase tracking-widest flex items-center gap-3">
           <Landmark size={20} className="shrink-0" />
-          {isRtl ? 'وضع العرض فقط: يمكنك مشاهدة المديونيات但不能 تعديلها' : 'View-only mode: You can view debts but cannot edit them'}
+          {isRtl ? 'وضع العرض فقط: يمكنك مشاهدة المديونيات لكن لا يمكنك تعديلها' : 'View-only mode: You can view debts but cannot edit them'}
         </div>
       )}
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border rounded-2xl shadow-sm flex items-center p-1">
+      <div className="flex flex-col sm:flex-row gap-4 max-w-2xl">
+        <div className="flex-1 bg-card border border-border rounded-2xl shadow-sm flex items-center p-1">
           <div className="px-3 text-muted-foreground"><Search className="w-5 h-5" /></div>
           <input 
             type="text" 
@@ -139,7 +203,7 @@ export default function DebtsPage() {
           />
         </div>
 
-        <div className="bg-card border border-border rounded-2xl shadow-sm flex items-center p-1">
+        <div className="flex-1 bg-card border border-border rounded-2xl shadow-sm flex items-center p-1">
           <div className="px-3 text-muted-foreground"><Filter className="w-5 h-5" /></div>
           <select 
             value={selectedGov}
@@ -167,8 +231,8 @@ export default function DebtsPage() {
             <thead>
               <tr className="bg-secondary/30 text-muted-foreground border-b border-border">
                 <Th align="center">{isRtl ? 'اسم العميل' : 'Customer'}</Th>
+                <Th align="center">{isRtl ? 'المندوب' : 'Salesperson'}</Th>
                 <Th align="center">{isRtl ? 'المحافظة' : 'Governorate'}</Th>
-                <Th align="center">{isRtl ? 'رقم الهاتف' : 'Phone'}</Th>
                 <Th align="center">{isRtl ? 'إجمالي المديونية' : 'Total Debt'}</Th>
                 <Th align="center" className="print:hidden">{isRtl ? 'إجراءات' : 'Actions'}</Th>
               </tr>
@@ -194,20 +258,34 @@ export default function DebtsPage() {
                   <tr key={customer.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="px-6 py-4 text-center">
                       <div className="font-bold text-foreground">{customer.name}</div>
+                      {customer.phone && <div className="text-xs text-muted-foreground mt-1 tabular-nums" dir="ltr">{customer.phone}</div>}
                       <div className="text-xs text-muted-foreground hidden print:block mt-1">{customer.address}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center text-muted-foreground text-sm">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary/50 text-muted-foreground border border-border">
+                        {customer.invoices?.[0]?.user?.name || customer.invoices?.[0]?.user?.username || (isRtl ? 'غير محدد' : 'N/A')}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-center text-muted-foreground">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary/50 text-muted-foreground border border-border">
                         {customer.governorate || (isRtl ? 'غير محدد' : 'N/A')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center text-muted-foreground text-sm tabular-nums" dir="ltr">{customer.phone || '-'}</td>
                     <td className="px-6 py-4 text-center font-black text-red-600 tabular-nums">
                       {Number(customer.balance).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-center print:hidden">
-                      {canEdit && (
-                        <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          data-id={customer.id}
+                          onClick={handleViewStatementClick}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all active:scale-95"
+                          title={isRtl ? 'عرض كشف الحساب الكامل' : 'View Full Account Statement'}
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">{isRtl ? 'كشف الحساب' : 'Statement'}</span>
+                        </button>
+                        {canEdit && (
                           <button 
                             data-id={customer.id}
                             onClick={handleEditCustomerClick}
@@ -216,8 +294,8 @@ export default function DebtsPage() {
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -252,6 +330,223 @@ export default function DebtsPage() {
           onClose={handleCloseEditModal}
           onPrint={handlePrintTable}
         />
+      )}
+
+      {/* Account Statement Modal */}
+      {statementCustomerId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseStatement} />
+          
+          {/* Modal */}
+          <div className="relative w-full max-w-4xl max-h-[90vh] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 flex flex-col">
+            {/* Modal Header */}
+            <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black tracking-tight">
+                    {isRtl ? 'كشف الحساب الكامل' : 'Full Account Statement'}
+                  </h2>
+                  {statementData && (
+                    <p className="text-xs text-muted-foreground font-bold">
+                      {statementData.customer.name}
+                      {statementData.customer.phone && (
+                        <span className="mx-2 tabular-nums" dir="ltr">• {statementData.customer.phone}</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={handleCloseStatement}
+                className="p-2 hover:bg-secondary rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {statementLoading ? (
+                <div className="flex items-center justify-center py-20">
+                  <Spinner size={40} label={isRtl ? 'جاري تحميل كشف الحساب...' : 'Loading account statement...'} />
+                </div>
+              ) : statementData ? (
+                <div className="space-y-6">
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ArrowUpCircle className="w-4 h-4 text-red-500" />
+                        <span className="text-xs font-black uppercase tracking-widest text-red-600">
+                          {isRtl ? 'إجمالي المدين' : 'Total Debit'}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-black text-red-600 tabular-nums">
+                        {statementData.totals.totalDebit.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ArrowDownCircle className="w-4 h-4 text-green-500" />
+                        <span className="text-xs font-black uppercase tracking-widest text-green-600">
+                          {isRtl ? 'إجمالي المدفوع' : 'Total Paid'}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-black text-green-600 tabular-nums">
+                        {statementData.totals.totalCredit.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Landmark className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-black uppercase tracking-widest text-primary">
+                          {isRtl ? 'الرصيد الحالي' : 'Current Balance'}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-black text-primary tabular-nums">
+                        {statementData.totals.currentBalance.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Timeline Table */}
+                  {statementData.timeline.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                      <FileText size={48} className="mb-4 opacity-20" />
+                      <p className="font-black text-lg">{isRtl ? 'لا توجد حركات' : 'No transactions'}</p>
+                      <p className="text-sm mt-1">{isRtl ? 'لم يتم تسجيل أي فواتير أو دفعات لهذا العميل' : 'No invoices or payments recorded for this customer'}</p>
+                    </div>
+                  ) : (
+                    <div className="border border-border rounded-xl overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="bg-secondary/30 text-muted-foreground border-b border-border">
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                                {isRtl ? 'التاريخ' : 'Date'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                                {isRtl ? 'النوع' : 'Type'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                                {isRtl ? 'البيان' : 'Description'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                                {isRtl ? 'المندوب' : 'Salesperson'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest text-red-600">
+                                {isRtl ? 'مدين' : 'Debit'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest text-green-600">
+                                {isRtl ? 'دائن' : 'Credit'}
+                              </th>
+                              <th className="px-4 py-3 text-center font-black text-xs uppercase tracking-widest">
+                                {isRtl ? 'الرصيد' : 'Balance'}
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {statementData.timeline.map((entry) => (
+                              <tr key={entry.id} className="hover:bg-primary/5 transition-colors">
+                                <td className="px-4 py-3 text-center tabular-nums text-muted-foreground whitespace-nowrap">
+                                  {new Date(entry.date).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {entry.type === 'INVOICE' ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-red-500/10 text-red-600 border border-red-500/20">
+                                      <FileText className="w-3 h-3" />
+                                      {isRtl ? 'فاتورة' : 'Invoice'}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black bg-green-500/10 text-green-600 border border-green-500/20">
+                                      <CreditCard className="w-3 h-3" />
+                                      {isRtl ? 'دفعة' : 'Payment'}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center text-foreground font-bold text-xs">
+                                  {entry.description}
+                                  {entry.paymentMethod && (
+                                    <span className="mx-1 text-muted-foreground">
+                                      ({entry.paymentMethod === 'CREDIT' ? (isRtl ? 'آجل' : 'Credit') : (isRtl ? 'نقداً' : 'Cash')})
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <span className="text-xs font-bold text-muted-foreground">
+                                    {entry.salesperson || (isRtl ? '-' : '-')}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-center font-black tabular-nums text-red-600">
+                                  {entry.debit > 0 ? entry.debit.toFixed(2) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-center font-black tabular-nums text-green-600">
+                                  {entry.credit > 0 ? entry.credit.toFixed(2) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-center font-black tabular-nums">
+                                  <span className={entry.balance > 0 ? 'text-red-600' : entry.balance < 0 ? 'text-green-600' : 'text-muted-foreground'}>
+                                    {entry.balance.toFixed(2)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-secondary/30 border-t-2 border-border">
+                            <tr>
+                              <td colSpan={4} className="px-4 py-3 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">
+                                {isRtl ? 'الإجمالي' : 'Total'}
+                              </td>
+                              <td className="px-4 py-3 text-center font-black tabular-nums text-red-600 text-base">
+                                {statementData.totals.totalDebit.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-center font-black tabular-nums text-green-600 text-base">
+                                {statementData.totals.totalCredit.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-center font-black tabular-nums text-primary text-base">
+                                {statementData.totals.currentBalance.toFixed(2)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <X size={48} className="mb-4 opacity-20" />
+                  <p className="font-black text-lg">{isRtl ? 'حدث خطأ' : 'Error occurred'}</p>
+                  <p className="text-sm mt-1">{isRtl ? 'لم نتمكن من تحميل كشف الحساب' : 'Could not load account statement'}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-card border-t border-border px-6 py-4 flex items-center justify-between shrink-0">
+              <button
+                onClick={handleCloseStatement}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-black text-muted-foreground hover:text-foreground hover:bg-secondary rounded-xl transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {isRtl ? 'رجوع' : 'Back'}
+              </button>
+              {statementData && statementData.timeline.length > 0 && (
+                <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
+                  <span>{isRtl ? 'عدد الحركات:' : 'Transactions:'}</span>
+                  <span className="font-black text-foreground tabular-nums">{statementData.timeline.length}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

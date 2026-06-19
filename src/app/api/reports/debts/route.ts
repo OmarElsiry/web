@@ -31,7 +31,14 @@ async function handleDebtsReport(req: NextRequest) {
         orderBy: [
           { governorate: 'asc' },
           { name: 'asc' }
-        ]
+        ],
+        include: {
+          invoices: {
+            take: 1,
+            orderBy: { date: 'desc' },
+            include: { user: { select: { name: true, username: true } } }
+          }
+        }
       }),
       prisma.customer.findMany({
         select: { governorate: true },
