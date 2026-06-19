@@ -182,16 +182,8 @@ export default function DebtsPage() {
         }
       />
 
-      {/* Permission Banner */}
-      {!canEdit && (
-        <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl text-orange-600 text-xs font-black uppercase tracking-widest flex items-center gap-3">
-          <Landmark size={20} className="shrink-0" />
-          {isRtl ? 'وضع العرض فقط: يمكنك مشاهدة المديونيات لكن لا يمكنك تعديلها' : 'View-only mode: You can view debts but cannot edit them'}
-        </div>
-      )}
-
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 max-w-2xl">
+      <div className="flex flex-row gap-2 sm:gap-4 max-w-2xl">
         <div className="flex-1 bg-card border border-border rounded-2xl shadow-sm flex items-center p-1">
           <div className="px-3 text-muted-foreground"><Search className="w-5 h-5" /></div>
           <input 
@@ -234,7 +226,7 @@ export default function DebtsPage() {
                 <Th align="center" className="hidden sm:table-cell">{isRtl ? 'المندوب' : 'Salesperson'}</Th>
                 <Th align="center" className="hidden sm:table-cell">{isRtl ? 'المحافظة' : 'Governorate'}</Th>
                 <Th align="center">{isRtl ? 'المديونية' : 'Debt'}</Th>
-                <Th align="center" className="print:hidden">{isRtl ? 'إجراءات' : 'Actions'}</Th>
+                <Th align="center" className="print:hidden">{isRtl ? 'كشف الحساب الكامل' : 'Full Account Statement'}</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
