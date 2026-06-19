@@ -40,8 +40,6 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
             .fontSize(20)
             .text('STASH', titleX, 57)
             .fontSize(10)
-            .text('123 Coffee Lane', 200, 65, { align: 'right' })
-            .text('Cairo, Egypt', 200, 80, { align: 'right' })
             .moveDown();
 
         doc.fillColor('#000000').fontSize(20).text('INVOICE', 50, 130);
