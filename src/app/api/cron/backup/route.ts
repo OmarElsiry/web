@@ -3,21 +3,9 @@ import getPrisma from '@/lib/prisma';
 import { createObjectCsvStringifier } from 'csv-writer';
 import { sendBackup } from '@/lib/services/telegram';
 import { logger } from '@/lib/utils/logger';
-import { timingSafeEqual } from 'crypto';
+import { withSecret } from '@/lib/api/with-auth';
 
 export const dynamic = 'force-dynamic';
-
-function isAuthorized(key: string | null): boolean {
-    const secret = process.env.CRON_SECRET;
-    if (!secret) return false;
-    if (!key) return false;
-    if (key.length !== secret.length) return false;
-    try {
-        return timingSafeEqual(Buffer.from(key), Buffer.from(secret));
-    } catch {
-        return false;
-    }
-}
 
 interface InvoiceBackupRow {
     id: string;
@@ -88,14 +76,7 @@ async function backupTable(
     );
 }
 
-export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-
-    if (!isAuthorized(key)) {
-        return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    }
-
+async function handleCronBackup() {
     const prisma = getPrisma();
 
     try {
@@ -244,3 +225,5 @@ export async function GET(request: Request) {
         );
     }
 }
+
+export const GET = withSecret(handleCronBackup);
