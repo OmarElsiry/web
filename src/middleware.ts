@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
-import { User } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 
 const handleI18nRouting = createMiddleware(routing);
 
@@ -93,8 +93,10 @@ export async function middleware(request: NextRequest) {
     )
 
     const {
-        data: { user },
-    } = await supabase.auth.getUser()
+        data: { session },
+    } = await supabase.auth.getSession()
+
+    const user = session?.user ?? null
 
     const pathname = request.nextUrl.pathname;
     
