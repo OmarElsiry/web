@@ -231,22 +231,22 @@ export default function DebtsPage() {
             <thead>
               <tr className="bg-secondary/30 text-muted-foreground border-b border-border">
                 <Th align="center">{isRtl ? 'اسم العميل' : 'Customer'}</Th>
-                <Th align="center">{isRtl ? 'المندوب' : 'Salesperson'}</Th>
-                <Th align="center">{isRtl ? 'المحافظة' : 'Governorate'}</Th>
-                <Th align="center">{isRtl ? 'إجمالي المديونية' : 'Total Debt'}</Th>
+                <Th align="center" className="hidden sm:table-cell">{isRtl ? 'المندوب' : 'Salesperson'}</Th>
+                <Th align="center" className="hidden sm:table-cell">{isRtl ? 'المحافظة' : 'Governorate'}</Th>
+                <Th align="center">{isRtl ? 'المديونية' : 'Debt'}</Th>
                 <Th align="center" className="print:hidden">{isRtl ? 'إجراءات' : 'Actions'}</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-3 sm:px-6 py-12 text-center text-muted-foreground">
                     <Spinner size={32} label={isRtl ? 'جاري التحميل...' : 'Loading...'} />
                   </td>
                 </tr>
               ) : filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                  <td colSpan={5} className="px-3 sm:px-6 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Landmark size={40} className="mb-2 opacity-20" />
                       <p className="text-lg font-black uppercase tracking-tight">{isRtl ? 'لا يوجد عملاء' : 'No customers'}</p>
@@ -256,30 +256,39 @@ export default function DebtsPage() {
               ) : (
                 filteredCustomers.map(customer => (
                   <tr key={customer.id} className="hover:bg-primary/5 transition-colors group">
-                    <td className="px-6 py-4 text-center">
-                      <div className="font-bold text-foreground">{customer.name}</div>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-center">
+                      <div className="font-bold text-foreground text-xs sm:text-sm">{customer.name}</div>
                       {customer.phone && <div className="text-xs text-muted-foreground mt-1 tabular-nums" dir="ltr">{customer.phone}</div>}
+                      {/* Show governorate & salesperson inline on mobile since columns are hidden */}
+                      <div className="sm:hidden mt-1 flex flex-wrap items-center justify-center gap-1">
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-secondary/50 text-muted-foreground border border-border">
+                          {customer.governorate || (isRtl ? 'غير محدد' : 'N/A')}
+                        </span>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-secondary/50 text-muted-foreground border border-border">
+                          {customer.invoices?.[0]?.user?.name || customer.invoices?.[0]?.user?.username || (isRtl ? 'غير محدد' : 'N/A')}
+                        </span>
+                      </div>
                       <div className="text-xs text-muted-foreground hidden print:block mt-1">{customer.address}</div>
                     </td>
-                    <td className="px-6 py-4 text-center text-muted-foreground text-sm">
+                    <td className="hidden sm:table-cell px-6 py-4 text-center text-muted-foreground text-sm">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary/50 text-muted-foreground border border-border">
                         {customer.invoices?.[0]?.user?.name || customer.invoices?.[0]?.user?.username || (isRtl ? 'غير محدد' : 'N/A')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center text-muted-foreground">
+                    <td className="hidden sm:table-cell px-6 py-4 text-center text-muted-foreground">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-secondary/50 text-muted-foreground border border-border">
                         {customer.governorate || (isRtl ? 'غير محدد' : 'N/A')}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center font-black text-red-600 tabular-nums">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4 text-center font-black text-red-600 tabular-nums text-xs sm:text-sm">
                       {Number(customer.balance).toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 text-center print:hidden">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-2 sm:px-6 py-3 sm:py-4 text-center print:hidden">
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
                         <button
                           data-id={customer.id}
                           onClick={handleViewStatementClick}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all active:scale-95"
+                          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 text-xs font-black bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-all active:scale-95"
                           title={isRtl ? 'عرض كشف الحساب الكامل' : 'View Full Account Statement'}
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -289,10 +298,10 @@ export default function DebtsPage() {
                           <button 
                             data-id={customer.id}
                             onClick={handleEditCustomerClick}
-                            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            className="p-1.5 sm:p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
                             title={isRtl ? 'تعديل قبل الطباعة' : 'Edit before print'}
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 sm:w-4 h-3.5 sm:h-4" />
                           </button>
                         )}
                       </div>
@@ -304,8 +313,10 @@ export default function DebtsPage() {
             {!isLoading && filteredCustomers.length > 0 && (
               <tfoot className="bg-secondary/30 border-t-2 border-border">
                 <tr>
-                  <td colSpan={3} className="px-6 py-4 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">{isRtl ? 'الإجمالي العام' : 'Grand Total'}</td>
-                  <td className="px-6 py-4 text-center font-black text-primary text-lg tabular-nums">
+                  <td className="px-3 sm:px-6 py-4 font-black uppercase text-xs tracking-widest text-muted-foreground text-center">{isRtl ? 'الإجمالي العام' : 'Grand Total'}</td>
+                  <td className="hidden sm:table-cell"></td>
+                  <td className="hidden sm:table-cell"></td>
+                  <td className="px-3 sm:px-6 py-4 text-center font-black text-primary text-lg tabular-nums">
                     {filteredCustomers.reduce((sum, c) => sum + Number(c.balance), 0).toFixed(2)}
                   </td>
                   <td className="print:hidden"></td>
