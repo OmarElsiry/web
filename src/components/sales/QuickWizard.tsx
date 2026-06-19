@@ -644,19 +644,7 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                                         </div>
                                     </div>
                                     
-                                    <div className="flex items-center justify-center text-[clamp(1.5rem,4vw,2rem)] font-black text-muted-foreground/40">
-                                        =
-                                    </div>
-                                    
-                                    <div className="flex-[1.2] flex flex-col items-center justify-center p-2 rounded-xl bg-primary/10 border-2 border-primary shadow-sm min-w-0">
-                                        <div className="text-[clamp(0.8rem,3vw,1.1rem)] font-bold text-primary mb-1 whitespace-nowrap">
-                                            {isRtl ? 'الإجمالي' : 'Total'}
-                                        </div>
-                                        <div className="text-[clamp(1.5rem,6vw,2.5rem)] font-black text-primary flex items-baseline gap-1 whitespace-nowrap">
-                                            <span>{(totalAmount + selectedCustomer.balance).toLocaleString(locale)}</span>
-                                            <span className="text-[clamp(0.75rem,2.5vw,1rem)] font-bold">{t('currency')}</span>
-                                        </div>
-                                    </div>
+
                                 </>
                             ) : (
                                 <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 rounded-xl bg-background/60 shadow-sm border border-border/50 min-w-0">
