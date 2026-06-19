@@ -247,6 +247,8 @@
     "noResults": "No invoices found.",
     "walkInCustomer": "Walk-in Customer",
     "paid": "Paid",
+    "statusPending": "Pending",
+    "statusDeclined": "Declined",
     "printTooltip": "Print / Download PDF",
     "details": {
       "title": "Invoice Details",

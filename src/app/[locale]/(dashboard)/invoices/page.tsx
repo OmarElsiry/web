@@ -16,7 +16,7 @@ import { useLocale } from '@/hooks/useLocale';
 export default function InvoicesPage() {
     const t = useTranslations('Invoices');
     const ts = useTranslations('Sales');
-    const { locale, isRtl } = useLocale();
+    const { locale } = useLocale();
     
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [loading, setLoading] = useState(true);
@@ -249,8 +249,14 @@ export default function InvoicesPage() {
                                     <div className="text-xs text-muted-foreground font-medium">{inv.paymentMethod}</div>
                                 </div>
 
-                                <div className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase bg-green-500/10 text-green-600 border border-green-500/20 shadow-sm">
-                                    {t('paid')}
+                                <div className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold uppercase border shadow-sm",
+                                    inv.status === 'PENDING_REVIEW' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                                    inv.status === 'DECLINED' && "bg-red-500/10 text-red-600 border-red-500/20",
+                                    (!inv.status || inv.status === 'ACCEPTED') && "bg-green-500/10 text-green-600 border-green-500/20"
+                                )}>
+                                    {inv.status === 'PENDING_REVIEW' ? t('statusPending', { defaultValue: 'Pending' }) :
+                                     inv.status === 'DECLINED' ? t('statusDeclined', { defaultValue: 'Declined' }) :
+                                     t('paid')}
                                 </div>
 
                                 <button

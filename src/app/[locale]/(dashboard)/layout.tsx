@@ -77,7 +77,7 @@ interface CurrentUser {
 const SidebarItem = ({ to, icon: Icon, translationKey, active }: { to: string, icon: React.ElementType, translationKey: string, active: boolean }) => {
     const t = useTranslations('Navigation');
     return (
-        <Link prefetch={false}
+        <Link
             href={to as import('react').ComponentProps<typeof Link>['href']}
             className={clsx(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mx-2",

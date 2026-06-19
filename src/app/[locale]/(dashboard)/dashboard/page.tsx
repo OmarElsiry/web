@@ -48,7 +48,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Link href="/sales" prefetch={false} className="p-5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group">
+                <Link href="/sales" className="p-5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all group">
                     <div className="flex items-center gap-4">
                         <div className="p-3 bg-primary text-primary-foreground rounded-xl group-hover:scale-110 transition-transform shadow-lg shadow-primary/20">
                             <ShoppingCart size={20} />

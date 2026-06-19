@@ -6,7 +6,7 @@ import { getStockMovements } from '@/app/actions/transactions';
 import {
     History, RefreshCcw,
     ArrowDownLeft, ArrowUpRight, ShoppingCart, ArrowRightLeft,
-    MapPin, Package, Calendar, ChevronLeft, ChevronRight, Loader2
+    MapPin, Package, Calendar
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
@@ -68,7 +68,6 @@ export default function MovementsPage() {
     const handleFilterTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value), []);
     const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
     const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
-    const handleClearDates = useCallback(() => { setStartDate(''); setEndDate(''); }, []);
 
     const getTypeConfig = (type: TransactionType) => {
         switch (type) {

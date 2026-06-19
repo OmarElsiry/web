@@ -2,7 +2,7 @@
 
 import getPrisma from '@/lib/prisma';
 import { PrismaClient, Prisma } from '@/generated/client';
-import { adjustStock, getDefaultLocation } from '@/lib/utils/stock';
+import { adjustStock, getDefaultLocation, releaseReservedStock } from '@/lib/utils/stock';
 import { serializeInvoice, serializeInvoiceItem, toNumber } from '@/lib/utils/decimal';
 import { revalidateInvoicePaths, revalidateUndoInvoicePaths } from '@/lib/utils/revalidation';
 import { safeLogActivity, logger } from '@/lib/utils/logger';
@@ -164,6 +164,8 @@ export async function updateInvoice(
             });
 
             if (!existing) throw new Error('Invoice not found.');
+            if (existing.status === 'PENDING_REVIEW') throw new Error('Cannot edit a pending invoice. Use the review flow to accept, decline, or edit it.');
+            if (existing.status === 'DECLINED') throw new Error('Cannot edit a declined invoice.');
 
             // 2. Handle item changes + inventory
             let newTotalAmount = Number(existing.totalAmount);
@@ -232,6 +234,7 @@ export async function updateInvoice(
     }
 }
 
+/* eslint-disable sonarjs/cognitive-complexity */
 export async function undoInvoice(invoiceId: string, userId?: string) {
     if (!invoiceId) return { success: false, error: 'Invoice ID is required.' };
 
@@ -252,45 +255,54 @@ export async function undoInvoice(invoiceId: string, userId?: string) {
             }
 
             const loc = await getDefaultLocation(tx, { createIfMissing: false });
+            const isPending = existing.status === 'PENDING_REVIEW';
 
-            // 2. Restore inventory
-            if (loc) {
-                for (const item of existing.items) {
-                    await adjustStock(tx, item.productId, loc.id, Number(item.quantity));
+            if (isPending) {
+                // PENDING_REVIEW: release reserved stock, no customer balance change, no RETURN transaction
+                if (loc) {
+                    await releaseReservedStock(tx, existing.items.map(item => ({
+                        productId: item.productId,
+                        quantity: Number(item.quantity)
+                    })), loc.id);
                 }
-            }
+            } else {
+                // ACCEPTED: restore inventory quantity, revert customer balance, create RETURN transaction
+                if (loc) {
+                    for (const item of existing.items) {
+                        await adjustStock(tx, item.productId, loc.id, Number(item.quantity));
+                    }
+                }
 
-            // 3. Revert Customer Balance
-            if (existing.customerId) {
-                const customer = await tx.customer.findUnique({ where: { id: existing.customerId } });
-                if (customer) {
-                    // Reverse the effect of this invoice on the customer's balance
-                    // invoice added (totalAmount - amountPaid) to the balance
-                    const netAddition = Number(existing.totalAmount) - Number(existing.amountPaid || 0);
-                    const newBalance = Number(customer.balance) - netAddition;
-                    await tx.customer.update({
-                        where: { id: existing.customerId },
-                        data: { balance: newBalance }
+                // 3. Revert Customer Balance
+                if (existing.customerId) {
+                    const customer = await tx.customer.findUnique({ where: { id: existing.customerId } });
+                    if (customer) {
+                        const netAddition = Number(existing.totalAmount) - Number(existing.amountPaid || 0);
+                        const newBalance = Number(customer.balance) - netAddition;
+                        await tx.customer.update({
+                            where: { id: existing.customerId },
+                            data: { balance: newBalance }
+                        });
+                    }
+                }
+
+                // 4. Create opposite Transaction for Inventory tracking
+                if (loc) {
+                     await tx.transaction.create({
+                        data: {
+                            type: 'RETURN',
+                            toLocationId: loc.id,
+                            createdById: userId || existing.userId,
+                            notes: `Undo Invoice #${existing.id}`,
+                            items: {
+                                create: existing.items.map(item => ({
+                                    productId: item.productId,
+                                    quantity: item.quantity
+                                }))
+                            }
+                        }
                     });
                 }
-            }
-
-            // 4. Create opposite Transaction for Inventory tracking
-            if (loc) {
-                 await tx.transaction.create({
-                    data: {
-                        type: 'RETURN', // Since there's no UNDO, RETURN or REFUND_RESTOCK
-                        toLocationId: loc.id, // items coming back into location
-                        createdById: userId || existing.userId,
-                        notes: `Undo Invoice #${existing.id}`,
-                        items: {
-                            create: existing.items.map(item => ({
-                                productId: item.productId,
-                                quantity: item.quantity
-                            }))
-                        }
-                    }
-                });
             }
 
             // 5. Delete Invoice Items

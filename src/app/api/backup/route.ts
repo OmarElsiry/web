@@ -1,37 +1,27 @@
 import { NextResponse } from 'next/server';
 import getPrisma from '@/lib/prisma';
-import { getCurrentUser } from '@/app/actions/auth';
+import { withAuth, apiError } from '@/lib/api/with-auth';
+import { logger } from '@/lib/utils/logger';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+async function handleBackup() {
     try {
         const prisma = getPrisma();
-        const user = await getCurrentUser();
-
-        if (!user || (user.role !== 'ROOT' && user.role !== 'ADMIN')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
 
         const [products, customers, invoices] = await Promise.all([
             prisma.product.findMany({
-                include: {
-                    category: true,
-                }
+                include: { category: true },
             }),
             prisma.customer.findMany({
-                include: {
-                    group: true,
-                }
+                include: { group: true },
             }),
             prisma.invoice.findMany({
                 include: {
                     items: true,
                     customer: true,
                     user: true,
-                    refunds: {
-                        include: {
-                            items: true
-                        }
-                    }
+                    refunds: { include: { items: true } }
                 }
             })
         ]);
@@ -39,7 +29,6 @@ export async function GET() {
         const backupData = {
             metadata: {
                 exportedAt: new Date().toISOString(),
-                exportedBy: user.username,
                 version: '1.0'
             },
             data: {
@@ -57,8 +46,10 @@ export async function GET() {
             },
         });
 
-    } catch (error: unknown) {
-        console.error('Backup error:', error);
-        return NextResponse.json({ error: 'Failed to generate backup' }, { status: 500 });
+    } catch (error) {
+        logger.error('Backup error:', error);
+        return apiError('Failed to generate backup', 500);
     }
 }
+
+export const GET = withAuth(handleBackup, { roles: ['ROOT', 'ADMIN'] });

@@ -247,6 +247,8 @@
     "noResults": "لا توجد فواتير.",
     "walkInCustomer": "عميل نقدي",
     "paid": "تم الدفع",
+    "statusPending": "قيد المراجعة",
+    "statusDeclined": "مرفوض",
     "printTooltip": "طباعة / تحميل PDF",
     "details": {
       "title": "تفاصيل الفاتورة",

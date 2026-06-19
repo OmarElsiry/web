@@ -6,13 +6,13 @@ import { Tag, Edit, Percent, X, Check } from 'lucide-react';
 import { getInventory, updateProduct, bulkUpdatePricing } from '@/app/actions/inventory';
 import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
-import { PageHeader, Th, Spinner, Modal, Button, FormField, Input } from '@/components/ui';
+import { Spinner } from '@/components/ui';
 import { useLocale } from '@/hooks/useLocale';
 
 export default function PricingPage() {
     const t = useTranslations('Pricing');
     const ts = useTranslations('Sales');
-    const { locale, isRtl } = useLocale();
+    const { locale } = useLocale();
     
     const [products, setProducts] = useState<Array<{ id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }>>([]);
     const [loading, setLoading] = useState(true);

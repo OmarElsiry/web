@@ -1,28 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getPrisma from '@/lib/prisma';
 import { createObjectCsvStringifier } from 'csv-writer';
+import { withAuth, apiError } from '@/lib/api/with-auth';
+import { endOfDay, startOfDay } from '@/lib/utils/date';
+import { formatMoney } from '@/lib/utils/format';
+import { logger } from '@/lib/utils/logger';
 
-export async function GET(req: NextRequest) {
+export const dynamic = 'force-dynamic';
+
+async function handleExport(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const type = searchParams.get('type'); // 'daily' or 'monthly'
+    const type = searchParams.get('type');
 
     const prisma = getPrisma();
     const now = new Date();
-    
+
     let startDate: Date;
-    const endDate = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
+    const endDate = endOfDay(now);
 
     if (type === 'monthly') {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     } else {
-        startDate = new Date(now);
-        startDate.setHours(0, 0, 0, 0);
+        startDate = startOfDay(now);
     }
 
     try {
         const invoices = await prisma.invoice.findMany({
             where: {
+                status: 'ACCEPTED',
                 date: {
                     gte: startDate,
                     lte: endDate
@@ -51,7 +56,7 @@ export async function GET(req: NextRequest) {
             id: inv.id,
             date: new Date(inv.date).toISOString().split('T')[0],
             customer: inv.customer?.name || inv.customerName || 'Walk-in',
-            totalAmount: Number(inv.totalAmount).toFixed(2),
+            totalAmount: formatMoney(Number(inv.totalAmount)),
             paymentMethod: inv.paymentMethod
         }));
 
@@ -66,10 +71,9 @@ export async function GET(req: NextRequest) {
             }
         });
     } catch (error) {
-        console.error('Export error:', error);
-        return new NextResponse('Internal Server Error', { 
-            status: 500,
-            headers: { 'Cache-Control': 'no-store' }
-        });
+        logger.error('Export error:', error);
+        return apiError('Internal Server Error', 500);
     }
 }
+
+export const GET = withAuth(handleExport, { roles: ['ROOT', 'ADMIN', 'ACCOUNTANT'] });

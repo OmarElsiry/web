@@ -1,6 +1,9 @@
 import PDFDocument from 'pdfkit';
 import path from 'path';
 import fs from 'fs';
+import { formatMoney } from '@/lib/utils/format';
+import { toNumber } from '@/lib/utils/decimal';
+import { tafqeet } from '@/lib/tafqeet';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
@@ -8,7 +11,7 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
         const hasArabicFont = fs.existsSync(fontPath);
 
-        const doc = new PDFDocument({ 
+        const doc = new PDFDocument({
             margin: 50,
             font: hasArabicFont ? fontPath : undefined
         });
@@ -26,7 +29,7 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         let titleX = 50;
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 45, { width: 80 });
-            titleX = 140; // Shift text if logo exists
+            titleX = 140;
         }
 
         doc.fillColor('#444444')
@@ -76,8 +79,8 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
             const y = tableTop + 30 + (i * 30);
             doc.text(item.product.name, 50, y);
             doc.text(item.quantity.toString(), 280, y, { width: 90, align: 'right' });
-            doc.text(Number(item.unitPrice).toFixed(2), 370, y, { width: 90, align: 'right' });
-            doc.text(Number(item.subtotal).toFixed(2), 0, y, { align: 'right' });
+            doc.text(formatMoney(toNumber(item.unitPrice)), 370, y, { width: 90, align: 'right' });
+            doc.text(formatMoney(toNumber(item.subtotal)), 0, y, { align: 'right' });
             i++;
         }
 
@@ -86,7 +89,17 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         const subtotalPosition = tableTop + 30 + (i * 30) + 15;
         doc.font(hasArabicFont ? 'ArabicFont' : 'Helvetica-Bold');
         doc.text('Grand Total / الاجمالي:', 350, subtotalPosition, { width: 90, align: 'right' });
-        doc.text(Number(invoice.totalAmount).toFixed(2), 0, subtotalPosition, { align: 'right' });
+        doc.text(formatMoney(toNumber(invoice.totalAmount)), 0, subtotalPosition, { align: 'right' });
+
+        // Arabic amount in words (Tafqeet)
+        if (hasArabicFont) {
+            const totalAmount = toNumber(invoice.totalAmount);
+            const integerPart = Math.floor(totalAmount);
+            const decimalPart = Math.round((totalAmount - integerPart) * 100);
+            const arabicAmount = tafqeet(integerPart) + (decimalPart > 0 ? ` و${tafqeet(decimalPart)} قرشاً` : '');
+            doc.font('ArabicFont').fontSize(10).fillColor('#666666')
+                .text(`${arabicAmount} جنيه مصري فقط لا غير`, 50, subtotalPosition + 20, { align: 'center' });
+        }
 
         doc.end();
     });

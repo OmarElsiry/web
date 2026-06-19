@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import TelegramBot from 'node-telegram-bot-api';
+import { logger } from '@/lib/utils/logger';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const channelId = process.env.TELEGRAM_CHANNEL_ID;
@@ -7,18 +8,30 @@ const channelId = process.env.TELEGRAM_CHANNEL_ID;
 // Only initialize if token exists (webhook mode — no polling)
 const bot = token ? new TelegramBot(token, { polling: false }) : null;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BotResult = any | null | boolean;
+
+async function withBot<T extends BotResult>(
+    fn: (b: TelegramBot) => Promise<T>,
+    fallback: T = null as T
+): Promise<T> {
+    if (!bot) return fallback;
+    try {
+        return await fn(bot);
+    } catch (error) {
+        logger.error('Telegram bot error:', error);
+        return fallback;
+    }
+}
+
 // ─── Existing Backup Function ───────────────────────────────────────────────
 
 export const sendBackup = async (fileBuffer: Buffer, fileName: string, caption: string) => {
     if (!bot || !channelId) return;
     try {
-        await bot.sendDocument(channelId, fileBuffer, {
-            caption,
-        }, {
-            filename: fileName
-        });
+        await bot.sendDocument(channelId, fileBuffer, { caption }, { filename: fileName });
     } catch (error) {
-        console.error('Telegram Backup Error:', error);
+        logger.error('Telegram Backup Error:', error);
     }
 };
 
@@ -31,114 +44,69 @@ export type InlineButton = {
 
 export type InlineKeyboard = InlineButton[][];
 
-/**
- * Send a text message with optional inline keyboard
- */
 export async function sendMessage(
     chatId: number | string,
     text: string,
     keyboard?: InlineKeyboard
 ): Promise<any> {
-    if (!bot) return null;
-    try {
-        return await bot.sendMessage(chatId, text, {
-            parse_mode: 'HTML',
-            reply_markup: keyboard ? { inline_keyboard: keyboard } : undefined,
-        });
-    } catch (error) {
-        console.error('Telegram sendMessage Error:', error);
-        return null;
-    }
+    return withBot((b) => b.sendMessage(chatId, text, {
+        parse_mode: 'HTML',
+        reply_markup: keyboard ? { inline_keyboard: keyboard } : undefined,
+    }));
 }
 
-/**
- * Edit an existing message (for updating inline keyboards)
- */
 export async function editMessage(
     chatId: number | string,
     messageId: number,
     text: string,
     keyboard?: InlineKeyboard
 ): Promise<any> {
-    if (!bot) return null;
-    try {
-        return await bot.editMessageText(text, {
-            chat_id: chatId,
-            message_id: messageId,
-            parse_mode: 'HTML',
-            reply_markup: keyboard ? { inline_keyboard: keyboard } : undefined,
-        });
-    } catch (error) {
-        console.error('Telegram editMessage Error:', error);
-        return null;
-    }
+    return withBot((b) => b.editMessageText(text, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: keyboard ? { inline_keyboard: keyboard } : undefined,
+    }));
 }
 
-/**
- * Answer a callback query (dismiss the loading spinner on buttons)
- */
 export async function answerCallback(
     callbackQueryId: string,
     text?: string
 ): Promise<any> {
-    if (!bot) return null;
-    try {
-        return await bot.answerCallbackQuery(callbackQueryId, { text });
-    } catch (error) {
-        console.error('Telegram answerCallback Error:', error);
-        return null;
-    }
+    return withBot((b) => b.answerCallbackQuery(callbackQueryId, { text }));
 }
 
-/**
- * Send a document (PDF, CSV, etc.)
- */
 export async function sendDocument(
     chatId: number | string,
     fileBuffer: Buffer,
     fileName: string,
     caption?: string
 ): Promise<any> {
-    if (!bot) return null;
-    try {
-        return await bot.sendDocument(chatId, fileBuffer, {
-            caption,
-            parse_mode: 'HTML',
-        }, {
-            filename: fileName,
-            contentType: 'application/pdf',
-        });
-    } catch (error) {
-        console.error('Telegram sendDocument Error:', error);
-        return null;
-    }
+    return withBot((b) => b.sendDocument(chatId, fileBuffer, {
+        caption,
+        parse_mode: 'HTML',
+    }, {
+        filename: fileName,
+        contentType: 'application/pdf',
+    }));
 }
 
-/**
- * Delete a message
- */
 export async function deleteMessage(
     chatId: number | string,
     messageId: number
 ): Promise<boolean> {
-    if (!bot) return false;
-    try {
-        await bot.deleteMessage(chatId, messageId);
+    return withBot(async (b) => {
+        await b.deleteMessage(chatId, messageId);
         return true;
-    } catch (error) {
-        console.error('Telegram deleteMessage Error:', error);
-        return false;
-    }
+    }, false);
 }
 
 // ─── Keyboard Builder Helpers ───────────────────────────────────────────────
 
-/** Create a single inline button */
 export function btn(text: string, callbackData: string): InlineButton {
     return { text, callback_data: callbackData };
 }
 
-/** Create the main menu keyboard */
 export function mainMenuKeyboard(): InlineKeyboard {
     return [
         [btn('🛒 بيع سريع', 'menu:sale'), btn('📋 بحث فاتورة', 'menu:invoice')],
@@ -147,7 +115,6 @@ export function mainMenuKeyboard(): InlineKeyboard {
     ];
 }
 
-/** Create a navigation row with optional back and cancel */
 export function navRow(options: { back?: string; cancel?: boolean; home?: boolean }): InlineButton[] {
     const row: InlineButton[] = [];
     if (options.back) row.push(btn('↩️ رجوع', options.back));
@@ -158,31 +125,13 @@ export function navRow(options: { back?: string; cancel?: boolean; home?: boolea
 
 // ─── Webhook Setup ──────────────────────────────────────────────────────────
 
-/**
- * Register the webhook URL with Telegram
- */
 export async function setupWebhook(webhookUrl: string, secret: string): Promise<boolean> {
-    if (!bot) return false;
-    try {
-        await bot.setWebHook(webhookUrl, {
-            secret_token: secret,
-        } as any);
+    return withBot(async (b) => {
+        await b.setWebHook(webhookUrl, { secret_token: secret } as any);
         return true;
-    } catch (error) {
-        console.error('Telegram setWebhook Error:', error);
-        return false;
-    }
+    }, false);
 }
 
-/**
- * Get current webhook info
- */
 export async function getWebhookInfo(): Promise<any> {
-    if (!bot) return null;
-    try {
-        return await bot.getWebHookInfo();
-    } catch (error) {
-        console.error('Telegram getWebhookInfo Error:', error);
-        return null;
-    }
+    return withBot((b) => b.getWebHookInfo());
 }

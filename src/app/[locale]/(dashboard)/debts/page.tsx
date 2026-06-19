@@ -20,7 +20,7 @@ interface Customer {
 }
 
 export default function DebtsPage() {
-  const { locale, isRtl } = useLocale();
+  const { isRtl } = useLocale();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [governorates, setGovernorates] = useState<string[]>([]);

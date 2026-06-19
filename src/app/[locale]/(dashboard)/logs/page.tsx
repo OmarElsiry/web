@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
 import { RefreshCcw, User, Filter, ScrollText } from 'lucide-react';
+import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { PageHeader, Spinner, Th, Pagination } from '@/components/ui';
 import { useLocale } from '@/hooks/useLocale';
@@ -80,9 +81,6 @@ function LogsContent() {
         setSelectedUserId('');
         setPage(1);
     }, []);
-
-    const handlePrevPage = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
-    const handleNextPage = useCallback(() => setPage(p => Math.min(pagination.pages, p + 1)), [pagination.pages]);
 
     return (
         <div className="space-y-6">

@@ -1,15 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import getPrisma from "@/lib/prisma";
+import { withAuth, apiError } from "@/lib/api/with-auth";
+import { logger } from "@/lib/utils/logger";
 
-const prisma = getPrisma();
+export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+async function handleBulkImport(req: NextRequest) {
   try {
-    const data = await request.json();
-    
+    const data = await req.json();
+
     if (!Array.isArray(data)) {
-      return NextResponse.json({ error: "Invalid data format. Expected an array." }, { status: 400 });
+      return apiError("Invalid data format. Expected an array.", 400);
     }
 
     const validData = data
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "No valid customers to import.", createdCount: 0 });
     }
 
+    const prisma = getPrisma();
     const result = await prisma.customer.createMany({
       data: validData,
       skipDuplicates: true,
@@ -37,10 +40,9 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error("Bulk import error:", error);
-    return NextResponse.json(
-      { error: "Failed to process bulk import" },
-      { status: 500 }
-    );
+    logger.error("Bulk import error:", error);
+    return apiError("Failed to process bulk import", 500);
   }
 }
+
+export const POST = withAuth(handleBulkImport, { permissions: ['customers'] });

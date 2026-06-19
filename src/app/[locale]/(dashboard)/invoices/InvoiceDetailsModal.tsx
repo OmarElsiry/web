@@ -110,6 +110,22 @@ export default function InvoiceDetailsModal({
                             <div className="bg-background border border-border/50 rounded-2xl p-5 shadow-sm space-y-4">
                                 <Field label={t('details.salesperson')} value={invoice.user?.name || invoice.user?.username || '-'} />
                                 <Field label={t('details.payment')} value={invoice.paymentMethod} important />
+                                <Field label={t('details.status', { defaultValue: 'Status' })} value={
+                                    <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-bold uppercase border",
+                                        invoice.status === 'PENDING_REVIEW' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
+                                        invoice.status === 'DECLINED' && "bg-red-500/10 text-red-600 border-red-500/20",
+                                        (!invoice.status || invoice.status === 'ACCEPTED') && "bg-green-500/10 text-green-600 border-green-500/20"
+                                    )}>
+                                        {invoice.status === 'PENDING_REVIEW' ? t('statusPending', { defaultValue: 'Pending Review' }) :
+                                         invoice.status === 'DECLINED' ? t('statusDeclined', { defaultValue: 'Declined' }) :
+                                         t('paid')}
+                                    </span>
+                                } />
+                                {invoice.reviewNote && (
+                                    <Field label={t('details.reviewNote', { defaultValue: 'Review Note' })} value={
+                                        <span className="text-red-600 text-sm">{invoice.reviewNote}</span>
+                                    } />
+                                )}
                             </div>
                         </div>
                     </div>

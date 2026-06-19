@@ -7,15 +7,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useLocale } from 'next-intl';
 import { getUnifiedProducts, getCategories } from '@/app/actions/inventory';
 import { Package, Search, Filter, Download, ChevronDown, ChevronUp, Loader2, BarChart3, TrendingUp, DollarSign, Layers } from 'lucide-react';
 import clsx from 'clsx';
 import { Link } from '@/i18n/routing';
 
 export default function InventoryCountPage() {
-    const locale = useLocale();
-    const isRtl = locale === 'ar';
 
     const [products, setProducts] = useState<Awaited<ReturnType<typeof getUnifiedProducts>>[1]>([]);
     const [categories, setCategories] = useState<Awaited<ReturnType<typeof getCategories>>>([]);
@@ -35,7 +32,7 @@ export default function InventoryCountPage() {
                 // For inventory-count, we might need all products or at least the first 1000.
                 // It now returns a paginated result by default (page 1, limit 50).
                 // Let's explicitly pass a large limit if we want to count all inventory.
-                const [[total, prods], cats] = await Promise.all([
+                const [[, prods], cats] = await Promise.all([
                     getUnifiedProducts(1, 2000), 
                     getCategories()
                 ]);
