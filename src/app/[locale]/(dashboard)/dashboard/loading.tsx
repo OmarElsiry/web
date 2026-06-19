@@ -32,7 +32,7 @@ export default function DashboardLoading() {
                     <div className="h-6 w-40 bg-muted animate-pulse rounded mb-8" />
                     <div className="flex items-end gap-3 h-[220px] border-b border-border/50 pb-2">
                         {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                            <div key={i} className="flex-1 bg-muted/50 animate-pulse rounded-t-lg" style={{ height: `${30 + Math.random() * 40}%` }} />
+                            <div key={i} className="flex-1 bg-muted/50 animate-pulse rounded-t-lg" style={{ height: `${30 + (i * 7) % 40}%` }} />
                         ))}
                     </div>
                 </div>

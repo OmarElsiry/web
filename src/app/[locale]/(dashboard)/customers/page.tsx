@@ -179,6 +179,35 @@ export default function CustomersPage() {
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
 
+    const handlePrevPage = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
+    const handleNextPage = useCallback(() => setPage(p => Math.min(totalPages, p + 1)), [totalPages]);
+
+    const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, name: e.target.value })), []);
+    const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, phone: e.target.value })), []);
+    const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, address: e.target.value })), []);
+    const handleGovernorateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, governorate: e.target.value })), []);
+
+    const handlePaymentAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value), []);
+    const handlePaymentNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentNote(e.target.value), []);
+
+    const handleEditFromEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const customerId = e.currentTarget.dataset.customerId;
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) handleOpenEditModal(e, customer);
+    }, [customers, handleOpenEditModal]);
+
+    const handlePaymentFromEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const customerId = e.currentTarget.dataset.customerId;
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) handleOpenPayment(e, customer);
+    }, [customers, handleOpenPayment]);
+
+    const handleDeleteFromEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const customerId = e.currentTarget.dataset.customerId;
+        const customer = customers.find(c => c.id === customerId);
+        if (customer) handleOpenDelete(e, customer);
+    }, [customers, handleOpenDelete]);
+
     // --- Payment ---
     const handleOpenPayment = useCallback((e: React.MouseEvent, customer: Customer) => {
         e.stopPropagation();
@@ -333,7 +362,8 @@ export default function CustomersPage() {
                             <div className="mt-auto pt-6 border-t border-border flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-1.5 flex-wrap">
                                     <button
-                                        onClick={(e) => handleOpenEditModal(e, customer)}
+                                        data-customer-id={customer.id}
+                                        onClick={handleEditFromEvent}
                                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
                                         title={t('editCustomer')}
                                     >
@@ -342,7 +372,8 @@ export default function CustomersPage() {
                                     </button>
                                     {Number(customer.balance) > 0 && (
                                         <button
-                                            onClick={(e) => handleOpenPayment(e, customer)}
+                                            data-customer-id={customer.id}
+                                            onClick={handlePaymentFromEvent}
                                             className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
                                             title={t('paymentModal.recordPayment')}
                                         >
@@ -351,7 +382,8 @@ export default function CustomersPage() {
                                         </button>
                                     )}
                                     <button
-                                        onClick={(e) => handleOpenDelete(e, customer)}
+                                        data-customer-id={customer.id}
+                                        onClick={handleDeleteFromEvent}
                                         className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95"
                                         title={t('deleteCustomer')}
                                     >
@@ -383,7 +415,7 @@ export default function CustomersPage() {
             {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-8">
                     <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        onClick={handlePrevPage}
                         disabled={page === 1 || loading}
                         className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
                     >
@@ -393,7 +425,7 @@ export default function CustomersPage() {
                         {t('pageOf', { current: page, total: totalPages, defaultValue: `Page ${page} of ${totalPages}` })}
                     </span>
                     <button
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        onClick={handleNextPage}
                         disabled={page === totalPages || loading}
                         className="px-4 py-2 border rounded-lg hover:bg-secondary disabled:opacity-50"
                     >
@@ -447,7 +479,7 @@ export default function CustomersPage() {
                                     type="text"
                                     placeholder={t('modal.namePlaceholder')}
                                     value={formData.name}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                    onChange={handleNameChange}
                                     className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
                                     autoFocus
                                 />
@@ -460,7 +492,7 @@ export default function CustomersPage() {
                                         type="tel"
                                         placeholder={t('modal.phonePlaceholder')}
                                         value={formData.phone}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                        onChange={handlePhoneChange}
                                         className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal tabular-nums"
                                     />
                                 </div>
@@ -470,7 +502,7 @@ export default function CustomersPage() {
                                         type="text"
                                         placeholder={t('modal.addressPlaceholder')}
                                         value={formData.address}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                                        onChange={handleAddressChange}
                                         className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
                                     />
                                 </div>
@@ -483,7 +515,7 @@ export default function CustomersPage() {
                                         type="text"
                                         placeholder={t('modal.governoratePlaceholder')}
                                         value={formData.governorate}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, governorate: e.target.value }))}
+                                        onChange={handleGovernorateChange}
                                         className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 focus:border-primary/50 transition-all placeholder:font-normal"
                                     />
                                 </div>
@@ -626,7 +658,7 @@ export default function CustomersPage() {
                                         step="0.01"
                                         placeholder="0.00"
                                         value={paymentAmount}
-                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        onChange={handlePaymentAmountChange}
                                         className="flex-1 bg-transparent outline-none text-sm font-bold tabular-nums"
                                         autoFocus
                                     />
@@ -640,7 +672,7 @@ export default function CustomersPage() {
                                     type="text"
                                     placeholder={t('paymentModal.notePlaceholder')}
                                     value={paymentNote}
-                                    onChange={(e) => setPaymentNote(e.target.value)}
+                                    onChange={handlePaymentNoteChange}
                                     className="w-full p-4 bg-secondary/10 border border-border rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-green-500/20 focus:border-green-500/50 transition-all placeholder:font-normal"
                                 />
                             </div>

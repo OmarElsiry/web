@@ -189,7 +189,7 @@ function LogsContent() {
                         <Pagination
                             currentPage={page}
                             totalPages={pagination.pages}
-                            onPageChange={(p) => setPage(p)}
+                            onPageChange={setPage}
                             isRtl={isRtl}
                         />
                     </div>

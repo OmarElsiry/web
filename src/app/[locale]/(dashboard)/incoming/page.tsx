@@ -80,7 +80,7 @@ export default function IncomingStockPage() {
         } finally {
             setSubmitting(false);
         }
-    }, [formData.productId, formData.locationId, formData.quantity, refreshData, t]);
+    }, [formData, refreshData, t]);
 
     const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);

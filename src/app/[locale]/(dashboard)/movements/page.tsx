@@ -46,7 +46,7 @@ export default function MovementsPage() {
     const [endDate, setEndDate] = useState('');
     const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const res = await getStockMovements(page, ITEMS_PER_PAGE, { type: filterType, startDate: startDate || undefined, endDate: endDate || undefined });
@@ -57,7 +57,9 @@ export default function MovementsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, filterType, startDate, endDate]);
+
+    const handlePageChange = useCallback((p: number) => setPage(p), []);
 
     useEffect(() => {
         fetchData();
@@ -196,7 +198,7 @@ export default function MovementsPage() {
                 <Pagination
                     currentPage={page}
                     totalPages={pagination.pages}
-                    onPageChange={(p) => setPage(p)}
+                    onPageChange={handlePageChange}
                     isRtl={isRtl}
                     disabled={loading}
                 />

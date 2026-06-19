@@ -249,6 +249,7 @@
     "paid": "تم الدفع",
     "statusPending": "قيد المراجعة",
     "statusDeclined": "مرفوض",
+    "statusDebt": "مديونية",
     "printTooltip": "طباعة / تحميل PDF",
     "details": {
       "title": "تفاصيل الفاتورة",

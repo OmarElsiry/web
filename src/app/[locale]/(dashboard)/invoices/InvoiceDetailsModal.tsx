@@ -59,10 +59,12 @@ export default function InvoiceDetailsModal({
         window.open(`/invoices/${invoice.id}/print`, '_blank');
     }, [invoice.id]);
 
+    const handleBackdropClick = useCallback((e: React.MouseEvent) => e.stopPropagation(), []);
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-black/60 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>
-            <div className="bg-card w-full max-w-4xl rounded-3xl border border-border/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[95vh]" onClick={e => e.stopPropagation()}>
+            <div className="bg-card w-full max-w-4xl rounded-3xl border border-border/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[95vh]" onClick={handleBackdropClick}>
                 {/* Header Controls */}
                 <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/20">
                     <h3 className="text-xl font-black flex items-center gap-2">
@@ -113,10 +115,12 @@ export default function InvoiceDetailsModal({
                                     <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-bold uppercase border",
                                         invoice.status === 'PENDING_REVIEW' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
                                         invoice.status === 'DECLINED' && "bg-red-500/10 text-red-600 border-red-500/20",
-                                        (!invoice.status || invoice.status === 'ACCEPTED') && "bg-green-500/10 text-green-600 border-green-500/20"
+                                        Number(invoice.currentBalance) > 0 && "bg-red-500/10 text-red-600 border-red-500/20",
+                                        (!invoice.status || invoice.status === 'ACCEPTED') && Number(invoice.currentBalance) <= 0 && "bg-green-500/10 text-green-600 border-green-500/20"
                                     )}>
                                         {invoice.status === 'PENDING_REVIEW' ? t('statusPending', { defaultValue: 'Pending Review' }) :
                                          invoice.status === 'DECLINED' ? t('statusDeclined', { defaultValue: 'Declined' }) :
+                                         Number(invoice.currentBalance) > 0 ? t('statusDebt', { defaultValue: 'Debt' }) :
                                          t('paid')}
                                     </span>
                                 } />

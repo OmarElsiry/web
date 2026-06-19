@@ -252,10 +252,12 @@ export default function InvoicesPage() {
                                 <div className={clsx("px-3 py-1.5 rounded-lg text-xs font-bold uppercase border shadow-sm",
                                     inv.status === 'PENDING_REVIEW' && "bg-amber-500/10 text-amber-600 border-amber-500/20",
                                     inv.status === 'DECLINED' && "bg-red-500/10 text-red-600 border-red-500/20",
-                                    (!inv.status || inv.status === 'ACCEPTED') && "bg-green-500/10 text-green-600 border-green-500/20"
+                                    Number(inv.currentBalance) > 0 && "bg-red-500/10 text-red-600 border-red-500/20",
+                                    (!inv.status || inv.status === 'ACCEPTED') && Number(inv.currentBalance) <= 0 && "bg-green-500/10 text-green-600 border-green-500/20"
                                 )}>
                                     {inv.status === 'PENDING_REVIEW' ? t('statusPending', { defaultValue: 'Pending' }) :
                                      inv.status === 'DECLINED' ? t('statusDeclined', { defaultValue: 'Declined' }) :
+                                     Number(inv.currentBalance) > 0 ? t('statusDebt', { defaultValue: 'Debt' }) :
                                      t('paid')}
                                 </div>
 

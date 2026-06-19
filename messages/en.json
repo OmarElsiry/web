@@ -249,6 +249,7 @@
     "paid": "Paid",
     "statusPending": "Pending",
     "statusDeclined": "Declined",
+    "statusDebt": "Debt",
     "printTooltip": "Print / Download PDF",
     "details": {
       "title": "Invoice Details",

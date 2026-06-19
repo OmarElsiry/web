@@ -283,11 +283,34 @@ export default function SalesPage() {
     const safeAmountPaid = Number(amountPaid) || 0;
     const currentBalance = previousBalance + invoiceTotal - safeAmountPaid;
 
+    const saveDefaults = useCallback(() => {
+        const defaults = {
+            showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
+            warehouseName
+        };
+        localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
+        alert('تم حفظ الإعدادات الافتراضية بنجاح');
+    }, [showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue, warehouseName]);
+
+    const updateHistory = useCallback((key: string, val: string) => {
+        if (!val) return;
+        setHistory(prev => {
+            const arr = prev[key] || [];
+            if (!arr.includes(val)) {
+                const newArr = [val, ...arr].slice(0, 10);
+                const next = { ...prev, [key]: newArr };
+                localStorage.setItem('sales_autocomplete_history', JSON.stringify(next));
+                return next;
+            }
+            return prev;
+        });
+    }, []);
+
     // Handlers
-    const handleCustomerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setCustomerName(val);
-        setSelectedCustomerId(null); // Clear selected if they type
+        setSelectedCustomerId(null);
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         
         if (val.length < 2) { 
@@ -301,9 +324,9 @@ export default function SalesPage() {
             setSearchResults(results as CustomerSearch[]);
             setShowCustomerSuggestions(results.length > 0);
         }, 300);
-    };
+    }, []);
 
-    const selectCustomer = (cust: CustomerSearch) => {
+    const selectCustomer = useCallback((cust: CustomerSearch) => {
         setCustomerName(cust.name);
         setSelectedCustomerId(cust.id);
         setPhone1(cust.phone || '');
@@ -311,9 +334,9 @@ export default function SalesPage() {
         setCity(cust.governorate || '');
         setPreviousBalance(Number(cust.balance) || 0);
         setShowCustomerSuggestions(false);
-    };
+    }, []);
 
-    const handleProductSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleProductSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setSearchQuery(val);
         if (productSearchTimeoutRef.current) clearTimeout(productSearchTimeoutRef.current);
@@ -329,9 +352,9 @@ export default function SalesPage() {
             setFilteredProducts(results);
             setShowProductDropdown(results.length > 0);
         }, 300);
-    };
+    }, []);
 
-    const addToCart = (product: Product) => {
+    const addToCart = useCallback((product: Product) => {
         setCart(prev => {
             const currentInCart = prev.filter(item => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
             if (currentInCart >= product.stock) {
@@ -340,8 +363,6 @@ export default function SalesPage() {
                 return prev;
             }
             
-            // Generate a unique ID for the row so we can have multiple rows of same product if needed, 
-            // though usually we just bump qty. Let's just bump qty if exact match, or add new if not.
             const existingIdx = prev.findIndex(item => item.product.id === product.id);
             if (existingIdx >= 0) {
                 const newCart = [...prev];
@@ -363,35 +384,89 @@ export default function SalesPage() {
         });
         setSearchQuery('');
         setShowProductDropdown(false);
-    };
+    }, []);
 
-    const updateItem = (id: string, updates: Partial<CartItem>) => {
+    const updateItem = useCallback((id: string, updates: Partial<CartItem>) => {
         setCart(prev => prev.map(item => {
             if (item.id !== id) return item;
             
             const newItem = { ...item, ...updates };
             
-            // Stock check
             if (updates.quantity !== undefined && updates.quantity > item.product.stock) {
                 setError(`الكمية المتاحة من ${item.product.name} هي ${item.product.stock} فقط`);
                 setTimeout(() => setError(null), 3000);
                 newItem.quantity = item.product.stock;
             }
             
-            // Auto calculate discount value if percent changed
             if (updates.discountPercent !== undefined && updates.discountPercent !== '') {
                 newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(updates.discountPercent) / 100);
             }
             
             return newItem;
         }));
-    };
+    }, []);
 
-    const removeFromCart = (id: string) => {
+    const removeFromCart = useCallback((id: string) => {
         setCart(prev => prev.filter(item => item.id !== id));
-    };
+    }, []);
 
-    const handleCheckoutAndPrint = async () => {
+    const toggleSettings = useCallback(() => setShowSettings(prev => !prev), []);
+    const toggleCity = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowCity(e.target.checked), []);
+    const toggleAddress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowAddress(e.target.checked), []);
+    const togglePhone1 = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowPhone1(e.target.checked), []);
+    const toggleItemCode = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowItemCode(e.target.checked), []);
+    const toggleUnit = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowUnit(e.target.checked), []);
+
+    const handleCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCity(e.target.value), []);
+    const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value), []);
+    const handlePhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone1(e.target.value), []);
+    const handlePhone2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone2(e.target.value), []);
+    const handleEmployeeIdChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmployeeId(e.target.value), []);
+    const handleEmployeeNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmployeeName(e.target.value), []);
+    const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWarehouseName(e.target.value), []);
+    const handleCustomerCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerCode(e.target.value), []);
+    const handlePreviousBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPreviousBalance(Number(e.target.value)), []);
+    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value)), []);
+
+    const showCustomerSuggestionsHandler = useCallback(() => setShowCustomerSuggestions(true), []);
+    const showProductDropdownHandler = useCallback(() => setShowProductDropdown(true), []);
+
+    const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setShowProductDropdown(true);
+    }, []);
+
+    const handleRemoveFromCartEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const itemId = e.currentTarget.dataset.itemId;
+        if (itemId) removeFromCart(itemId);
+    }, [removeFromCart]);
+
+    const handleAddToCartEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+        const productId = e.currentTarget.dataset.productId;
+        const product = filteredProducts.find(p => p.id === productId);
+        if (product) addToCart(product);
+    }, [filteredProducts, addToCart]);
+
+    const handleItemFieldChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const itemId = e.currentTarget.dataset.itemId;
+        const field = e.currentTarget.dataset.field;
+        if (!itemId || !field) return;
+
+        const value = e.target.value;
+        let updates: Partial<CartItem> = {};
+
+        if (field === 'nameOverride') updates = { nameOverride: value };
+        else if (field === 'codeOverride') updates = { codeOverride: value };
+        else if (field === 'unitOverride') updates = { unitOverride: value };
+        else if (field === 'quantity') updates = { quantity: Number(value) };
+        else if (field === 'priceOverride') updates = { priceOverride: Number(value) };
+        else if (field === 'discountPercent') updates = { discountPercent: value === '' ? '' : Number(value) };
+        else if (field === 'discountValue') updates = { discountValue: value === '' ? '' : Number(value) };
+
+        updateItem(itemId, updates);
+    }, [updateItem]);
+
+    const handleCheckoutAndPrint = useCallback(async () => {
         if (cart.length === 0) return;
 
         setProcessing(true);
