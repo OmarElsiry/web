@@ -875,8 +875,21 @@ export default function SalesPage() {
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center">
-                                            <span className="font-bold">{employeeName}</span>
+                                        <td className="border border-gray-300 px-1 py-1 text-center relative">
+                                            <select
+                                                value={selectedStaffId}
+                                                onChange={handleStaffSelect}
+                                                className="w-full bg-transparent outline-none font-bold text-center appearance-none cursor-pointer text-gray-900"
+                                                title="اضغط لتغيير المندوب"
+                                            >
+                                                <option value="">-- اختر المندوب --</option>
+                                                {staffList.map((staff: Staff) => (
+                                                    <option key={staff.id} value={staff.id}>
+                                                        {staff.name || staff.username}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
                                         </td>
                                     </tr>
                                 </tbody>
