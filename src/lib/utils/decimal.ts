@@ -7,6 +7,14 @@ export function toNumber(value: DecimalLike, fallback: number = 0): number {
     return Number(value);
 }
 
+export function sumMoney(values: DecimalLike[]): number {
+    return values.reduce<number>((acc, val) => acc + toNumber(val), 0);
+}
+
+export function formatMoney(value: DecimalLike, locale: string = 'en'): string {
+    return toNumber(value).toLocaleString(locale);
+}
+
 export function buildRefundedQtyMap(
     refunds: Array<{
         items: Array<{
