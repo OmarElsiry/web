@@ -102,12 +102,33 @@ Captured before Phase 1 optimization work. All sizes are **uncompressed** (raw J
 
 - `global-error.tsx` prerender failure: replaced `next/link` with plain `<a>` (no router context in global error boundary)
 
-## EXPLAIN (ANALYZE, BUFFERS) — pending staging DB
+## EXPLAIN (ANALYZE, BUFFERS) — post-index verification
 
-> To be filled once staging `DATABASE_URL` is provided. Will record:
-> - Dashboard weekly aggregate (Invoice + Refund by day) — expected: Seq Scan
-> - Analytics buyer report CTE — expected: Seq Scan + Hash Aggregate
-> - Post-index verification: confirm Seq Scan → Index Scan
+Indexes applied via `prisma db push` to Supabase PostgreSQL (`aws-1-eu-west-1.pooler.supabase.com`).
+
+**Current dataset size**: ~13 Invoices, 1 Refund, 31 InvoiceItems, 13 AuditLogs, 1 RefundItem.
+
+All queries show **Seq Scan** — this is **expected and correct** for tiny tables. PostgreSQL's cost-based optimizer chooses Seq Scan when table size < ~100 rows because sequential I/O is cheaper than index I/O for small datasets. The indexes are created and will be used automatically as data grows past the planner's threshold.
+
+| Query | Plan | Execution Time | Buffers |
+|-------|------|---------------|---------|
+| Invoice aggregate by date+status (weekly) | Seq Scan + Filter | 0.121ms | shared hit=1 |
+| Refund aggregate by createdAt (weekly) | Seq Scan + Filter | 0.047ms | shared hit=1 |
+| Invoice aggregate by status (lifetime) | Seq Scan + Filter | 0.055ms | shared hit=1 |
+| Recent sales (date DESC LIMIT 5) | Sort + Seq Scan | 0.120ms | shared hit=4 |
+| InvoiceItem JOIN Invoice (analytics) | Hash Join + Seq Scan | 0.166ms | shared hit=2 |
+| RefundItem JOIN Refund (analytics) | Hash Join + Seq Scan | 0.082ms | shared hit=2 |
+| AuditLog by userId + timestamp DESC | Sort + Seq Scan | 0.041ms | shared hit=1 |
+
+**Indexes created** (18 total):
+- Invoice: `@@index([date])`, `@@index([customerId])`, `@@index([userId])`, `@@index([status])`, `@@index([date, paymentMethod])`
+- Refund: `@@index([createdAt])`, `@@index([invoiceId])`
+- Inventory: `@@index([locationId])`
+- TransactionItem: `@@index([transactionId])`, `@@index([productId])`
+- InvoiceItem: `@@index([invoiceId])`, `@@index([productId])`
+- AuditLog: `@@index([userId])`, `@@index([timestamp])`
+- Expense: `@@index([userId])`, `@@index([date])`
+- CustomerPayment: `@@index([customerId])`, `@@index([date])`
 
 ## Lighthouse (mobile) — pending
 
