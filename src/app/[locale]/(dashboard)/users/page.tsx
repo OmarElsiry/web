@@ -262,7 +262,7 @@ export default function UsersPage() {
 
             {/* Create/Edit User Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-none flex items-center justify-center z-50 p-4">
                     <div className="bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto p-8 rounded-3xl shadow-2xl border border-border animate-in zoom-in-95 duration-200">
                         <div className="flex flex-col gap-1 mb-8">
                             <div className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{editingUser ? t('modal.editTitle') : t('modal.createTitle')}</div>

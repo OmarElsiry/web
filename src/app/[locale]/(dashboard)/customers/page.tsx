@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Phone, MapPin, UserCircle, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle, HandCoins } from 'lucide-react';
+import { Users, Search, Phone, MapPin, ExternalLink, Loader2, Plus, AlertCircle, UserPlus, X, Pencil, Trash2, Save, AlertTriangle, HandCoins } from 'lucide-react';
 import { getCustomersList, createCustomer, updateCustomer, deleteCustomer, recordCustomerPayment } from '@/app/actions/customers';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -255,54 +255,50 @@ export default function CustomersPage() {
     const totalDebt = customers.reduce((sum, c) => sum + (Number(c.balance) > 0 ? Number(c.balance) : 0), 0);
 
     return (
-        <div className="space-y-6 max-w-7xl mx-auto animate-in fade-in duration-500">
+        <div className="space-y-4 max-w-7xl mx-auto animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                
-
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative group flex-1 md:w-80">
-                        <Search className={clsx(
-                            "absolute top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors",
-                            isRtl ? "right-4" : "left-4"
-                        )} size={18} />
-                        <input
-                            type="text"
-                            placeholder={t('searchPlaceholder')}
-                            value={search}
-                            onChange={handleSearchChange}
-                            className={clsx(
-                                "w-full py-3 bg-card border border-border rounded-xl focus:ring-2 focus:ring-primary/10 outline-none transition-all shadow-sm text-sm font-bold",
-                                isRtl ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
-                            )}
-                        />
-                    </div>
-                    <button
-                        onClick={handleOpenAddModal}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-black text-xs uppercase tracking-widest hover:bg-primary/90 active:scale-95 transition-all shadow-lg shadow-primary/20 whitespace-nowrap"
-                    >
-                        <UserPlus size={18} />
-                        {t('addCustomer')}
-                    </button>
+            <div className="flex items-center gap-2 w-full">
+                <div className="relative group flex-1">
+                    <Search className={clsx(
+                        "absolute top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors",
+                        isRtl ? "right-3" : "left-3"
+                    )} size={16} />
+                    <input
+                        type="text"
+                        placeholder={t('searchPlaceholder')}
+                        value={search}
+                        onChange={handleSearchChange}
+                        className={clsx(
+                            "w-full py-2.5 bg-card border border-border rounded-lg focus:ring-2 focus:ring-primary/10 outline-none transition-all text-sm",
+                            isRtl ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                        )}
+                    />
                 </div>
+                <button
+                    onClick={handleOpenAddModal}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:bg-primary/90 active:scale-95 transition-all shadow-sm whitespace-nowrap"
+                >
+                    <UserPlus size={16} />
+                    <span className="hidden sm:inline">{t('addCustomer')}</span>
+                </button>
             </div>
 
-            {/* Stats Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-primary/50 transition-all">
-                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{t('stats.totalCustomers')}</div>
-                    <div className="text-3xl font-black tabular-nums">{customers.length.toLocaleString(locale)}</div>
+            {/* Stats Bar — compact horizontal strip */}
+            <div className="flex items-stretch gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                <div className="flex-1 min-w-0 bg-card border border-border rounded-lg px-4 py-3">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('stats.totalCustomers')}</div>
+                    <div className="text-xl font-bold tabular-nums mt-0.5">{customers.length.toLocaleString(locale)}</div>
                 </div>
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-red-500/50 transition-all">
-                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{t('stats.withDebt')}</div>
-                    <div className="text-3xl font-black text-red-600 tabular-nums">
+                <div className="flex-1 min-w-0 bg-card border border-border rounded-lg px-4 py-3">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('stats.withDebt')}</div>
+                    <div className="text-xl font-bold text-red-600 tabular-nums mt-0.5">
                         {customers.filter(c => Number(c.balance) > 0).length.toLocaleString(locale)}
                     </div>
                 </div>
-                <div className="bg-card border border-border rounded-2xl p-6 shadow-sm group hover:border-orange-500/50 transition-all sm:col-span-2 md:col-span-1">
-                    <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{t('stats.totalOwed')}</div>
-                    <div className={clsx("text-3xl font-black text-red-600 tabular-nums flex items-center gap-1", isRtl ? "flex-row-reverse" : "flex-row")}>
-                        <span className="text-sm font-bold opacity-60">{ts('currency')}</span>
+                <div className="flex-1 min-w-0 bg-card border border-border rounded-lg px-4 py-3">
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t('stats.totalOwed')}</div>
+                    <div className={clsx("text-xl font-bold text-red-600 tabular-nums mt-0.5 flex items-center gap-1", isRtl ? "flex-row-reverse" : "flex-row")}>
+                        <span className="text-xs font-medium opacity-60">{ts('currency')}</span>
                         <span>{totalDebt.toLocaleString(locale)}</span>
                     </div>
                 </div>

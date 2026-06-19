@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
+import { getProducts, processSale } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
-import { getCurrentUser } from '@/app/actions/auth';
 import InvoicePdfActions from './InvoicePdfActions';
-import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid, Users } from 'lucide-react';
+import { Search, ShoppingCart, CreditCard, Check, ArrowRight, ArrowLeft, Trash2, Plus, Minus, Loader2, User, LayoutGrid } from 'lucide-react';
 import clsx from 'clsx';
 
 type Product = {
@@ -49,10 +48,11 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
     const [productQuery, setProductQuery] = useState('');
     const [productResults, setProductResults] = useState<Product[]>([]);
     const [isSearchingProduct, setIsSearchingProduct] = useState(false);
-    const [cart, setCart] = useState<{ id: string, name: string, price: number, quantity: number, stock: number }[]>([]);
+    const [cart, setCart] = useState<{ id: string, name: string, price: number, basePrice: number, quantity: number, stock: number }[]>([]);
+    const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+    const [editingPriceValue, setEditingPriceValue] = useState<string>('');
 
-    // Step 3: Payment
-    const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'INSTAPAY' | 'CREDIT'>('CASH');
+    // Step 3: Payment (always cash)
     const [amountPaid, setAmountPaid] = useState<string>('0');
 
     // Step 4: Submission
@@ -62,12 +62,6 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
 
     // Derived
     const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-    useEffect(() => {
-        if (step === 3 && paymentMethod === 'CASH') {
-            setAmountPaid('0');
-        }
-    }, [step, totalAmount, paymentMethod]);
 
     useEffect(() => {
         if (customerQuery.length > 1) {
@@ -144,10 +138,121 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
             }
             return item;
         }));
+    const [editingPriceValue, setEditingPriceValue] = useState<string>('');
+
+    // Step 3: Payment (always cash)
+    const [amountPaid, setAmountPaid] = useState<string>('0');
+
+    // Step 4: Submission
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [invoiceId, setInvoiceId] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [pendingReview, setPendingReview] = useState(false);
+
+    // Derived
+    const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    useEffect(() => {
+        if (customerQuery.length > 1) {
+            setIsSearchingCustomer(true);
+            const timer = setTimeout(async () => {
+                const results = await searchCustomers(customerQuery);
+                setCustomerResults(results as Customer[]);
+                setIsSearchingCustomer(false);
+            }, 500);
+            return () => clearTimeout(timer);
+        } else {
+            setCustomerResults([]);
+        }
+    }, [customerQuery]);
+
+    useEffect(() => {
+        setProductResults([]);
+    }, []);
+
+    useEffect(() => {
+        if (productQuery.length >= 1) {
+            setIsSearchingProduct(true);
+            const timer = setTimeout(async () => {
+                const products = await getProducts(productQuery, 10);
+                setProductResults(products?.map((p: any) => ({ 
+                    id: p.id,
+                    name: p.name,
+                    price: p.baseSellingPrice,
+                    stock: p.stock,
+                    sku: p.sku
+                })) || []);
+                setIsSearchingProduct(false);
+            }, 300);
+            return () => clearTimeout(timer);
+        } else {
+            setProductResults([]);
+        }
+    }, [productQuery]);
+
+    const handleAddCustomer = useCallback(() => {
+        if (customerQuery) {
+            setSelectedCustomer({ id: 'new', name: customerQuery, phone: '', balance: 0 });
+            setStep(2);
+        }
+    }, [customerQuery]);
+
+    const handleAddToCart = useCallback((product: Product) => {
+        const stock = product.stock ?? 0;
+        if (stock <= 0) return;
+
+        setCart(prev => {
+            const existing = prev.find(i => i.id === product.id);
+            if (existing) {
+                if (existing.quantity >= stock) return prev;
+                return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+            }
+            return [...prev, {
+                id: product.id,
+                name: product.name,
+                price: Number(product.price),
+                basePrice: Number(product.price),
+                quantity: 1,
+                stock
+            }];
+        });
+    }, []);
+
+    const updateQuantity = useCallback((id: string, delta: number) => {
+        setCart(prev => prev.map(item => {
+            if (item.id === id) {
+                const newQty = item.quantity + delta;
+                if (newQty <= 0) return item;
+                if (newQty > item.stock) return item;
+                return { ...item, quantity: newQty };
+            }
+            return item;
+        }));
     }, []);
 
     const removeFromCart = useCallback((id: string) => {
         setCart(prev => prev.filter(i => i.id !== id));
+    }, []);
+
+    const handleStartEditPrice = useCallback((id: string, currentPrice: number) => {
+        setEditingPriceId(id);
+        setEditingPriceValue(String(currentPrice));
+    }, []);
+
+    const handleConfirmEditPrice = useCallback((id: string) => {
+        const newPrice = Number(editingPriceValue);
+        if (!isNaN(newPrice) && newPrice > 0) {
+            setCart(prev => prev.map(item =>
+                item.id === id ? { ...item, price: newPrice } : item
+            ));
+        }
+        setEditingPriceId(null);
+        setEditingPriceValue('');
+    }, [editingPriceValue]);
+
+    const handleCancelEditPrice = useCallback(() => {
+        setEditingPriceId(null);
+        setEditingPriceValue('');
     }, []);
 
     const handleSubmit = useCallback(async () => {
@@ -171,33 +276,16 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
 
             const result = await processSale(
                 items,
-                paymentMethod,
+                'CASH',
                 buyerInfo,
-                undefined, // currentUserId
-                undefined, // selectedStaffId
+                undefined,
+                undefined,
                 paid,
                 customerId
             );
-
-            if (result.success && result.invoice) {
-                setInvoiceId(result.invoice.id);
-            } else {
-                setError(result.error || 'Failed to process sale');
-            }
-        } catch (e: unknown) {
-            setError(e instanceof Error ? e.message : 'An error occurred');
-        } finally {
-            setIsSubmitting(false);
-        }
-    }, [cart, selectedCustomer, amountPaid, paymentMethod]);
-
-    const resetWizard = useCallback(() => {
-        setStep(1);
-        setCustomerQuery('');
         setSelectedCustomer(null);
         setCart([]);
         setAmountPaid('0');
-        setPaymentMethod('CASH');
         setInvoiceId(null);
     }, []);
 
@@ -546,58 +634,40 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                             <div className="text-4xl font-black text-primary">{totalAmount.toLocaleString(locale)} {t('currency')}</div>
                         </div>
 
-                        <div className="space-y-4 mb-8">
-                            <label className="block text-sm font-medium">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {(['CASH', 'INSTAPAY', 'CREDIT'] as const).map(method => (
-                                    <button
-                                        key={method}
-                                        onClick={() => setPaymentMethod(method)}
-                                        className={clsx(
-                                            "flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all gap-2",
-                                            paymentMethod === method 
-                                                ? "border-primary bg-primary/10 text-primary" 
-                                                : "border-border bg-card text-muted-foreground hover:bg-secondary/50"
-                                        )}
-                                    >
-                                        <span className="text-xl">{method === 'CASH' ? '💵' : method === 'INSTAPAY' ? '⚡' : '💳'}</span>
-                                        <span className="font-bold text-xs">{t(`sidebar.paymentMethods.${method}` as any)}</span>
-                                    </button>
-                                ))}
-                            </div>
+                        <div className="mb-6 p-4 bg-secondary/20 rounded-xl border border-primary/10 flex items-center justify-between">
+                            <span className="text-sm font-medium">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</span>
+                            <span className="font-bold text-lg">💵 {t('sidebar.paymentMethods.CASH' as any)}</span>
                         </div>
 
-                        {paymentMethod !== 'CREDIT' && (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <label className="block text-sm font-medium">{isRtl ? 'المبلغ المدفوع' : 'Amount Paid (EGP)'}</label>
-                                <div className="relative">
-                                    <span className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg", isRtl ? "right-4" : "left-4")}>{t('currency')}</span>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        className={clsx("w-full py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black", isRtl ? "pr-16 pl-4" : "pl-16 pr-4")}
-                                        value={amountPaid}
-                                        onChange={handleAmountPaidChange}
-                                        onFocus={handleAmountPaidFocus}
-                                    />
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={handleSetExactAmount}
-                                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
-                                    >
-                                        {isRtl ? 'المبلغ بالكامل' : 'Exact Amount'}
-                                    </button>
-                                    <button 
-                                        onClick={handleSetUnpaid}
-                                        className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
-                                    >
-                                        {isRtl ? 'غير مدفوع (آجل)' : 'Unpaid'}
-                                    </button>
-                                </div>
+                        <div className="space-y-4">
+                            <label className="block text-sm font-medium">{isRtl ? 'المبلغ المدفوع' : 'Amount Paid (EGP)'}</label>
+                            <div className="relative">
+                                <span className={clsx("absolute top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg", isRtl ? "right-4" : "left-4")}>{t('currency')}</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    className={clsx("w-full py-4 rounded-xl border-2 border-primary/20 focus:border-primary bg-background text-2xl font-black", isRtl ? "pr-16 pl-4" : "pl-16 pr-4")}
+                                    value={amountPaid}
+                                    onChange={handleAmountPaidChange}
+                                    onFocus={handleAmountPaidFocus}
+                                />
                             </div>
-                        )}
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={handleSetExactAmount}
+                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                >
+                                    {isRtl ? 'المبلغ بالكامل' : 'Exact Amount'}
+                                </button>
+                                <button 
+                                    onClick={handleSetUnpaid}
+                                    className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium text-sm hover:bg-secondary/80"
+                                >
+                                    {isRtl ? 'غير مدفوع' : 'Unpaid'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -648,20 +718,20 @@ export default function QuickWizard({ onSwitchMode }: QuickWizardProps) {
                             </div>
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-muted-foreground">{isRtl ? 'طريقة الدفع' : 'Payment Method'}</span>
-                                <span className="font-medium">{t(`sidebar.paymentMethods.${paymentMethod}` as any)}</span>
+                                <span className="font-medium">💵 {t('sidebar.paymentMethods.CASH' as any)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">{isRtl ? 'المبلغ المدفوع' : 'Amount Paid'}</span>
                                 <span className="font-bold text-green-600">
-                                    {paymentMethod === 'CREDIT' ? '0' : Number(amountPaid).toLocaleString(locale)} {t('currency')}
+                                    {Number(amountPaid).toLocaleString(locale)} {t('currency')}
                                 </span>
                             </div>
                             
-                            {selectedCustomer && (paymentMethod === 'CREDIT' || Number(amountPaid) < totalAmount) && (
+                            {selectedCustomer && Number(amountPaid) < totalAmount && (
                                 <div className="mt-4 pt-4 border-t border-primary/20 flex justify-between items-center">
                                     <span className="font-bold text-red-500">{isRtl ? 'الرصيد الجديد' : 'New Balance'}</span>
                                     <span className="font-black text-red-500">
-                                        {(selectedCustomer.balance + totalAmount - (paymentMethod === 'CREDIT' ? 0 : Number(amountPaid))).toLocaleString(locale)} {t('currency')}
+                                        {(selectedCustomer.balance + totalAmount - Number(amountPaid)).toLocaleString(locale)} {t('currency')}
                                     </span>
                                 </div>
                             )}
