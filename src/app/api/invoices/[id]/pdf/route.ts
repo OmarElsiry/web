@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import getPrisma from '@/lib/prisma';
 import { generateInvoicePdfBuffer } from '@/lib/services/pdf-generator';
+import { withAuth, apiError } from '@/lib/api/with-auth';
+import { logger } from '@/lib/utils/logger';
+import type { DBUser } from '@/lib/auth/session';
+
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function handleInvoicePdf(req: NextRequest, user: DBUser) {
+    const id = req.nextUrl.pathname.split('/').pop() || '';
+
     const prisma = getPrisma();
-    const { id } = await params;
-
-    // Auth check
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const invoice = await prisma.invoice.findUnique({
         where: { id },
         include: { items: { include: { product: true } }, user: { select: { name: true, username: true, phone: true, address: true } } }
     });
 
     if (!invoice) {
-        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        return apiError('Not found', 404);
     }
 
     try {
@@ -35,7 +31,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
             },
         });
     } catch (error) {
-        console.error('PDF Generation Error:', error);
-        return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
+        logger.error('PDF Generation Error:', error);
+        return apiError('Failed to generate PDF', 500);
     }
 }
+
+export const GET = withAuth(handleInvoicePdf);

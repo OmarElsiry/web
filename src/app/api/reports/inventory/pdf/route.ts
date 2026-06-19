@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
-import { createClient } from '@/lib/supabase/server';
 import getPrisma from '@/lib/prisma';
 import path from 'path';
 import fs from 'fs';
+import { withAuth, apiError } from '@/lib/api/with-auth';
+import { logger } from '@/lib/utils/logger';
+import { toNumber, formatMoney } from '@/lib/utils/decimal';
 
 export const dynamic = 'force-dynamic';
 
-// Define the type for the product data based on Prisma query output
 type ProductWithInventory = {
     name: string;
     sku: string;
@@ -51,16 +52,16 @@ function printSummaryBox(doc: InstanceType<typeof PDFDocument>, productsCount: n
 
     doc.rect(40, y, 515, 65).fill('#EDF2F7');
     doc.fillColor('#1A365D').fontSize(10);
-    
+
     const summaryY = y + 10;
     doc.text('REPORT SUMMARY / ملخص التقرير', 55, summaryY);
-    
+
     doc.fontSize(9).fillColor('#2D3748');
     doc.text(`Total Unique Items: ${productsCount}`, 55, summaryY + 20);
     doc.text(`Total Stock Quantity: ${grandTotalStock.toLocaleString()}`, 55, summaryY + 35);
-    
-    doc.text(`Total Cost Valuation: EGP ${grandTotalCostVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 20, { align: 'right', width: 240 });
-    doc.text(`Total Retail Valuation: EGP ${grandTotalSellVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 35, { align: 'right', width: 240 });
+
+    doc.text(`Total Cost Valuation: EGP ${formatMoney(grandTotalCostVal)}`, 300, summaryY + 20, { align: 'right', width: 240 });
+    doc.text(`Total Retail Valuation: EGP ${formatMoney(grandTotalSellVal)}`, 300, summaryY + 35, { align: 'right', width: 240 });
 }
 
 function processProductRow(doc: InstanceType<typeof PDFDocument>, product: ProductWithInventory, y: number, hasArabicFont: boolean) {
@@ -72,11 +73,11 @@ function processProductRow(doc: InstanceType<typeof PDFDocument>, product: Produ
 
     doc.text(product.name, 40, y, { width: 110, height: 14, lineBreak: false });
     doc.text(product.sku, 155, y, { width: 95, height: 14, lineBreak: false });
-    doc.text(cost.toFixed(2), 255, y, { align: 'right', width: 55 });
-    doc.text(sell.toFixed(2), 315, y, { align: 'right', width: 55 });
+    doc.text(formatMoney(cost), 255, y, { align: 'right', width: 55 });
+    doc.text(formatMoney(sell), 315, y, { align: 'right', width: 55 });
     doc.text(totalStock.toString(), 375, y, { align: 'right', width: 45 });
-    doc.text(itemTotalCostVal.toFixed(2), 425, y, { align: 'right', width: 65 });
-    doc.text(itemTotalSellVal.toFixed(2), 495, y, { align: 'right', width: 60 });
+    doc.text(formatMoney(itemTotalCostVal), 425, y, { align: 'right', width: 65 });
+    doc.text(formatMoney(itemTotalSellVal), 495, y, { align: 'right', width: 60 });
 
     let currentY = y + 18;
 
@@ -144,7 +145,7 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
         }
 
         doc.moveTo(40, y + 5).lineTo(555, y + 5).strokeColor('#CBD5E0').lineWidth(1.5).stroke();
-        
+
         y += 15;
         printSummaryBox(doc, products.length, grandTotalStock, grandTotalCostVal, grandTotalSellVal, y, hasArabicFont);
 
@@ -154,18 +155,10 @@ function generateInventoryPdf(products: ProductWithInventory[]): Promise<Buffer>
     });
 }
 
-export async function GET() {
+async function handleInventoryPdf() {
     const prisma = getPrisma();
 
-    // Auth check
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     try {
-        // Fetch all products with categories and inventory locations
         const products = await prisma.product.findMany({
             include: {
                 category: true,
@@ -180,7 +173,6 @@ export async function GET() {
             }
         });
 
-        // Generate PDF
         const buffer = await generateInventoryPdf(products);
 
         return new NextResponse(buffer as unknown as BodyInit, {
@@ -191,9 +183,10 @@ export async function GET() {
             },
         });
 
-    } catch (error: unknown) {
-        console.error('PDF Generation failed:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        return NextResponse.json({ error: 'Failed to generate PDF: ' + errorMessage }, { status: 500 });
+    } catch (error) {
+        logger.error('PDF Generation failed:', error);
+        return apiError('Failed to generate inventory PDF', 500);
     }
 }
+
+export const GET = withAuth(handleInventoryPdf);
