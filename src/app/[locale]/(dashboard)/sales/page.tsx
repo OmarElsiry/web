@@ -10,6 +10,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
 import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
@@ -132,7 +133,6 @@ export default function SalesPage() {
     const productSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Employee Info
-    const [employeeId, setEmployeeId] = useState("");
     const [employeeName, setEmployeeName] = useState("");
     const [staffList, setStaffList] = useState<Staff[]>([]);
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
@@ -459,6 +459,18 @@ export default function SalesPage() {
     const handleCheckoutAndPrint = useCallback(async () => {
         if (cart.length === 0) return;
 
+        if (!selectedStaffId) {
+            setError("يجب اختيار الموظف قبل إصدار الفاتورة");
+            setTimeout(() => setError(null), 3000);
+            return;
+        }
+
+        if (!customerName.trim()) {
+            setError("يجب إدخال اسم العميل قبل إصدار الفاتورة");
+            setTimeout(() => setError(null), 3000);
+            return;
+        }
+
         setProcessing(true);
         setError(null);
 
@@ -508,7 +520,6 @@ export default function SalesPage() {
                     updateHistory('warehouseName', warehouseName);
                     updateHistory('city', city);
                     updateHistory('address', address);
-                    updateHistory('employeeId', employeeId);
                     updateHistory('employeeName', employeeName);
 
                     // Set sequence ID to the actual invoice ID for the printout
@@ -552,7 +563,7 @@ export default function SalesPage() {
         } finally {
             setProcessing(false);
         }
-    }, [cart, customerName, phone1, phone2, address, amountPaid, processSale, paymentMethod, selectedStaffId, selectedCustomerId, editFromInvoiceId, updateHistory, warehouseName, city, employeeId, employeeName]);
+    }, [cart, customerName, phone1, phone2, address, amountPaid, processSale, paymentMethod, selectedStaffId, selectedCustomerId, editFromInvoiceId, updateHistory, warehouseName, city, employeeName]);
 
     if (loading) {
         return (
@@ -807,8 +818,7 @@ export default function SalesPage() {
                         {/* Company Logo / Name Area */}
                         <div className="flex-1 flex flex-col items-start">
                             <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover" />
+                                <Image src="/stash-logo.png" alt="STASH Logo" width={74} height={74} className="w-full h-full object-cover" priority />
                             </div>
                             <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
                             <div className="mt-4 flex items-center gap-2">
@@ -842,9 +852,8 @@ export default function SalesPage() {
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center flex gap-1 justify-center">
-                                            <input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="font-bold bg-transparent outline-none w-6 text-center" /> - 
-                                            <input value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="bg-transparent outline-none w-20" />
+                                        <td className="border border-gray-300 px-3 py-1 text-center">
+                                            <span className="font-bold">{employeeName}</span>
                                         </td>
                                     </tr>
                                 </tbody>

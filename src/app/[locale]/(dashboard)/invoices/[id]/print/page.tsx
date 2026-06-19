@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import { Invoice } from '../../types';
 import { getInvoiceById } from '@/app/actions/invoices';
 import { Loader2, Printer, Settings2, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -249,15 +250,9 @@ export default function InvoicePrintPage() {
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="col-span-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
-                                    <input type="text" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
-                                    <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم الموظف</label>
+                                <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                             </div>
                         </div>
 
@@ -297,8 +292,7 @@ export default function InvoicePrintPage() {
                         {/* Company Logo / Name Area */}
                         <div className="flex-1 flex flex-col items-start">
                             <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover" />
+                                <Image src="/stash-logo.png" alt="STASH Logo" width={74} height={74} className="w-full h-full object-cover" priority />
                             </div>
                             <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
                             <div className="mt-4 flex items-center gap-2">
@@ -333,7 +327,7 @@ export default function InvoicePrintPage() {
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الموظف</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">
-                                            <span className="font-bold">{employeeId}</span> - {employeeName}
+                                            <span className="font-bold">{employeeName}</span>
                                         </td>
                                     </tr>
                                 </tbody>

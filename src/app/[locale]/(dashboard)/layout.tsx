@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 import {
     LayoutDashboard,
     Package,
@@ -171,8 +172,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
                     <div className="w-[46px] h-[46px] overflow-hidden flex-shrink-0 flex items-center justify-center rounded-full">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover rounded-full" />
+                        <Image src="/stash-logo.png" alt="STASH Logo" width={46} height={46} className="w-full h-full object-cover rounded-full" priority />
                     </div>
                     <h1 className="text-xl font-black bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent uppercase tracking-tighter">
                         STASH
@@ -191,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="sales" 
                         pathname={pathname}
-                        items={menuItems.filter(i => ['/sales', '/invoices', '/refunds', '/customers', '/profits', '/expenses', '/staff-sales', '/debts', '/reviews', '/portfolio'].includes(i.to))} 
+                        items={menuItems.filter(i => ['/sales', '/invoices', '/portfolio', '/customers', '/profits', '/expenses', '/staff-sales', '/debts', '/reviews'].includes(i.to))} 
                     />
                     <SidebarGroup 
                         id="inventory" 
