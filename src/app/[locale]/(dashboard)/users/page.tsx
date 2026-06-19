@@ -376,7 +376,7 @@ export default function UsersPage() {
                                             onClick={() => useCustomPermissions && togglePermission(perm.key)}
                                             disabled={!useCustomPermissions}
                                             className={`flex items-center justify-center text-center gap-2 text-[11px] font-bold p-3 rounded-xl cursor-pointer transition-all border ${selectedPermissions.includes(perm.key)
-                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                ? 'bg-blue-600 border-blue-600 text-white shadow-sm'
                                                 : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
                                                 } ${!useCustomPermissions ? 'opacity-40 grayscale pointer-events-none' : ''}`}
                                         >

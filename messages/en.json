@@ -597,6 +597,7 @@
       "dashboard": "Home",
       "sales": "POS",
       "stocktake": "Stock Count",
+      "inventory": "Inventory",
       "movements": "Stock In/Out",
       "products": "Products & Pricing",
       "invoices": "Invoices",
