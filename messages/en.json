@@ -601,7 +601,9 @@
     "printStatement": "Print Account Statement",
     "accountType": {
       "USER": "Customer",
-      "ROOT": "System Root"
+      "ROOT": "System Root",
+      "INDIVIDUAL": "Individual",
+      "GROUP_MEMBER": "Group Member"
     },
     "profile": {
       "noPhone": "No phone recorded",

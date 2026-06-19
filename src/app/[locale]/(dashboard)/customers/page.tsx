@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -190,6 +189,16 @@ export default function CustomersPage() {
     const handlePaymentAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentAmount(e.target.value), []);
     const handlePaymentNoteChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPaymentNote(e.target.value), []);
 
+    // --- Payment ---
+    const handleOpenPayment = useCallback((e: React.MouseEvent, customer: Customer) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setPaymentTarget(customer);
+        setPaymentAmount('');
+        setPaymentNote('');
+        setPaymentError(null);
+    }, []);
+
     const handleEditFromEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
         const customerId = e.currentTarget.dataset.customerId;
         const customer = customers.find(c => c.id === customerId);
@@ -207,16 +216,6 @@ export default function CustomersPage() {
         const customer = customers.find(c => c.id === customerId);
         if (customer) handleOpenDelete(e, customer);
     }, [customers, handleOpenDelete]);
-
-    // --- Payment ---
-    const handleOpenPayment = useCallback((e: React.MouseEvent, customer: Customer) => {
-        e.stopPropagation();
-        e.preventDefault();
-        setPaymentTarget(customer);
-        setPaymentAmount('');
-        setPaymentNote('');
-        setPaymentError(null);
-    }, []);
 
     const handleClosePayment = useCallback(() => {
         setPaymentTarget(null);

@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable sonarjs/unused-import */
 /* eslint-disable sonarjs/no-unused-vars */
@@ -181,6 +180,10 @@ export default function SalesPage() {
             setLoading(false);
             if (user && staff.some((s: Staff) => s.id === user.id)) {
                 setSelectedStaffId(user.id);
+                const selectedStaff = staff.find((s: Staff) => s.id === user.id);
+                if (selectedStaff) {
+                    setEmployeeName(selectedStaff.name || selectedStaff.username);
+                }
             }
         });
 
@@ -398,8 +401,18 @@ export default function SalesPage() {
     const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value), []);
     const handlePhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone1(e.target.value), []);
     const handlePhone2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone2(e.target.value), []);
-    const handleEmployeeIdChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmployeeId(e.target.value), []);
-    const handleEmployeeNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEmployeeName(e.target.value), []);
+    const handleStaffSelect = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+        const staffId = e.target.value;
+        setSelectedStaffId(staffId);
+        if (staffId) {
+            const selectedStaff = staffList.find((s: Staff) => s.id === staffId);
+            if (selectedStaff) {
+                setEmployeeName(selectedStaff.name || selectedStaff.username);
+            }
+        } else {
+            setEmployeeName('');
+        }
+    }, [staffList]);
     const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWarehouseName(e.target.value), []);
     const handleCustomerCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerCode(e.target.value), []);
     const handlePreviousBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPreviousBalance(Number(e.target.value)), []);
@@ -701,7 +714,7 @@ export default function SalesPage() {
                         </div>
                     )}
                     <button 
-                        onClick={() => setShowSettings(!showSettings)} 
+                        onClick={toggleSettings} 
                         className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
                         title={showSettings ? "إخفاء" : "إظهار"}
                     >
@@ -727,39 +740,44 @@ export default function SalesPage() {
                             </div>
                             {/* Customer Code Field Hidden */}
                             <div className="flex gap-2 items-center mb-2">
-                                <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showCity} onChange={toggleCity} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                    <input type="text" list="city-history" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="city-history" value={city} onChange={handleCityChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <input type="checkbox" checked={showAddress} onChange={toggleAddress} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                    <input type="text" list="address-history" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="address-history" value={address} onChange={handleAddressChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showPhone1} onChange={togglePhone1} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الهاتف</label>
-                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={phone1} onChange={handlePhone1Change} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
-                            <div className="grid grid-cols-3 gap-2">
-                                <div className="col-span-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
-                                    <input type="text" list="employeeId-history" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
-                                    <input type="text" list="employeeName-history" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-                                </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم الموظف</label>
+                                <select
+                                    value={selectedStaffId}
+                                    onChange={handleStaffSelect}
+                                    className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                >
+                                    <option value="">-- اختر الموظف --</option>
+                                    {staffList.map((staff: Staff) => (
+                                        <option key={staff.id} value={staff.id}>
+                                            {staff.name || staff.username}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 

@@ -1,7 +1,6 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from 'next-intl';
 import { getProducts, processSale } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
@@ -97,14 +96,14 @@ export default function QuickSalePage() {
         }
     }, [productQuery]);
 
-    const handleAddCustomer = () => {
+    const handleAddCustomer = useCallback(() => {
         if (customerQuery) {
             setSelectedCustomer({ id: 'new', name: customerQuery, phone: '', balance: 0 });
             setStep(2);
         }
-    };
+    }, [customerQuery]);
 
-    const handleAddToCart = (product: Product) => {
+    const handleAddToCart = useCallback((product: Product) => {
         const stock = product.stock ?? 0;
         if (stock <= 0) return;
 
@@ -122,9 +121,9 @@ export default function QuickSalePage() {
                 stock
             }];
         });
-    };
+    }, []);
 
-    const updateQuantity = (id: string, delta: number) => {
+    const updateQuantity = useCallback((id: string, delta: number) => {
         setCart(prev => prev.map(item => {
             if (item.id === id) {
                 const newQty = item.quantity + delta;
@@ -134,13 +133,13 @@ export default function QuickSalePage() {
             }
             return item;
         }));
-    };
+    }, []);
 
-    const removeFromCart = (id: string) => {
+    const removeFromCart = useCallback((id: string) => {
         setCart(prev => prev.filter(i => i.id !== id));
-    };
+    }, []);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         setIsSubmitting(true);
         setError(null);
 
@@ -179,9 +178,9 @@ export default function QuickSalePage() {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    }, [cart, selectedCustomer, amountPaid, paymentMethod]);
 
-    const resetWizard = () => {
+    const resetWizard = useCallback(() => {
         setStep(1);
         setCustomerQuery('');
         setSelectedCustomer(null);
@@ -189,7 +188,7 @@ export default function QuickSalePage() {
         setAmountPaid('0');
         setPaymentMethod('CASH');
         setInvoiceId(null);
-    };
+    }, []);
 
     if (invoiceId) {
         return (

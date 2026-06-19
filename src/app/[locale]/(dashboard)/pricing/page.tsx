@@ -1,7 +1,6 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Tag, Edit, Percent, X, Check } from 'lucide-react';
 import { getInventory, updateProduct, bulkUpdatePricing } from '@/app/actions/inventory';
 import { useTranslations } from 'next-intl';
@@ -34,28 +33,27 @@ export default function PricingPage() {
     const [totalServerItems, setTotalServerItems] = useState(0);
     const ITEMS_PER_PAGE = 50;
 
-    const loadData = () => {
+    const loadData = useCallback(() => {
         setLoading(true);
         getInventory(currentPage, ITEMS_PER_PAGE).then(([total, data]) => {
             setTotalServerItems(total);
             setProducts(data as any);
             setLoading(false);
         });
-    };
+    }, [currentPage]);
 
     useEffect(() => {
         loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage]);
+    }, [loadData]);
 
-    const handleEditClick = (item: { id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }) => {
+    const handleEditClick = useCallback((item: { id: string, product: { id: string, name: string, sku: string, categoryId: string, costPrice: number | string, baseSellingPrice: number | string } }) => {
         setEditingProduct(item.product);
         setEditCost(Number(item.product.costPrice));
         setEditSell(Number(item.product.baseSellingPrice));
         setIsEditModalOpen(true);
-    };
+    }, []);
 
-    const handleSaveEdit = async () => {
+    const handleSaveEdit = useCallback(async () => {
         if (!editingProduct) return;
         setEditSubmitting(true);
         try {
@@ -73,9 +71,9 @@ export default function PricingPage() {
         } finally {
             setEditSubmitting(false);
         }
-    };
+    }, [editingProduct, editCost, editSell, loadData]);
 
-    const handleSaveBulk = async () => {
+    const handleSaveBulk = useCallback(async () => {
         if (!bulkPercentage) return;
         setBulkSubmitting(true);
         try {
@@ -87,7 +85,22 @@ export default function PricingPage() {
         } finally {
             setBulkSubmitting(false);
         }
-    };
+    }, [bulkPercentage, bulkType, loadData]);
+
+    const openBulkModal = useCallback(() => {
+        setBulkPercentage('');
+        setBulkType('markup');
+        setIsBulkModalOpen(true);
+    }, []);
+    const closeBulkModal = useCallback(() => setIsBulkModalOpen(false), []);
+    const closeEditModal = useCallback(() => setIsEditModalOpen(false), []);
+    const handleBulkPercentageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setBulkPercentage(e.target.value === '' ? '' : Number(e.target.value)), []);
+    const handleEditCostChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditCost(Number(e.target.value)), []);
+    const handleEditSellChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEditSell(Number(e.target.value)), []);
+    const handlePrevPage = useCallback(() => setCurrentPage(p => Math.max(1, p - 1)), []);
+    const handleNextPage = useCallback(() => setCurrentPage(p => p + 1), []);
+    const setBulkTypeMarkup = useCallback(() => setBulkType('markup'), []);
+    const setBulkTypeIncrease = useCallback(() => setBulkType('increase'), []);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -102,11 +115,7 @@ export default function PricingPage() {
                     </div>
                 </div>
                 <button 
-                    onClick={() => {
-                        setBulkPercentage('');
-                        setBulkType('markup');
-                        setIsBulkModalOpen(true);
-                    }}
+                    onClick={openBulkModal}
                     className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95"
                 >
                     <Percent size={16} />
@@ -182,7 +191,7 @@ export default function PricingPage() {
                 <div className="flex justify-between items-center mt-4">
                     <button
                         disabled={currentPage === 1 || loading}
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        onClick={handlePrevPage}
                         className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
                     >
                         {ts('buttons.previous')}
@@ -192,7 +201,7 @@ export default function PricingPage() {
                     </span>
                     <button
                         disabled={currentPage >= Math.ceil(totalServerItems / ITEMS_PER_PAGE) || loading}
-                        onClick={() => setCurrentPage(p => p + 1)}
+                        onClick={handleNextPage}
                         className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg disabled:opacity-50 text-sm font-bold"
                     >
                         {ts('buttons.next')}
@@ -213,7 +222,7 @@ export default function PricingPage() {
                                 <p className="text-xs text-muted-foreground mt-1 font-mono">{editingProduct?.name}</p>
                             </div>
                             <button
-                                onClick={() => setIsEditModalOpen(false)}
+                                onClick={closeEditModal}
                                 className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
                             >
                                 <X size={20} />
@@ -227,7 +236,7 @@ export default function PricingPage() {
                                 <input
                                     type="number"
                                     value={editCost}
-                                    onChange={(e) => setEditCost(Number(e.target.value))}
+                                    onChange={handleEditCostChange}
                                     className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono"
                                     step="0.01"
                                 />
@@ -239,7 +248,7 @@ export default function PricingPage() {
                                 <input
                                     type="number"
                                     value={editSell}
-                                    onChange={(e) => setEditSell(Number(e.target.value))}
+                                    onChange={handleEditSellChange}
                                     className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold"
                                     step="0.01"
                                 />
@@ -267,7 +276,7 @@ export default function PricingPage() {
                         </div>
                         <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
                             <button
-                                onClick={() => setIsEditModalOpen(false)}
+                                onClick={closeEditModal}
                                 className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
                             >
                                 {ts('cancel')}
@@ -298,7 +307,7 @@ export default function PricingPage() {
                                 <p className="text-xs text-muted-foreground mt-1">Apply a bulk percentage to all products</p>
                             </div>
                             <button
-                                onClick={() => setIsBulkModalOpen(false)}
+                                onClick={closeBulkModal}
                                 className="p-2 hover:bg-secondary rounded-xl transition-colors text-muted-foreground hover:text-foreground"
                             >
                                 <X size={20} />
@@ -311,7 +320,7 @@ export default function PricingPage() {
                                 </label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button 
-                                        onClick={() => setBulkType('markup')}
+                                        onClick={setBulkTypeMarkup}
                                         className={clsx(
                                             "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
                                             bulkType === 'markup' 
@@ -322,7 +331,7 @@ export default function PricingPage() {
                                         Markup on Cost
                                     </button>
                                     <button 
-                                        onClick={() => setBulkType('increase')}
+                                        onClick={setBulkTypeIncrease}
                                         className={clsx(
                                             "py-3 px-2 rounded-xl text-xs font-bold transition-all border",
                                             bulkType === 'increase' 
@@ -348,7 +357,7 @@ export default function PricingPage() {
                                     <input
                                         type="number"
                                         value={bulkPercentage}
-                                        onChange={(e) => setBulkPercentage(e.target.value ? Number(e.target.value) : '')}
+                                        onChange={handleBulkPercentageChange}
                                         className="w-full px-4 py-3 bg-background border border-input rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-mono font-bold pr-10"
                                         placeholder="e.g. 10"
                                         step="0.1"
@@ -361,7 +370,7 @@ export default function PricingPage() {
                         </div>
                         <div className="p-4 border-t border-border flex justify-end gap-3 bg-secondary/30">
                             <button
-                                onClick={() => setIsBulkModalOpen(false)}
+                                onClick={closeBulkModal}
                                 className="px-5 py-2.5 font-bold text-xs uppercase tracking-widest text-muted-foreground hover:bg-secondary rounded-xl transition-colors"
                             >
                                 {ts('cancel')}

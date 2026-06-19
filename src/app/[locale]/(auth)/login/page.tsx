@@ -1,7 +1,6 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { login } from '@/app/actions/auth';
 import { useFormStatus } from 'react-dom';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
@@ -33,6 +32,8 @@ export default function LoginPage() {
             setError(res.error);
         }
     }
+
+    const togglePassword = useCallback(() => setShowPassword(prev => !prev), []);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
@@ -80,7 +81,7 @@ export default function LoginPage() {
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
+                                    onClick={togglePassword}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring rounded-md p-1"
                                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 >

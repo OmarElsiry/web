@@ -28,7 +28,7 @@
     "backup": "نسخ احتياطي",
     "debts": "المديونيات",
     "reviews": "مراجعة الأسعار",
-    "portfolio": "معرض الفواتير"
+    "portfolio": "فواتيري"
   },
   "Login": {
     "title": "مرحباً بعودتك",
@@ -601,7 +601,9 @@
     "printStatement": "طباعة كشف الحساب",
     "accountType": {
       "USER": "عميل",
-      "ROOT": "مسؤول النظام"
+      "ROOT": "مسؤول النظام",
+      "INDIVIDUAL": "فردي",
+      "GROUP_MEMBER": "عضو مجموعة"
     },
     "profile": {
       "noPhone": "لا يوجد هاتف مسجل",

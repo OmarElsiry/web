@@ -1,12 +1,11 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable sonarjs/unused-import */
- 
- 
+  
+  
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getUnifiedProducts, getCategories } from '@/app/actions/inventory';
 import { Package, Search, Filter, Download, ChevronDown, ChevronUp, Loader2, BarChart3, TrendingUp, DollarSign, Layers } from 'lucide-react';
 import clsx from 'clsx';
@@ -82,7 +81,7 @@ export default function InventoryCountPage() {
     const totalValueSelling = products.reduce((sum, p) => sum + (p.totalStock * p.baseSellingPrice), 0);
     const totalValueCost = products.reduce((sum, p) => sum + (p.totalStock * p.costPrice), 0);
 
-    const exportToCSV = () => {
+    const exportToCSV = useCallback(() => {
         const headers = ['Name', 'SKU', 'Category', 'Stock Quantity', 'Cost Price', 'Selling Price'];
         const csvContent = [
             headers.join(','),
@@ -100,7 +99,13 @@ export default function InventoryCountPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    };
+    }, [filteredAndSortedProducts]);
+
+    const toggleCostValue = useCallback(() => setShowCostValue(prev => !prev), []);
+    const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value), []);
+    const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSelectedCategory(e.target.value), []);
+    const handleSortChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setSortBy(e.target.value as any), []);
+    const toggleExpanded = useCallback((id: string) => setExpandedProductId(prev => prev === id ? null : id), []);
 
     if (isLoading) {
         return (
@@ -157,7 +162,7 @@ export default function InventoryCountPage() {
                             ? "bg-gradient-to-br from-orange-500 to-orange-600 text-white border-transparent" 
                             : "bg-card border-dashed border-muted-foreground/30 hover:bg-secondary/50"
                     )}
-                    onClick={() => setShowCostValue(!showCostValue)}
+                    onClick={toggleCostValue}
                 >
                     <div className="flex items-center gap-3 mb-2 opacity-90 text-sm font-medium">
                         <DollarSign size={20} />
@@ -177,19 +182,19 @@ export default function InventoryCountPage() {
 
             {/* Filters */}
             <div className="bg-card rounded-2xl p-4 shadow-sm border mb-6 space-y-4 md:space-y-0 md:flex md:gap-4 md:items-end">
-                <div className="flex-1">
-                    <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 ml-1">Search</label>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Product name or SKU..."
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border bg-background"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                    <div className="flex-1">
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 ml-1">Search</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Product name or SKU..."
+                                className="w-full pl-10 pr-4 py-3 rounded-xl border bg-background"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                            />
+                        </div>
                     </div>
-                </div>
 
                 <div className="md:w-64">
                     <label className="block text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 ml-1">Category</label>
@@ -198,7 +203,7 @@ export default function InventoryCountPage() {
                         <select
                             className="w-full pl-10 pr-10 py-3 rounded-xl border bg-background appearance-none"
                             value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            onChange={handleCategoryChange}
                         >
                             <option value="all">All Categories</option>
                             {categories.map(c => (
@@ -214,7 +219,7 @@ export default function InventoryCountPage() {
                     <select
                         className="w-full px-4 py-3 rounded-xl border bg-background appearance-none"
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
+                        onChange={handleSortChange}
                     >
                         <option value="name">Name (A-Z)</option>
                         <option value="stockAsc">Stock (Low to High)</option>
@@ -231,7 +236,7 @@ export default function InventoryCountPage() {
                     <div key={p.id} className="bg-card rounded-2xl border shadow-sm overflow-hidden">
                         <div 
                             className="p-4 flex gap-4 items-start"
-                            onClick={() => setExpandedProductId(expandedProductId === p.id ? null : p.id)}
+                            onClick={() => toggleExpanded(p.id)}
                         >
                             <div className="flex-1">
                                 <div className="text-xs font-medium text-primary mb-1">{p.categoryName}</div>
