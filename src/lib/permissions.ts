@@ -1,9 +1,9 @@
 // Default permissions by role - shared between client and server
 export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
-    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'reports', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
-    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'reports', 'logs', 'users', 'customers', 'backup', 'review', 'portfolio'],
-    ACCOUNTANT: ['dashboard', 'invoices', 'reports', 'logs', 'customers', 'portfolio'],
-    SALESPERSON: ['sales', 'invoices', 'stocktake', 'movements', 'portfolio'],
+    ROOT: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'customers', 'reports', 'review', 'portfolio', 'logs', 'users', 'debts', 'backup'],
+    ADMIN: ['dashboard', 'sales', 'stocktake', 'movements', 'products', 'invoices', 'customers', 'reports', 'review', 'portfolio', 'logs', 'users', 'debts', 'backup'],
+    ACCOUNTANT: ['dashboard', 'invoices', 'reports', 'logs', 'customers', 'portfolio', 'debts'],
+    SALESPERSON: ['sales', 'stocktake', 'customers', 'portfolio'],
     READ_ONLY: ['dashboard', 'invoices'],
 };
 
@@ -15,16 +15,17 @@ export function getDefaultPermissions(role: string): string[] {
 // All available permissions for UI
 export const ALL_PERMISSIONS = [
     { key: 'dashboard', label: 'Dashboard' },
-    { key: 'sales', label: 'POS Sales' },
-    { key: 'stocktake', label: 'Stock Count' },
-    { key: 'movements', label: 'Stock Movements' },
-    { key: 'products', label: 'Products & Pricing' },
+    { key: 'sales', label: 'Sales' },
+    { key: 'stocktake', label: 'Stocktake' },
+    { key: 'movements', label: 'Movements' },
+    { key: 'products', label: 'Products' },
     { key: 'invoices', label: 'Invoices' },
-    { key: 'reports', label: 'Reports' },
-    { key: 'logs', label: 'Audit Logs' },
-    { key: 'users', label: 'Team Management' },
     { key: 'customers', label: 'Customers' },
-    { key: 'backup', label: 'Backup Data' },
-    { key: 'review', label: 'Review Price Changes' },
-    { key: 'portfolio', label: 'Sales Portfolio' },
+    { key: 'reports', label: 'Reports' },
+    { key: 'review', label: 'Reviews' },
+    { key: 'portfolio', label: 'Portfolio' },
+    { key: 'logs', label: 'Logs' },
+    { key: 'users', label: 'Users' },
+    { key: 'debts', label: 'Debts' },
+    { key: 'backup', label: 'Backup' },
 ];
