@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/cognitive-complexity */
 'use server';
 
 import getPrisma from '@/lib/prisma';
@@ -13,6 +12,7 @@ import { revalidateSalePaths } from '@/lib/utils/revalidation';
 import { safeLogActivity, logger } from '@/lib/utils/logger';
 import { getErrorMessage } from '@/lib/utils/errors';
 import { validateOrFail } from '@/lib/validations';
+import { after } from 'next/server';
 
 async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerId?: string, buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string }) {
     let finalCustomerId = customerId;
@@ -256,24 +256,25 @@ export async function processSale(
             timeout: 10000
         });
 
-        // 3. Audit Log
+        // 3. Audit Log — fire-and-forget via after() so it never blocks the response
         const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
         const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
         const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
+        const auditUserId = currentUser?.id || userId;
 
-        if (needsReview) {
-            await safeLogActivity(
-                'SALE_PENDING',
-                `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
-                currentUser?.id || userId
-            );
-        } else {
-            await safeLogActivity(
-                'SALE',
-                `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
-                currentUser?.id || userId
-            );
-        }
+        after(
+            needsReview
+                ? safeLogActivity(
+                    'SALE_PENDING',
+                    `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
+                    auditUserId
+                )
+                : safeLogActivity(
+                    'SALE',
+                    `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
+                    auditUserId
+                )
+        );
 
         revalidateSalePaths();
 
