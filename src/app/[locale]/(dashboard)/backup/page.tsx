@@ -3,8 +3,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Download, Database, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Spinner, Button, ErrorBanner } from '@/components/ui';
+import { Download, Database, CheckCircle2 } from 'lucide-react';
+import { Button, ErrorBanner } from '@/components/ui';
 
 export default function BackupPage() {
     const t = useTranslations('Navigation');

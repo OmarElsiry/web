@@ -135,7 +135,7 @@ export default function RefundHistoryPage() {
                         className="p-2 bg-card border border-border hover:bg-secondary rounded-xl transition-colors"
                         title={t('buttons.refresh')}
                     >
-                        <Loader2 className={clsx(loading && "animate-spin")} size={20} />
+                        <Spinner size={20} className={clsx(!loading && "hidden")} />
                     </button>
                 </div>
             </div>
@@ -185,7 +185,7 @@ export default function RefundHistoryPage() {
             <div className="grid grid-cols-1 gap-4">
                 {loading && refunds.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-12 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
-                        <Loader2 className="animate-spin mb-4" size={32} />
+                        <Spinner size={32} className="mb-4" />
                         <p className="font-medium">{t('list.loading')}</p>
                     </div>
                 // eslint-disable-next-line sonarjs/no-nested-conditional

@@ -13,7 +13,7 @@ interface ProductModalProps {
     t: (key: string) => string;
     isEditMode: boolean;
     error: string | null;
-    formData: { name: string; sku: string; categoryId: string; costPrice: string | number; baseSellingPrice: string | number };
+    formData: { name: string; sku: string; categoryId: string; costPrice: string | number; baseSellingPrice: string | number; unit?: string; stock?: string | number; initialQuantity?: string | number };
     categories: Category[];
     submitting: boolean;
     handleSubmit: (e: React.FormEvent) => Promise<void>;

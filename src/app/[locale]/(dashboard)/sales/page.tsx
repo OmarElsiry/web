@@ -1,8 +1,8 @@
 /* eslint-disable react-perf/jsx-no-new-function-as-prop */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable sonarjs/unused-import */
-/* eslint-disable sonarjs/no-unused-vars */
-/* eslint-disable sonarjs/no-dead-store */
+ 
+ 
 /* eslint-disable sonarjs/pseudo-random */
 /* eslint-disable sonarjs/no-nested-functions */
 'use client';

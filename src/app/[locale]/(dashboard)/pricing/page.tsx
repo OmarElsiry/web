@@ -130,7 +130,7 @@ export default function PricingPage() {
                             <tr>
                                 <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                                     <div className="flex flex-col items-center justify-center gap-3">
-                                        <Loader2 className="animate-spin text-primary" size={32} />
+                                        <Spinner size={32} className="text-primary" />
                                         <span className="font-bold uppercase text-xs tracking-widest">{t('table.loading')}</span>
                                     </div>
                                 </td>
@@ -277,7 +277,7 @@ export default function PricingPage() {
                                 disabled={editSubmitting}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
                             >
-                                {editSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                {editSubmitting ? <Spinner size={16} /> : <Check size={16} />}
                                 {ts('save')}
                             </button>
                         </div>
@@ -371,7 +371,7 @@ export default function PricingPage() {
                                 disabled={bulkSubmitting || bulkPercentage === ''}
                                 className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary/90 transition-all shadow-md disabled:opacity-50"
                             >
-                                {bulkSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                                {bulkSubmitting ? <Spinner size={16} /> : <Check size={16} />}
                                 Apply Update
                             </button>
                         </div>

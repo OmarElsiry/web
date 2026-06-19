@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import { getAuditLogs } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
 import { RefreshCcw, User, Filter, ScrollText } from 'lucide-react';
-import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { PageHeader, Spinner, Th, Pagination } from '@/components/ui';
 import { useLocale } from '@/hooks/useLocale';

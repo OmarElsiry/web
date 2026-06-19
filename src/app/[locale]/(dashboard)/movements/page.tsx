@@ -68,8 +68,7 @@ export default function MovementsPage() {
     const handleFilterTypeChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFilterType(e.target.value), []);
     const handleStartDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value), []);
     const handleEndDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value), []);
-    const handlePrevPage = useCallback(() => setPage(p => Math.max(1, p - 1)), []);
-    const handleNextPage = useCallback(() => setPage(p => Math.min(pagination.pages, p + 1)), [pagination.pages]);
+    const handleClearDates = useCallback(() => { setStartDate(''); setEndDate(''); }, []);
 
     const getTypeConfig = (type: TransactionType) => {
         switch (type) {
