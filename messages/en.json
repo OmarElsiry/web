@@ -28,7 +28,7 @@
     "inventory_count": "Inventory Count",
     "backup": "Backup Data",
     "debts": "Debts",
-    "reviews": "Price Reviews",
+    "reviews": "Invoice Reviews",
     "portfolio": "Portfolio",
     "reports": "Reports"
   },
@@ -154,6 +154,9 @@
       "walkInDebt": "Walk-in customers must pay the full amount. No debt allowed.",
       "processFailed": "Failed to process sale.",
       "connectionError": "Connection error. Please check your internet and try again."
+    },
+    "buttons": {
+      "exportPDF": "Export PDF"
     },
     "success": {
       "title": "Sale Complete!",
@@ -359,6 +362,10 @@
     "user": "User"
   },
   "Customers": {
+    "filter": {
+      "all": "All Customers",
+      "inDebt": "In Debt"
+    },
     "title": "Customers",
     "subtitle": "Manage and analyze your customer base",
     "searchPlaceholder": "Search by name or phone...",
@@ -603,7 +610,7 @@
       "invoices": "Invoices",
       "customers": "Customers",
       "reports": "Reports",
-      "review": "Price Reviews",
+      "review": "Invoice Reviews",
       "portfolio": "Portfolio",
       "logs": "Audit Logs",
       "users": "Team",

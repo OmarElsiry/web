@@ -165,6 +165,11 @@ export default function SalesPage() {
         month: 'long',
         day: 'numeric'
     });
+    const formattedTime = new Date().toLocaleTimeString('ar-EG', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
 
     useEffect(() => {
         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
@@ -883,8 +888,13 @@ export default function SalesPage() {
                                         <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">التاريخ</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center align-middle">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">
+                                            <div className="flex flex-col items-center justify-center gap-0.5">
+                                                <span>{formattedDate}</span>
+                                                <span className="text-xs text-gray-500 font-medium" dir="ltr">{formattedTime}</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                     <tr>
                                         <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
@@ -1237,7 +1247,7 @@ export default function SalesPage() {
                 </div>
 
                 {/* Sticky Bottom Bar for Mobile/Desktop */}
-                <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 mt-8 -mx-4 md:-mx-8 -mb-4 md:-mb-8 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 print-hidden">
+                <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 mt-8 -mx-4 md:-mx-8 -mb-4 md:-mb-8 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-30 print-hidden">
                     <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
                         <div className="hidden md:flex flex-col">
                             <span className="text-sm font-bold text-gray-500">الإجمالي العام</span>

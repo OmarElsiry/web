@@ -68,9 +68,16 @@ export async function middleware(request: NextRequest) {
     // 2. Prepare Supabase client
     let supabaseResponse = i18nResponse;
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase URL and Key (ANON_KEY/PUBLISHABLE_KEY) are required. Please check environment variables.');
+    }
+
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabaseUrl,
+        supabaseKey,
         {
             cookies: {
                 getAll() {
@@ -78,12 +85,7 @@ export async function middleware(request: NextRequest) {
                 },
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    })
-                    // Copy i18n headers/cookies if any
-                    i18nResponse.headers.forEach((v, k) => supabaseResponse.headers.set(k, v));
-                    
+                    // Mutate supabaseResponse directly to preserve the redirect status and headers
                     cookiesToSet.forEach(({ name, value, options }) =>
                         supabaseResponse.cookies.set(name, value, options)
                     )
@@ -93,10 +95,8 @@ export async function middleware(request: NextRequest) {
     )
 
     const {
-        data: { session },
-    } = await supabase.auth.getSession()
-
-    const user = session?.user ?? null
+        data: { user },
+    } = await supabase.auth.getUser()
 
     const pathname = request.nextUrl.pathname;
     

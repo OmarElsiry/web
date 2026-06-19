@@ -21,9 +21,34 @@ function formatNum(n: number | string): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function reverseArabicText(text: string): string {
+    if (!text) return '';
+    const hasArabic = /[\u0600-\u06FF]/.test(text);
+    if (!hasArabic) {
+        return text;
+    }
+
+    const tokenRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]+|[a-zA-Z0-9\-\.]+|\s+|./g;
+    const tokens = text.match(tokenRegex) || [];
+
+    const reversed = tokens.reverse().map(token => {
+        if (token === '(') return ')';
+        if (token === ')') return '(';
+        if (token === '[') return ']';
+        if (token === ']') return '[';
+        if (token === '{') return '}';
+        if (token === '}') return '{';
+        if (token === '<') return '>';
+        if (token === '>') return '<';
+        return token;
+    });
+
+    return reversed.join('');
+}
+
 export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
-        const fontPath = path.join(process.cwd(), 'public', 'Amiri-Regular.ttf');
+        const fontPath = path.join(process.cwd(), 'public', 'Cairo-Regular.ttf');
         if (!fs.existsSync(fontPath)) {
             return reject(new Error(`Invoice PDF font missing: ${fontPath}`));
         }
@@ -56,17 +81,17 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         const MARGIN = 40;
         const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
 
-        // --- Helper: draw text with forced English digits ---
+        // --- Helper: draw text with forced English digits and RTL reversing ---
         const drawText = (text: string, x: number, y: number, opts: any = {}) => {
-            doc.text(toEnglishDigits(text), x, y, opts);
+            doc.text(reverseArabicText(toEnglishDigits(text)), x, y, opts);
         };
 
         // --- HEADER SECTION ---
         let currentY = MARGIN;
 
-        // === RIGHT SIDE (RTL): Meta Table ===
+        // === LEFT SIDE (RTL in HTML but left-aligned in layout flow): Meta Table ===
         const metaWidth = 170;
-        const metaX = PAGE_WIDTH - MARGIN - metaWidth;
+        const metaX = MARGIN; // Left side of the page
         const seqId = invoice.id ? parseInt(invoice.id.slice(-4), 16).toString() : '---';
         const dateObj = new Date(invoice.date);
         const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
@@ -98,17 +123,18 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.fontSize(16).fillColor(COLOR_TEXT);
         drawText('فاتورة مبيعات', titleBoxX, currentY + 18, { width: titleBoxW, align: 'center' });
 
-        // === LEFT SIDE (RTL): Logo & Company Name ===
+        // === RIGHT SIDE (RTL in HTML but right-aligned in layout flow): Logo & Company Name ===
         const logoSize = 60;
+        const logoX = PAGE_WIDTH - MARGIN - logoSize; // Right side of the page
         if (hasLogo) {
             // Draw circular clipped logo
             doc.save();
-            doc.circle(MARGIN + logoSize / 2, currentY + logoSize / 2, logoSize / 2).clip();
-            doc.image(logoPath, MARGIN, currentY, { width: logoSize, height: logoSize });
+            doc.circle(logoX + logoSize / 2, currentY + logoSize / 2, logoSize / 2).clip();
+            doc.image(logoPath, logoX, currentY, { cover: [logoSize, logoSize], align: 'center', valign: 'center' });
             doc.restore();
         }
         doc.fillColor(COLOR_TEXT).fontSize(22);
-        drawText('STASH', MARGIN, currentY + logoSize + 6, { align: 'left' });
+        drawText('STASH', PAGE_WIDTH - MARGIN - 120, currentY + logoSize + 6, { width: 120, align: 'right' });
 
         currentY += 90;
 
@@ -164,14 +190,15 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.rect(MARGIN, tableHeaderY, CONTENT_WIDTH, 25).fillAndStroke(COLOR_BG, COLOR_DARK);
 
         // Columns: RTL order (right-to-left): م | رقم الصنف | اسم الصنف | الوحدة | الكمية | السعر | القيمة
+        // Widths adjusted to prevent SKU (رقم الصنف) wrapping
         const cols = [
-            { width: 70,  title: 'القيمة',    align: 'center' },
-            { width: 65,  title: 'السعر',     align: 'center' },
-            { width: 50,  title: 'الكمية',    align: 'center' },
-            { width: 55,  title: 'الوحدة',    align: 'center' },
-            { width: CONTENT_WIDTH - 340, title: 'اسم الصنف', align: 'center' },
-            { width: 70,  title: 'رقم الصنف',  align: 'center' },
-            { width: 30,  title: 'م',         align: 'center' }
+            { width: 65,  title: 'القيمة',    align: 'center' },
+            { width: 60,  title: 'السعر',     align: 'center' },
+            { width: 35,  title: 'الكمية',    align: 'center' },
+            { width: 40,  title: 'الوحدة',    align: 'center' },
+            { width: CONTENT_WIDTH - 335, title: 'اسم الصنف', align: 'center' },
+            { width: 110, title: 'رقم الصنف',  align: 'center' },
+            { width: 25,  title: 'م',         align: 'center' }
         ];
 
         let startX = MARGIN;
@@ -262,36 +289,37 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
             currentY = MARGIN;
         }
 
-        // Layout: Left = Totals & Amount in words, Right = Financial Statement
+        // Layout: Left = Financial Statement, Right = Totals & Amount in words
         const finBoxWidth = 200;
-        const finBoxX = PAGE_WIDTH - MARGIN - finBoxWidth;
-        const leftBoxWidth = CONTENT_WIDTH - finBoxWidth - 20;
+        const finBoxX = MARGIN; // Left side of the page
+        const rightBoxX = MARGIN + finBoxWidth + 20; // Right side of the page
+        const rightBoxWidth = CONTENT_WIDTH - finBoxWidth - 20;
 
-        // === LEFT: الاجمالي العام ===
-        doc.rect(MARGIN, currentY, leftBoxWidth, 40).fillAndStroke(COLOR_BG, COLOR_BORDER);
+        // === RIGHT: الاجمالي العام ===
+        doc.rect(rightBoxX, currentY, rightBoxWidth, 40).fillAndStroke(COLOR_BG, COLOR_BORDER);
         doc.fillColor(COLOR_TEXT).fontSize(14);
-        drawText('الاجمالي العام', MARGIN + leftBoxWidth - 120, currentY + 12, { width: 110, align: 'right' });
+        drawText('الاجمالي العام', rightBoxX + rightBoxWidth - 120, currentY + 12, { width: 110, align: 'right' });
 
         // Total value box
-        doc.rect(MARGIN + 10, currentY + 8, 110, 24).fillAndStroke('#FFF', COLOR_BORDER);
+        doc.rect(rightBoxX + 10, currentY + 8, 110, 24).fillAndStroke('#FFF', COLOR_BORDER);
         const grandTotal = toNumber(invoice.totalAmount).toFixed(2);
         doc.fillColor(COLOR_TEXT).fontSize(14);
-        drawText(grandTotal, MARGIN + 10, currentY + 12, { width: 110, align: 'center' });
+        drawText(grandTotal, rightBoxX + 10, currentY + 12, { width: 110, align: 'center' });
 
         // Amount in words box
         const totalAmountNum = toNumber(invoice.totalAmount);
         const arabicAmount = tafqeet(totalAmountNum);
 
-        doc.rect(MARGIN, currentY + 60, leftBoxWidth, 40).stroke();
+        doc.rect(rightBoxX, currentY + 60, rightBoxWidth, 40).stroke();
         // Title label overlap
-        doc.rect(MARGIN + leftBoxWidth - 90, currentY + 52, 80, 16).fill('#FFF');
+        doc.rect(rightBoxX + rightBoxWidth - 90, currentY + 52, 80, 16).fill('#FFF');
         doc.fillColor(COLOR_MUTED).fontSize(10);
-        drawText('المبلغ بالحروف', MARGIN + leftBoxWidth - 90, currentY + 54, { width: 80, align: 'center' });
+        drawText('المبلغ بالحروف', rightBoxX + rightBoxWidth - 90, currentY + 54, { width: 80, align: 'center' });
 
         doc.fillColor(COLOR_TEXT).fontSize(11);
-        drawText(`فقط وقدره ( ${arabicAmount} ) لا غير.`, MARGIN + 5, currentY + 72, { width: leftBoxWidth - 10, align: 'center' });
+        drawText(`فقط وقدره ( ${arabicAmount} ) لا غير.`, rightBoxX + 5, currentY + 72, { width: rightBoxWidth - 10, align: 'center' });
 
-        // === RIGHT: كشف الحساب ===
+        // === LEFT: كشف الحساب ===
         doc.lineWidth(2).strokeColor(COLOR_DARK).rect(finBoxX, currentY, finBoxWidth, 100).stroke();
 
         // Header
@@ -330,11 +358,12 @@ export async function generateInvoicePdfBuffer(invoice: any): Promise<Buffer> {
         doc.fillColor(COLOR_MUTED).fontSize(12);
 
         doc.undash();
+        // Both signature lines dashed to match HTML print page
         doc.moveTo(MARGIN + 40, currentY).lineTo(MARGIN + 160, currentY).dash(5, { space: 5 }).strokeColor(COLOR_MUTED).stroke();
-        drawText('توقيع المستلم', MARGIN + 40, currentY + 10, { width: 120, align: 'center' });
+        drawText('توقيع المسئول', MARGIN + 40, currentY + 10, { width: 120, align: 'center' });
 
-        doc.moveTo(PAGE_WIDTH - MARGIN - 160, currentY).lineTo(PAGE_WIDTH - MARGIN - 40, currentY).stroke();
-        drawText('توقيع المسئول', PAGE_WIDTH - MARGIN - 160, currentY + 10, { width: 120, align: 'center' });
+        doc.moveTo(PAGE_WIDTH - MARGIN - 160, currentY).lineTo(PAGE_WIDTH - MARGIN - 40, currentY).dash(5, { space: 5 }).stroke();
+        drawText('توقيع المستلم', PAGE_WIDTH - MARGIN - 160, currentY + 10, { width: 120, align: 'center' });
 
         doc.end();
     });

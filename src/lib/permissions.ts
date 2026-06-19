@@ -3,7 +3,7 @@ export const DEFAULT_PERMISSIONS: Record<string, string[]> = {
     ROOT: ['dashboard', 'sales', 'stocktake', 'inventory', 'movements', 'products', 'invoices', 'customers', 'reports', 'review', 'portfolio', 'logs', 'users', 'debts', 'backup'],
     ADMIN: ['dashboard', 'sales', 'stocktake', 'inventory', 'movements', 'products', 'invoices', 'customers', 'reports', 'review', 'portfolio', 'logs', 'users', 'debts', 'backup'],
     ACCOUNTANT: ['dashboard', 'invoices', 'reports', 'logs', 'customers', 'portfolio', 'debts'],
-    SALESPERSON: ['sales', 'stocktake', 'inventory', 'customers', 'portfolio', 'debts'],
+    SALESPERSON: ['sales', 'inventory', 'portfolio', 'debts'],
     READ_ONLY: ['dashboard', 'invoices'],
 };
 
