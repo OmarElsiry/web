@@ -96,13 +96,14 @@ const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], 
     const hasActiveItem = items.some(item => pathname === item.to || pathname.startsWith(item.to + '/'));
     const [isOpen, setIsOpen] = useState(hasActiveItem || id === 'overview' || id === 'sales'); // Open overview and sales by default
 
+    const toggleOpen = useCallback(() => setIsOpen(prev => !prev), []);
+
     if (items.length === 0) return null;
 
     return (
         <div className="space-y-1 mb-2">
             <button 
-                // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={toggleOpen}
                 className="w-full flex items-center justify-between px-6 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
             >
                 {t(`groups.${id}`)}

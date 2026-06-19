@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
@@ -42,7 +41,7 @@ function LogsContent() {
     const [selectedUserId, setSelectedUserId] = useState<string>(searchParams.get('user') || '');
     const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
 
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
             const res = await getAuditLogs(page, ITEMS_PER_PAGE, selectedUserId || undefined);
@@ -53,7 +52,7 @@ function LogsContent() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [page, selectedUserId]);
 
     useEffect(() => {
         getUsers().then(setUsers);
@@ -64,13 +63,13 @@ function LogsContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, selectedUserId]);
 
-    const getActionColor = (action: string) => {
+    const getActionColor = useCallback((action: string) => {
         if (action.includes('SALE')) return 'bg-green-100 text-green-700 border-green-200';
         if (action.includes('DELETE')) return 'bg-red-100 text-red-700 border-red-200';
         if (action.includes('UPDATE')) return 'bg-blue-100 text-blue-700 border-blue-200';
         if (action.includes('CREATE')) return 'bg-purple-100 text-purple-700 border-purple-200';
         return 'bg-secondary text-secondary-foreground border-border';
-    };
+    }, []);
 
     const handleUserFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedUserId(e.target.value);

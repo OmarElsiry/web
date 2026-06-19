@@ -1,4 +1,3 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -51,21 +50,21 @@ export default function IncomingStockPage() {
         notes: ''
     });
 
-    const refreshData = async () => {
+    const refreshData = useCallback(async () => {
         setLoading(true);
         const data = await getIncomingTransactions();
         setItems(data as IncomingItem[]);
         setLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
         refreshData();
         // Pre-fetch products and locations
         getProducts().then(setProducts);
         getLocations().then(setLocations);
-    }, []);
+    }, [refreshData]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.productId || !formData.locationId || formData.quantity <= 0) return;
 
@@ -81,7 +80,7 @@ export default function IncomingStockPage() {
         } finally {
             setSubmitting(false);
         }
-    };
+    }, [formData.productId, formData.locationId, formData.quantity, refreshData, t]);
 
     const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);

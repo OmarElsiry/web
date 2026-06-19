@@ -1,7 +1,6 @@
-/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Download, Database, CheckCircle2 } from 'lucide-react';
 import { Button, ErrorBanner } from '@/components/ui';
@@ -12,7 +11,7 @@ export default function BackupPage() {
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
 
-    const handleBackup = async () => {
+    const handleBackup = useCallback(async () => {
         setIsBackingUp(true);
         setStatus('idle');
         setErrorMessage('');
@@ -53,7 +52,7 @@ export default function BackupPage() {
         } finally {
             setIsBackingUp(false);
         }
-    };
+    }, []);
 
     return (
         <div className="p-6 max-w-4xl mx-auto">
