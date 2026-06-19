@@ -3,7 +3,7 @@
     "dashboard": "الرئيسية",
     "sales": "البيع",
     "stocktake": "الجرد",
-    "movements": "الطالع والداخل",
+    "movements": "حركات المخزن",
     "products": "الأصناف والتسعير",
     "invoices": "الفواتير",
     "refunds": "المرتجعات",
@@ -184,33 +184,57 @@
       "SALARY": "الرواتب فقط",
       "OTHER": "غير الرواتب فقط"
     },
-    "buttons": {
-      "salaryPdf": "ملف رواتب PDF",
-      "newExpense": "مصروف جديد"
-    },
-    "form": {
-      "title": "إضافة مصروف جديد",
-      "description": "الوصف",
-      "descriptionPlaceholder": "قهوة، كهرباء...",
-      "amount": "المبلغ ({currency})",
-      "whoSpent": "من قام بالصرف؟",
-      "selectStaff": "اختر الموظف...",
-      "category": "الفئة",
-      "selectCategory": "اختر الفئة...",
-      "date": "التاريخ",
-      "save": "حفظ المصروف",
-      "saving": "جاري الحفظ..."
-    },
-    "table": {
-      "date": "التاريخ",
-      "description": "الوصف",
-      "category": "الفئة",
-      "spentBy": "بواسطة",
-      "amount": "المبلغ",
-      "actions": "إجراءات",
-      "loading": "جاري تحميل المصروفات...",
-      "noResults": "لم يتم العثور على مصروفات لهذه الفترة."
-    },
+  "buttons": {
+    "salaryPdf": "ملف رواتب PDF",
+    "newExpense": "مصروف جديد",
+    "cancel": "إلغاء",
+    "previous": "السابق",
+    "next": "التالي",
+    "clear": "مسح"
+  },
+  "search": {
+    "placeholder": "بحث بالوصف..."
+  },
+  "breakdown": {
+    "title": "تفصيل الفئات",
+    "subtitle": "الإجمالي حسب الفئة للفترة المحددة",
+    "category": "الفئة",
+    "count": "العدد",
+    "total": "الإجمالي",
+    "share": "النسبة",
+    "empty": "لا توجد مصروفات في هذه الفترة."
+  },
+  "delete": {
+    "title": "حذف مصروف",
+    "confirm": "حذف",
+    "loading": "جاري الحذف..."
+  },
+  "form": {
+    "title": "إضافة مصروف جديد",
+    "description": "الوصف",
+    "descriptionPlaceholder": "قهوة، كهرباء...",
+    "amount": "المبلغ ({currency})",
+    "whoSpent": "من قام بالصرف؟",
+    "selectStaff": "اختر الموظف...",
+    "category": "الفئة",
+    "selectCategory": "اختر الفئة...",
+    "date": "التاريخ",
+    "save": "حفظ المصروف",
+    "saving": "جاري الحفظ...",
+    "cancel": "إلغاء"
+  },
+  "table": {
+    "date": "التاريخ",
+    "description": "الوصف",
+    "category": "الفئة",
+    "spentBy": "بواسطة",
+    "amount": "المبلغ",
+    "actions": "إجراءات",
+    "loading": "جاري تحميل المصروفات...",
+    "noResults": "لم يتم العثور على مصروفات لهذه الفترة.",
+    "noCategory": "غير مصنف",
+    "pageInfo": "صفحة {current} من {total}"
+  },
     "categoriesList": {
       "SALARY": "راتب",
       "Utilities": "مرافق",
