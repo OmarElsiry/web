@@ -36,20 +36,13 @@ function handleAuthRedirect(pathname: string, request: NextRequest, user: User |
     return null;
 }
 
-function handleDeviceRouting(pathname: string, request: NextRequest, userAgent: string): NextResponse | null {
-    const isAndroid = /Android/i.test(userAgent);
+function handleDeviceRouting(pathname: string, request: NextRequest): NextResponse | null {
     const pathWithoutLocale = pathname.replace(/^\/(en|ar)(\/|$)/, '/');
     const localeMatch = pathname.match(/^\/(en|ar)/);
     const localePrefix = localeMatch ? localeMatch[0] : '';
 
-    if (pathWithoutLocale === '/sales' || pathWithoutLocale === '/sales/') {
-        if (isAndroid) {
-            return NextResponse.redirect(new URL(`${localePrefix}/sales/quick`, request.url));
-        }
-    } else if (pathWithoutLocale === '/sales/quick' || pathWithoutLocale === '/sales/quick/') {
-        if (!isAndroid) {
-            return NextResponse.redirect(new URL(`${localePrefix}/sales`, request.url));
-        }
+    if (pathWithoutLocale === '/sales/quick' || pathWithoutLocale === '/sales/quick/') {
+        return NextResponse.redirect(new URL(`${localePrefix}/sales`, request.url));
     }
 
     return null;
@@ -103,8 +96,7 @@ export async function middleware(request: NextRequest) {
     const authRedirect = handleAuthRedirect(pathname, request, user);
     if (authRedirect) return authRedirect;
 
-    const userAgent = request.headers.get('user-agent') || '';
-    const deviceRedirect = handleDeviceRouting(pathname, request, userAgent);
+    const deviceRedirect = handleDeviceRouting(pathname, request);
     if (deviceRedirect) return deviceRedirect;
 
     return supabaseResponse;
