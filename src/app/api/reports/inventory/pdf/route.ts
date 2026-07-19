@@ -163,7 +163,7 @@ export async function GET(request: NextRequest) {
             doc.text(`Total Retail Valuation: EGP ${grandTotalSellVal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 300, summaryY + 35, { align: 'right', width: 240 });
 
             // Footer info
-            doc.fontSize(8).fillColor('#A0AEC0').text('Stash Inventory Management System', 40, 800, { align: 'center' });
+            doc.fontSize(8).fillColor('#A0AEC0').text('Zone Inventory Management System', 40, 800, { align: 'center' });
 
             doc.end();
         });

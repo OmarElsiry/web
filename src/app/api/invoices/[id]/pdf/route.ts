@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         doc.on('error', reject);
 
         // -- Content Generation --
-        const logoPath = path.join(process.cwd(), 'public', 'stash-logo.png');
+        const logoPath = path.join(process.cwd(), 'public', 'zone-logo.png');
         let titleX = 50;
         if (fs.existsSync(logoPath)) {
             doc.image(logoPath, 50, 45, { width: 80 });
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
         doc.fillColor('#444444')
             .fontSize(20)
-            .text('STASH', titleX, 57)
+            .text('ZONE', titleX, 57)
             .fontSize(10)
             .text('123 Coffee Lane', 200, 65, { align: 'right' })
             .text('Cairo, Egypt', 200, 80, { align: 'right' })

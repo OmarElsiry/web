@@ -594,7 +594,7 @@
       "empty": "لا يوجد سجل مشتريات لهذا العميل."
     },
     "report": {
-      "watermark": "STASH",
+      "watermark": "ZONE",
       "title": "كشف حساب عميل",
       "customerName": "اسم العميل",
       "date": "التاريخ",

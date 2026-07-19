@@ -594,7 +594,7 @@
       "empty": "No purchase history found for this customer."
     },
     "report": {
-      "watermark": "STASH",
+      "watermark": "ZONE",
       "title": "Statement of Account",
       "customerName": "Customer Name",
       "date": "Date",

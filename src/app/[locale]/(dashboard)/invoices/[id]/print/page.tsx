@@ -318,9 +318,9 @@ export default function InvoicePrintPage() {
                         <div className="flex-1 flex flex-col items-start">
                             <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/stash-logo.png" alt="STASH Logo" className="w-full h-full object-cover" />
+                                <img src="/zone-logo.png" alt="ZONE Logo" className="w-full h-full object-cover" />
                             </div>
-                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">ZONE</h1>
                             <div className="mt-4 flex items-center gap-2">
                                 {showWarehouse && (
                                     <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
