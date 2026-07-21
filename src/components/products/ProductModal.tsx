@@ -61,8 +61,20 @@ export function ProductModal({
                             <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.name} onChange={handleFormNameChange} />
                         </div>
                         <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                            <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.skuLabel')}</label>
-                            <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.sku} onChange={handleFormSkuChange} />
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold uppercase text-muted-foreground">{t('modal.skuLabel')}</label>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const randomSku = 'SKU-' + Math.floor(100000 + Math.random() * 900000);
+                                        handleFormSkuChange({ target: { value: randomSku } } as React.ChangeEvent<HTMLInputElement>);
+                                    }}
+                                    className="text-[10px] text-primary hover:underline font-bold"
+                                >
+                                    🎲 Auto SKU
+                                </button>
+                            </div>
+                            <input type="text" className="w-full p-3 rounded-xl border border-border bg-background" required value={formData.sku} onChange={handleFormSkuChange} placeholder="e.g. SKU-123456" />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

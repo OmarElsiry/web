@@ -127,6 +127,9 @@ export async function createProduct(data: {
     image?: string;
     initialQuantity?: number;
 }) {
+    if (!data.sku || !data.sku.trim()) {
+        data.sku = 'SKU-' + Math.floor(100000 + Math.random() * 900000);
+    }
     const validation = validateOrFail(ProductSchema, {
         name: data.name,
         sku: data.sku,
