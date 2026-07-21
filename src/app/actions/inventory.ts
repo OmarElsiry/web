@@ -368,7 +368,6 @@ export async function deleteProduct(id: string) {
             include: {
                 _count: {
                     select: {
-                        transactionItems: true,
                         invoiceItems: true,
                         refundItems: true
                     }
@@ -378,12 +377,27 @@ export async function deleteProduct(id: string) {
 
         if (!product) return { success: false, error: 'Product not found.' };
 
-        if (product._count.transactionItems > 0 || product._count.invoiceItems > 0 || product._count.refundItems > 0) {
-            return { success: false, error: 'Cannot delete: product is used in transactions or invoices.' };
+        if (product._count.invoiceItems > 0 || product._count.refundItems > 0) {
+            return { success: false, error: 'Cannot delete: product is used in sales invoices or refunds.' };
+        }
+
+        const nonOpeningTransactions = await prisma.transactionItem.count({
+            where: {
+                productId: id,
+                transaction: {
+                    type: { not: 'IN' }
+                }
+            }
+        });
+
+        if (nonOpeningTransactions > 0) {
+            return { success: false, error: 'Cannot delete: product is used in stock transfers or movements.' };
         }
 
         await prisma.$transaction(async (tx) => {
+            await tx.transactionItem.deleteMany({ where: { productId: id } });
             await tx.inventory.deleteMany({ where: { productId: id } });
+            await tx.transaction.deleteMany({ where: { items: { none: {} } } });
             await tx.product.delete({ where: { id } });
         });
 
