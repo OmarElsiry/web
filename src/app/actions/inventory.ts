@@ -394,6 +394,23 @@ export async function deleteProduct(id: string) {
             return { success: false, error: 'Cannot delete: product is used in stock transfers or movements.' };
         }
 
+        const inventories = await prisma.inventory.findMany({ where: { productId: id } });
+        const totalStock = inventories.reduce((sum, inv) => sum + Number(inv.quantity), 0);
+
+        const productMetadata = {
+            name: product.name,
+            sku: product.sku,
+            categoryId: product.categoryId,
+            costPrice: Number(product.costPrice),
+            baseSellingPrice: Number(product.baseSellingPrice),
+            retailPrice: Number(product.retailPrice || 0),
+            lowestRetailPrice: Number(product.lowestRetailPrice || 0),
+            wholesalePrice: Number(product.wholesalePrice || 0),
+            lowestWholesalePrice: Number(product.lowestWholesalePrice || 0),
+            unit: product.unit,
+            totalStock
+        };
+
         await prisma.$transaction(async (tx) => {
             await tx.transactionItem.deleteMany({ where: { productId: id } });
             await tx.inventory.deleteMany({ where: { productId: id } });
@@ -401,7 +418,13 @@ export async function deleteProduct(id: string) {
             await tx.product.delete({ where: { id } });
         });
 
-        await safeLogActivity('DELETE_PRODUCT', `Deleted product "${product.name}" (${product.sku})`);
+        await safeLogActivity(
+            'DELETE_PRODUCT', 
+            `Deleted product "${product.name}" (${product.sku})`,
+            undefined,
+            true,
+            JSON.stringify(productMetadata)
+        );
 
         revalidatePaths(['/products', '/inventory', '/sales', '/dashboard']);
 

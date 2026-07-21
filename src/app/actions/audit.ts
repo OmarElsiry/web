@@ -148,13 +148,28 @@ export async function undoAuditLogAction(logId: string) {
             return { success: false, error: deleteRes.error || 'Failed to delete product' };
         }
 
-        // 3. Undo Product Deletion (DELETE_PRODUCT) -> Restore Product
+        // 3. Undo Product Deletion (DELETE_PRODUCT) -> Restore Product with Full Data & Stock
         if (actionUpper === 'DELETE_PRODUCT') {
             const skuMatch = details.match(/\(([^)]+)\)/);
             const nameMatch = details.match(/"([^"]+)"/);
 
-            const productName = nameMatch ? nameMatch[1] : 'Restored Product';
-            const productSku = skuMatch ? skuMatch[1] : `RESTORED-${Date.now().toString().slice(-6)}`;
+            let metadata: any = null;
+            if (log.reason) {
+                try {
+                    metadata = JSON.parse(log.reason);
+                } catch {}
+            }
+
+            const productName = metadata?.name || (nameMatch ? nameMatch[1] : 'Restored Product');
+            const productSku = metadata?.sku || (skuMatch ? skuMatch[1] : `RESTORED-${Date.now().toString().slice(-6)}`);
+            const costPrice = metadata?.costPrice !== undefined ? Number(metadata.costPrice) : 0;
+            const baseSellingPrice = metadata?.baseSellingPrice !== undefined ? Number(metadata.baseSellingPrice) : 0;
+            const retailPrice = metadata?.retailPrice !== undefined ? Number(metadata.retailPrice) : 0;
+            const lowestRetailPrice = metadata?.lowestRetailPrice !== undefined ? Number(metadata.lowestRetailPrice) : 0;
+            const wholesalePrice = metadata?.wholesalePrice !== undefined ? Number(metadata.wholesalePrice) : 0;
+            const lowestWholesalePrice = metadata?.lowestWholesalePrice !== undefined ? Number(metadata.lowestWholesalePrice) : 0;
+            const unit = metadata?.unit || 'piece';
+            const initialQuantity = metadata?.totalStock !== undefined ? Number(metadata.totalStock) : 0;
 
             const existing = await prisma.product.findFirst({
                 where: { OR: [{ sku: productSku }, { name: productName }] }
@@ -164,26 +179,39 @@ export async function undoAuditLogAction(logId: string) {
                 return { success: false, error: `Product "${productName}" (${productSku}) already exists.` };
             }
 
-            const { createProduct } = await import('./inventory');
-            const categories = await prisma.category.findMany({ take: 1 });
-            let categoryId = categories[0]?.id;
-            if (!categoryId) {
-                const defaultCat = await prisma.category.create({ data: { name: 'General' } });
-                categoryId = defaultCat.id;
+            let categoryId = metadata?.categoryId;
+            if (categoryId) {
+                const cat = await prisma.category.findUnique({ where: { id: categoryId } });
+                if (!cat) categoryId = undefined;
             }
 
+            if (!categoryId) {
+                const categories = await prisma.category.findMany({ take: 1 });
+                categoryId = categories[0]?.id;
+                if (!categoryId) {
+                    const defaultCat = await prisma.category.create({ data: { name: 'General' } });
+                    categoryId = defaultCat.id;
+                }
+            }
+
+            const { createProduct } = await import('./inventory');
             const restoreRes = await createProduct({
                 name: productName,
                 sku: productSku,
                 categoryId,
-                costPrice: 0,
-                baseSellingPrice: 0,
-                initialQuantity: 0
+                costPrice,
+                baseSellingPrice,
+                retailPrice,
+                lowestRetailPrice,
+                wholesalePrice,
+                lowestWholesalePrice,
+                unit,
+                initialQuantity
             });
 
             if (restoreRes.success) {
-                await logActivity('UNDO_ACTION', `Restored deleted product "${productName}" (${productSku}) via audit logs`);
-                return { success: true, message: `Successfully restored product "${productName}"!` };
+                await logActivity('UNDO_ACTION', `Restored deleted product "${productName}" (${productSku}, Stock: ${initialQuantity}) via audit logs`);
+                return { success: true, message: `Successfully restored product "${productName}" (SKU: ${productSku}, Stock: ${initialQuantity})!` };
             }
             return { success: false, error: restoreRes.error || 'Failed to restore product' };
         }
