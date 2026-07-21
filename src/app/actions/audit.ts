@@ -222,3 +222,142 @@ export async function undoAuditLogAction(logId: string) {
         return { success: false, error: 'Failed to undo action.' };
     }
 }
+
+export async function findProductHistoryLogs(searchTerm: string) {
+    const prisma = getPrisma();
+    try {
+        const [logs, pastInvoiceItems, pastTxItems] = await Promise.all([
+            prisma.auditLog.findMany({
+                where: {
+                    OR: [
+                        { details: { contains: searchTerm } },
+                        { reason: { contains: searchTerm } }
+                    ]
+                },
+                orderBy: { timestamp: 'desc' },
+                take: 50,
+                include: {
+                    user: { select: { name: true, username: true } }
+                }
+            }),
+            prisma.invoiceItem.findMany({
+                where: {
+                    OR: [
+                        { product: { name: { contains: searchTerm } } },
+                        { product: { sku: { contains: searchTerm } } }
+                    ]
+                },
+                include: {
+                    product: true,
+                    invoice: true
+                },
+                take: 20
+            }),
+            prisma.transactionItem.findMany({
+                where: {
+                    OR: [
+                        { product: { name: { contains: searchTerm } } },
+                        { product: { sku: { contains: searchTerm } } }
+                    ]
+                },
+                include: {
+                    product: true,
+                    transaction: true
+                },
+                take: 20
+            })
+        ]);
+
+        return {
+            success: true,
+            logs,
+            pastInvoiceItems: pastInvoiceItems.map(i => ({
+                price: Number(i.unitPrice),
+                qty: i.quantity,
+                invoiceDate: i.invoice.createdAt,
+                productName: i.product.name,
+                sku: i.product.sku
+            })),
+            pastTxItems: pastTxItems.map(t => ({
+                qty: t.quantity,
+                txType: t.transaction.type,
+                productName: t.product.name,
+                sku: t.product.sku
+            }))
+        };
+    } catch (error: unknown) {
+        return { success: false, error: 'Failed to query product logs' };
+    }
+}
+
+export async function deepExploreDatabase(searchTerm: string = 'كولمبي') {
+    const prisma = getPrisma();
+    try {
+        const [auditLogs, products, invoiceItems, transactionItems] = await Promise.all([
+            prisma.auditLog.findMany({
+                where: {
+                    OR: [
+                        { details: { contains: searchTerm } },
+                        { reason: { contains: searchTerm } }
+                    ]
+                },
+                orderBy: { timestamp: 'desc' }
+            }),
+            prisma.product.findMany({
+                where: {
+                    OR: [
+                        { name: { contains: searchTerm } },
+                        { sku: { contains: searchTerm } }
+                    ]
+                },
+                include: {
+                    inventoryItems: true
+                }
+            }),
+            prisma.invoiceItem.findMany({
+                where: {
+                    OR: [
+                        { product: { name: { contains: searchTerm } } },
+                        { product: { sku: { contains: searchTerm } } }
+                    ]
+                },
+                include: { product: true, invoice: true }
+            }),
+            prisma.transactionItem.findMany({
+                where: {
+                    OR: [
+                        { product: { name: { contains: searchTerm } } },
+                        { product: { sku: { contains: searchTerm } } }
+                    ]
+                },
+                include: { product: true, transaction: true }
+            })
+        ]);
+
+        return {
+            success: true,
+            auditLogs,
+            products: products.map(p => ({
+                id: p.id,
+                name: p.name,
+                sku: p.sku,
+                costPrice: Number(p.costPrice),
+                baseSellingPrice: Number(p.baseSellingPrice),
+                stock: p.inventoryItems.reduce((s, i) => s + Number(i.quantity), 0)
+            })),
+            invoiceItems: invoiceItems.map(i => ({
+                productName: i.product.name,
+                unitPrice: Number(i.unitPrice),
+                quantity: i.quantity,
+                invoiceId: i.invoiceId
+            })),
+            transactionItems: transactionItems.map(t => ({
+                productName: t.product.name,
+                quantity: t.quantity,
+                type: t.transaction.type
+            }))
+        };
+    } catch (error: unknown) {
+        return { success: false, error: 'Database search failed' };
+    }
+}
