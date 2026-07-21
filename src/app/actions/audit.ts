@@ -85,3 +85,72 @@ export async function getAuditLogs(page = 1, limit = 50, userId?: string) {
         return { success: false, error: 'Failed to fetch logs' };
     }
 }
+
+export async function undoAuditLogAction(logId: string) {
+    const prisma = getPrisma();
+    try {
+        const log = await prisma.auditLog.findUnique({ where: { id: logId } });
+        if (!log) return { success: false, error: 'Audit log entry not found.' };
+
+        const actionUpper = log.action.toUpperCase();
+        const details = log.details || '';
+
+        // 1. Undo Sale / Invoice Creation
+        if (actionUpper.includes('SALE') || actionUpper.includes('INVOICE')) {
+            const invoiceMatch = details.match(/#([A-Za-z0-9-]+)/);
+            if (invoiceMatch && invoiceMatch[1]) {
+                const targetInvoiceId = invoiceMatch[1];
+                const invoice = await prisma.invoice.findFirst({
+                    where: {
+                        OR: [
+                            { id: targetInvoiceId },
+                            { id: { endsWith: targetInvoiceId } }
+                        ]
+                    }
+                });
+                if (!invoice) return { success: false, error: `Invoice ${targetInvoiceId} not found or already undone.` };
+                
+                const { undoInvoice } = await import('./invoices');
+                const res = await undoInvoice(invoice.id);
+                if (res.success) {
+                    await logActivity('UNDO_ACTION', `Undid sale/invoice #${invoice.id} via audit logs`);
+                    return { success: true, message: `Successfully undone invoice #${invoice.id}` };
+                }
+                return { success: false, error: res.error || 'Failed to undo invoice' };
+            }
+        }
+
+        // 2. Undo Product Creation
+        if (actionUpper.includes('CREATE_PRODUCT') || actionUpper.includes('PRODUCT')) {
+            const skuMatch = details.match(/\(([^)]+)\)/);
+            let product = null;
+
+            if (skuMatch && skuMatch[1]) {
+                product = await prisma.product.findFirst({ where: { sku: skuMatch[1] } });
+            }
+            if (!product) {
+                const nameMatch = details.match(/"([^"]+)"/);
+                if (nameMatch && nameMatch[1]) {
+                    product = await prisma.product.findFirst({ where: { name: nameMatch[1] } });
+                }
+            }
+
+            if (!product) {
+                return { success: false, error: 'Product not found or already deleted.' };
+            }
+
+            const { deleteProduct } = await import('./inventory');
+            const deleteRes = await deleteProduct(product.id);
+            if (deleteRes.success) {
+                await logActivity('UNDO_ACTION', `Undid product creation for "${product.name}" (${product.sku}) via audit logs`);
+                return { success: true, message: `Successfully deleted product "${product.name}"` };
+            }
+            return { success: false, error: deleteRes.error || 'Failed to delete product' };
+        }
+
+        return { success: false, error: 'This action type cannot be automatically undone.' };
+    } catch (error: unknown) {
+        logger.error('Undo audit log action error:', error);
+        return { success: false, error: 'Failed to undo action.' };
+    }
+}

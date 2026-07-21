@@ -2,9 +2,9 @@
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getAuditLogs } from '@/app/actions/audit';
+import { getAuditLogs, undoAuditLogAction } from '@/app/actions/audit';
 import { getUsers } from '@/app/actions/users';
-import { RefreshCcw, User, Filter, ScrollText } from 'lucide-react';
+import { RefreshCcw, User, Filter, ScrollText, RotateCcw, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { PageHeader, Spinner, Th, Pagination } from '@/components/ui';
@@ -40,6 +40,7 @@ function LogsContent() {
     const [page, setPage] = useState(1);
     const [selectedUserId, setSelectedUserId] = useState<string>(searchParams.get('user') || '');
     const [pagination, setPagination] = useState({ total: 0, pages: 1, current: 1 });
+    const [undoingId, setUndoingId] = useState<string | null>(null);
 
     const fetchLogs = useCallback(async () => {
         setLoading(true);
@@ -53,6 +54,22 @@ function LogsContent() {
             setLoading(false);
         }
     }, [page, selectedUserId]);
+
+    const handleUndoLog = useCallback(async (logId: string, actionName: string) => {
+        if (!confirm(isRtl ? `هل أنت متأكد من التراجع عن هذه العملية (${actionName})؟` : `Are you sure you want to undo this action (${actionName})?`)) return;
+        setUndoingId(logId);
+        try {
+            const res = await undoAuditLogAction(logId);
+            if (res.success) {
+                alert(res.message || 'Action undone successfully!');
+                await fetchLogs();
+            } else {
+                alert(res.error || 'Failed to undo action');
+            }
+        } finally {
+            setUndoingId(null);
+        }
+    }, [isRtl, fetchLogs]);
 
     useEffect(() => {
         getUsers().then(setUsers);
@@ -137,44 +154,67 @@ function LogsContent() {
                                 <Th>{t('table.user')}</Th>
                                 <Th>{t('table.email')}</Th>
                                 <Th>{t('table.time')}</Th>
+                                <Th>Actions</Th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {loading ? (
-                                <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground"><Spinner className="mx-auto" /></td></tr>
+                                <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground"><Spinner className="mx-auto" /></td></tr>
                             // eslint-disable-next-line sonarjs/no-nested-conditional
                             ) : logs.length === 0 ? (
-                                <tr><td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">{t('empty')}</td></tr>
+                                <tr><td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">{t('empty')}</td></tr>
                             ) : (
-                                logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-muted/50 transition-colors text-sm">
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold border", getActionColor(log.action))}>
-                                                {log.action}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            {log.status === false ? (
-                                                <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-red-100 text-red-700 border-red-200">{t('status.failed')}</span>
-                                            ) : (
-                                                <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-green-100 text-green-700 border-green-200">{t('status.success')}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 font-medium text-foreground/80 text-center">{log.details}</td>
-                                        <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.reason || '-'}</td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap">
-                                                <User size={14} />
-                                                {log.user?.name || 'System'}
-                                                {log.user?.role && <span className="text-[10px] bg-secondary px-1 rounded">{log.user.role}</span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.user?.username || '-'}</td>
-                                        <td className={clsx("px-6 py-4 tabular-nums text-muted-foreground text-xs whitespace-nowrap", 'text-center')}>
-                                            {new Date(log.timestamp).toLocaleString(locale)}
-                                        </td>
-                                    </tr>
-                                ))
+                                logs.map((log) => {
+                                    const canUndo = log.status !== false && (
+                                        log.action.includes('CREATE') || 
+                                        log.action.includes('SALE') || 
+                                        log.action.includes('PRODUCT') || 
+                                        log.action.includes('INVOICE')
+                                    );
+                                    return (
+                                        <tr key={log.id} className="hover:bg-muted/50 transition-colors text-sm">
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold border", getActionColor(log.action))}>
+                                                    {log.action}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {log.status === false ? (
+                                                    <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-red-100 text-red-700 border-red-200">{t('status.failed')}</span>
+                                                ) : (
+                                                    <span className="px-2 py-1 rounded-full text-[10px] font-bold border bg-green-100 text-green-700 border-green-200">{t('status.success')}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 font-medium text-foreground/80 text-center">{log.details}</td>
+                                            <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.reason || '-'}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex items-center gap-2 text-muted-foreground whitespace-nowrap justify-center">
+                                                    <User size={14} />
+                                                    {log.user?.name || 'System'}
+                                                    {log.user?.role && <span className="text-[10px] bg-secondary px-1 rounded">{log.user.role}</span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-muted-foreground text-xs text-center">{log.user?.username || '-'}</td>
+                                            <td className={clsx("px-6 py-4 tabular-nums text-muted-foreground text-xs whitespace-nowrap", 'text-center')}>
+                                                {new Date(log.timestamp).toLocaleString(locale)}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {canUndo ? (
+                                                    <button
+                                                        onClick={() => handleUndoLog(log.id, log.action)}
+                                                        disabled={undoingId === log.id}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs rounded-lg transition-colors border border-amber-500/20 disabled:opacity-50"
+                                                    >
+                                                        {undoingId === log.id ? <Loader2 size={12} className="animate-spin" /> : <RotateCcw size={12} />}
+                                                        {isRtl ? 'تراجع' : 'Undo'}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-xs text-muted-foreground">-</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             )}
                         </tbody>
                     </table>
