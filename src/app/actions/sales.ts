@@ -31,7 +31,7 @@ export async function getProducts() {
         costPrice: Number(p.costPrice),
         categoryId: p.categoryId,
         category: p.category,
-        stock: stockMap.get(p.id) || 0
+        stock: Number(stockMap.get(p.id) || 0)
     }));
 }
 

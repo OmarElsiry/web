@@ -176,7 +176,7 @@ export default function SalesPage() {
         }
 
         Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
-            setProducts(prods);
+            setProducts(prods as any);
             setStaffList(staff);
             setLoading(false);
             if (user && staff.some((s: Staff) => s.id === user.id)) {
@@ -386,7 +386,7 @@ export default function SalesPage() {
                         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
                         setAmountPaid('');
                         setPreviousBalance(0);
-                        getProducts().then(setProducts);
+                        getProducts().then(prods => setProducts(prods as any));
                     }, 1000);
                 }, 500);
             } else {
