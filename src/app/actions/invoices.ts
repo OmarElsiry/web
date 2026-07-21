@@ -270,7 +270,13 @@ export async function undoInvoice(invoiceId: string, userId?: string) {
             if (!existing) throw new Error('Invoice not found.');
 
             if (existing.refunds && existing.refunds.length > 0) {
-                throw new Error('Cannot undo an invoice that has associated refunds. Please delete or revert the refunds first.');
+                const refundIds = existing.refunds.map(r => r.id);
+                await tx.refundItem.deleteMany({
+                    where: { refundId: { in: refundIds } }
+                });
+                await tx.refund.deleteMany({
+                    where: { id: { in: refundIds } }
+                });
             }
 
             const loc = await getDefaultLocation(tx, { createIfMissing: false });

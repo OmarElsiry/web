@@ -41,11 +41,6 @@ export default function InvoiceDetailsModal({
     const router = useRouter();
 
     const handleUndoInvoice = useCallback(async () => {
-        if (invoice.items?.some(i => i.quantity > i.refundableQuantity)) {
-             alert(t('details.cannotUndoRefunded', { defaultValue: 'Cannot undo an invoice with processed refunds. Revert refunds first.' }));
-             return;
-        }
-
         if (!confirm(t('details.confirmUndo', { defaultValue: 'Are you sure you want to completely undo this invoice? This action cannot be reversed.' }))) {
             return;
         }
@@ -61,11 +56,6 @@ export default function InvoiceDetailsModal({
     }, [invoice, t, onUpdate]);
 
     const handleEditInvoice = useCallback(async () => {
-        if (invoice.items?.some(i => i.quantity > i.refundableQuantity)) {
-             alert(t('details.cannotUndoRefunded', { defaultValue: 'Cannot undo an invoice with processed refunds. Revert refunds first.' }));
-             return;
-        }
-
         if (!confirm(t('details.confirmEditUndo', { defaultValue: 'Are you sure you want to edit this invoice? The current invoice will be undone and its exact details will be loaded into the sales screen for modification.' }))) {
             return;
         }
