@@ -208,8 +208,8 @@ export default function QuickWizard({ onSwitchMode, onSaleComplete }: QuickWizar
         try {
             const itemsToProcess = cart.map(item => ({
                 productId: item.product.id,
-                quantity: item.quantity,
-                unitPrice: item.price
+                quantity: Math.max(1, item.quantity || 1),
+                unitPrice: Math.max(0, item.price || 0)
             }));
 
             const buyerInfo = selectedCustomer ? {

@@ -323,11 +323,16 @@ export default function SalesPage() {
         setError(null);
 
         try {
-            const itemsToProcess = cart.map(item => ({
-                productId: item.product.id,
-                quantity: item.quantity,
-                unitPrice: item.priceOverride - (Number(item.discountValue) || 0) / item.quantity // Distribute discount to unit price for DB
-            }));
+            const itemsToProcess = cart.map(item => {
+                const qty = Math.max(1, item.quantity || 1);
+                const disc = Number(item.discountValue) || 0;
+                const effectiveUnitPrice = Math.max(0, item.priceOverride - (disc / qty));
+                return {
+                    productId: item.product.id,
+                    quantity: qty,
+                    unitPrice: effectiveUnitPrice
+                };
+            });
 
             const buyerInfo = {
                 customerName,
