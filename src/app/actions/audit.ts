@@ -120,8 +120,8 @@ export async function undoAuditLogAction(logId: string) {
             }
         }
 
-        // 2. Undo Product Creation
-        if (actionUpper.includes('CREATE_PRODUCT') || actionUpper.includes('PRODUCT')) {
+        // 2. Undo Product Creation (CREATE_PRODUCT)
+        if (actionUpper === 'CREATE_PRODUCT') {
             const skuMatch = details.match(/\(([^)]+)\)/);
             let product = null;
 
@@ -136,16 +136,56 @@ export async function undoAuditLogAction(logId: string) {
             }
 
             if (!product) {
-                return { success: false, error: 'Product not found or already deleted.' };
+                return { success: false, error: 'This product has already been deleted.' };
             }
 
             const { deleteProduct } = await import('./inventory');
             const deleteRes = await deleteProduct(product.id);
             if (deleteRes.success) {
-                await logActivity('UNDO_ACTION', `Undid product creation for "${product.name}" (${product.sku}) via audit logs`);
+                await logActivity('UNDO_ACTION', `Undid creation of product "${product.name}" (${product.sku}) via audit logs`);
                 return { success: true, message: `Successfully deleted product "${product.name}"` };
             }
             return { success: false, error: deleteRes.error || 'Failed to delete product' };
+        }
+
+        // 3. Undo Product Deletion (DELETE_PRODUCT) -> Restore Product
+        if (actionUpper === 'DELETE_PRODUCT') {
+            const skuMatch = details.match(/\(([^)]+)\)/);
+            const nameMatch = details.match(/"([^"]+)"/);
+
+            const productName = nameMatch ? nameMatch[1] : 'Restored Product';
+            const productSku = skuMatch ? skuMatch[1] : `RESTORED-${Date.now().toString().slice(-6)}`;
+
+            const existing = await prisma.product.findFirst({
+                where: { OR: [{ sku: productSku }, { name: productName }] }
+            });
+
+            if (existing) {
+                return { success: false, error: `Product "${productName}" (${productSku}) already exists.` };
+            }
+
+            const { createProduct } = await import('./inventory');
+            const categories = await prisma.category.findMany({ take: 1 });
+            let categoryId = categories[0]?.id;
+            if (!categoryId) {
+                const defaultCat = await prisma.category.create({ data: { name: 'General' } });
+                categoryId = defaultCat.id;
+            }
+
+            const restoreRes = await createProduct({
+                name: productName,
+                sku: productSku,
+                categoryId,
+                costPrice: 0,
+                baseSellingPrice: 0,
+                initialQuantity: 0
+            });
+
+            if (restoreRes.success) {
+                await logActivity('UNDO_ACTION', `Restored deleted product "${productName}" (${productSku}) via audit logs`);
+                return { success: true, message: `Successfully restored product "${productName}"!` };
+            }
+            return { success: false, error: restoreRes.error || 'Failed to restore product' };
         }
 
         return { success: false, error: 'This action type cannot be automatically undone.' };
