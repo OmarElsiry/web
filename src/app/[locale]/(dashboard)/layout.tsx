@@ -62,11 +62,12 @@ interface CurrentUser {
     role: string;
 }
 
-const SidebarItem = ({ to, icon: Icon, translationKey, active }: { to: string, icon: React.ElementType, translationKey: string, active: boolean }) => {
+const SidebarItem = ({ to, icon: Icon, translationKey, active, onClick }: { to: string, icon: React.ElementType, translationKey: string, active: boolean, onClick?: () => void }) => {
     const t = useTranslations('Navigation');
     return (
         <Link prefetch={false}
             href={to as any}
+            onClick={onClick}
             className={clsx(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors mx-2",
                 active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -78,7 +79,7 @@ const SidebarItem = ({ to, icon: Icon, translationKey, active }: { to: string, i
     );
 };
 
-const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], pathname: string }) => {
+const SidebarGroup = ({ id, items, pathname, onItemClick }: { id: string, items: MenuItem[], pathname: string, onItemClick?: () => void }) => {
     const t = useTranslations('Navigation');
     // If any item is active, keep it open by default
     const hasActiveItem = items.some(item => pathname === item.to || pathname.startsWith(item.to + '/'));
@@ -104,6 +105,7 @@ const SidebarGroup = ({ id, items, pathname }: { id: string, items: MenuItem[], 
                         icon={iconMap[item.to] || LayoutDashboard}
                         translationKey={item.translationKey}
                         active={pathname === item.to || pathname.startsWith(item.to + '/')}
+                        onClick={onItemClick}
                     />
                 ))}
             </div>
@@ -151,7 +153,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Sidebar */}
             <aside className={clsx(
                 "fixed md:relative z-30 w-64 h-full bg-card border-r border-border flex flex-col transition-transform duration-300",
-                !isSidebarOpen ? "-translate-x-full md:translate-x-0" : "translate-x-0",
+                !isSidebarOpen 
+                    ? (locale === 'ar' ? "translate-x-full md:translate-x-0" : "-translate-x-full md:translate-x-0") 
+                    : "translate-x-0",
                 locale === 'ar' ? "right-0 border-l border-r-0" : "left-0"
             )}>
                 <div className="p-6 border-b border-border flex items-center gap-3">
@@ -170,21 +174,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <SidebarGroup 
                         id="overview" 
                         pathname={pathname}
+                        onItemClick={handleCloseSidebar}
                         items={menuItems.filter(i => ['/dashboard', '/analytics'].includes(i.to))} 
                     />
                     <SidebarGroup 
                         id="sales" 
                         pathname={pathname}
+                        onItemClick={handleCloseSidebar}
                         items={menuItems.filter(i => ['/sales', '/invoices', '/refunds', '/customers', '/profits', '/expenses', '/staff-sales'].includes(i.to))} 
                     />
                     <SidebarGroup 
                         id="inventory" 
                         pathname={pathname}
+                        onItemClick={handleCloseSidebar}
                         items={menuItems.filter(i => ['/products', '/pricing', '/stocktake', '/movements', '/incoming'].includes(i.to))} 
                     />
                     <SidebarGroup 
                         id="management" 
                         pathname={pathname}
+                        onItemClick={handleCloseSidebar}
                         items={menuItems.filter(i => ['/logs', '/users'].includes(i.to))} 
                     />
                 </nav>
