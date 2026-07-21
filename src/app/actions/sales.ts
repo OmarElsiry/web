@@ -115,9 +115,9 @@ export async function processSale(
                     where: { productId: item.productId, locationId: loc.id }
                 });
 
-                if (!inventory || inventory.quantity < item.quantity) {
+                const available = inventory ? Number(inventory.quantity) : 0;
+                if (!inventory || available < item.quantity) {
                     const product = await tx.product.findUnique({ where: { id: item.productId } });
-                    const available = inventory ? inventory.quantity : 0;
                     throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
                 }
 
