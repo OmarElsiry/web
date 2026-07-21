@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle, ShoppingBag, FileText } from 'lucide-react';
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
 import { tafqeet } from '@/lib/tafqeet';
+import QuickWizard from '@/components/sales/QuickWizard';
 
 interface Product {
     id: string;
@@ -57,6 +58,10 @@ export default function SalesPage() {
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showSettings, setShowSettings] = useState(true);
+
+    // Responsive / View Mode State
+    const [activeView, setActiveView] = useState<'auto' | 'quick' | 'full'>('auto');
+    const [isMobileScreen, setIsMobileScreen] = useState(false);
 
     // Sidebar Toggles
     const [showWarehouse, setShowWarehouse] = useState(false);
@@ -179,6 +184,12 @@ export default function SalesPage() {
             }
         });
 
+        const checkScreen = () => {
+            setIsMobileScreen(window.innerWidth < 768);
+        };
+        checkScreen();
+        window.addEventListener('resize', checkScreen);
+
         const handleClickOutside = (event: MouseEvent) => {
             if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
                 setShowProductDropdown(false);
@@ -188,7 +199,10 @@ export default function SalesPage() {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('resize', checkScreen);
+        };
     }, []);
 
     // Derived values
@@ -397,6 +411,16 @@ export default function SalesPage() {
         );
     }
 
+    const showQuickView = activeView === 'quick' || (activeView === 'auto' && isMobileScreen);
+
+    if (showQuickView) {
+        return (
+            <QuickWizard 
+                onSwitchMode={() => setActiveView('full')}
+            />
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
             <datalist id="warehouse-history">
@@ -528,7 +552,16 @@ export default function SalesPage() {
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
                     {showSettings && (
                         <div className="flex flex-col gap-1">
-                            <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
+                            <div className="flex items-center justify-between gap-2">
+                                <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
+                                <button
+                                    onClick={() => setActiveView('quick')}
+                                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-colors"
+                                >
+                                    <ShoppingBag size={12} />
+                                    <span>البيع السريع</span>
+                                </button>
+                            </div>
                             <button onClick={saveDefaults} className="text-[10px] text-blue-600 font-bold hover:underline self-start">حفظ كإعدادات افتراضية</button>
                         </div>
                     )}

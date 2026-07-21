@@ -97,21 +97,33 @@ export async function processSale(
                 });
             }
 
+            // Verify sellerId exists in database to prevent Foreign Key crashes
+            let verifiedSellerId: string | null = null;
+            if (sellerId) {
+                const existingUser = await tx.user.findUnique({
+                    where: { id: sellerId },
+                    select: { id: true }
+                });
+                if (existingUser) {
+                    verifiedSellerId = existingUser.id;
+                }
+            }
+
             // A. VALIDATE STOCK & PREPARE UPDATES
             for (const item of items) {
                 const inventory = await tx.inventory.findFirst({
                     where: { productId: item.productId, locationId: loc.id }
                 });
 
-                const available = inventory ? inventory.quantity : 0;
-                if (available < item.quantity) {
+                if (!inventory || inventory.quantity < item.quantity) {
                     const product = await tx.product.findUnique({ where: { id: item.productId } });
+                    const available = inventory ? inventory.quantity : 0;
                     throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
                 }
 
                 // Update Inventory (Decrement)
                 await tx.inventory.update({
-                    where: { id: inventory!.id },
+                    where: { id: inventory.id },
                     data: { quantity: { decrement: item.quantity } }
                 });
             }
@@ -120,13 +132,11 @@ export async function processSale(
             let finalCustomerId = customerId;
             let previousBalance = 0;
 
-            if (!finalCustomerId && buyerInfo?.customerName) {
-                const name = buyerInfo.customerName as string;
+            if (!finalCustomerId && buyerInfo?.customerName && buyerInfo.customerName.trim()) {
+                const name = buyerInfo.customerName.trim();
                 const phone = buyerInfo.customerPhone || null;
 
                 // Try to resolve customer by name/phone, or create if not found.
-                // Since @@unique([name, phone]) constraint fails in Prisma when phone is null (under upsert),
-                // we safely check with findFirst first.
                 let customer = await tx.customer.findFirst({
                     where: {
                         name,
@@ -173,7 +183,7 @@ export async function processSale(
                     previousBalance,
                     amountPaid: paid,
                     currentBalance,
-                    userId: sellerId || null,
+                    userId: verifiedSellerId,
                     items: {
                         create: invoiceItemsData
                     }
@@ -188,7 +198,7 @@ export async function processSale(
                 data: {
                     type: 'SALE',
                     fromLocationId: loc.id,
-                    createdById: sellerId, // Attribute to Staff or User
+                    createdById: verifiedSellerId, // Attribute to Staff or User
                     items: {
                         create: items.map(item => ({
                             productId: item.productId,
@@ -201,7 +211,7 @@ export async function processSale(
             return newInvoice;
 
         }, {
-            timeout: 10000
+            timeout: 20000
         });
 
         // 3. Audit Log (Async, non-blocking)
