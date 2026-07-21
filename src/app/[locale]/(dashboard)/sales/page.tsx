@@ -1,24 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable sonarjs/unused-import */
-/* eslint-disable sonarjs/no-unused-vars */
-/* eslint-disable sonarjs/no-dead-store */
-
-
-/* eslint-disable sonarjs/pseudo-random */
-/* eslint-disable sonarjs/no-nested-functions */
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo, useDeferredValue } from 'react';
-import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Download, Check, Plus, AlertCircle, Zap } from 'lucide-react';
-import Image from 'next/image';
+import { Search, Loader2, Settings2, X, ChevronDown, ChevronUp, Printer, Check, Plus, AlertCircle, ShoppingBag, FileText } from 'lucide-react';
 import { getProducts, processSale, getStaffList } from '@/app/actions/sales';
-import QuickWizard from '@/components/sales/QuickWizard';
 import { searchCustomers } from '@/app/actions/customers';
 import { getCurrentUser } from '@/app/actions/auth';
-import { getInvoiceForEdit } from '@/app/actions/reviews';
 import clsx from 'clsx';
 import { useTranslations, useLocale } from 'next-intl';
 import { tafqeet } from '@/lib/tafqeet';
+import QuickWizard from '@/components/sales/QuickWizard';
 
 interface Product {
     id: string;
@@ -59,54 +49,23 @@ interface CustomerSearch {
 
 type PaymentMethodType = 'CASH' | 'CREDIT' | 'INSTAPAY';
 
-const loadSavedDefaults = () => {
-    if (typeof window === 'undefined') return null;
-    const savedDefaults = localStorage.getItem('sales_print_defaults');
-    if (!savedDefaults) return null;
-    try {
-        return JSON.parse(savedDefaults);
-    } catch (e) {
-        console.error("Failed to parse sales_print_defaults", e);
-        return null;
-    }
-};
-
-const loadAutocompleteHistory = () => {
-    if (typeof window === 'undefined') return null;
-    const savedHistory = localStorage.getItem('sales_autocomplete_history');
-    if (!savedHistory) return null;
-    try {
-        return JSON.parse(savedHistory);
-    } catch (e) {
-        console.error("Failed to parse sales_autocomplete_history", e);
-        return null;
-    }
-};
-
 export default function SalesPage() {
     const locale = useLocale();
+    const isRtl = locale === 'ar';
 
     const [loading, setLoading] = useState(true);
-    const [checkoutMode, setCheckoutMode] = useState<'standard' | 'quick'>('standard');
-
-    // Automatically set checkoutMode to quick on mobile and tablet viewports
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-            setCheckoutMode('quick');
-        }
-    }, []);
-
     const [processing, setProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [showSettings, setShowSettings] = useState(true);
-    const [pendingReviewNotice, setPendingReviewNotice] = useState(false);
-    const [editFromInvoiceId, setEditFromInvoiceId] = useState<string | null>(null);
-    const [editFromStaffName, setEditFromStaffName] = useState<string | null>(null);
+
+    // Responsive / View Mode State
+    const [activeView, setActiveView] = useState<'auto' | 'quick' | 'full'>('auto');
+    const [isMobileScreen, setIsMobileScreen] = useState(false);
 
     // Sidebar Toggles
     const [showWarehouse, setShowWarehouse] = useState(false);
-    const [showCustomerCode, setShowCustomerCode] = useState(false);
+    const [showCustomerCode, setShowCustomerCode] = useState(true);
     const [showCity, setShowCity] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
@@ -118,9 +77,6 @@ export default function SalesPage() {
 
     // Sidebar Editable Info
     const [sequenceId, setSequenceId] = useState("");
-    useEffect(() => {
-        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
-    }, []);
     const [warehouseName, setWarehouseName] = useState("");
     
     // Customer Info
@@ -129,6 +85,29 @@ export default function SalesPage() {
 
     // Autocomplete History
     const [history, setHistory] = useState<Record<string, string[]>>({});
+
+    const saveDefaults = () => {
+        const defaults = {
+            showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
+            sequenceId, warehouseName
+        };
+        localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
+        alert('تم حفظ الإعدادات الافتراضية بنجاح');
+    };
+
+    const updateHistory = (key: string, val: string) => {
+        if (!val) return;
+        setHistory(prev => {
+            const arr = prev[key] || [];
+            if (!arr.includes(val)) {
+                const newArr = [val, ...arr].slice(0, 10);
+                const next = { ...prev, [key]: newArr };
+                localStorage.setItem('sales_autocomplete_history', JSON.stringify(next));
+                return next;
+            }
+            return prev;
+        });
+    };
     const [city, setCity] = useState("دمياط الجديدة");
     const [address, setAddress] = useState("");
     const [phone1, setPhone1] = useState("");
@@ -140,9 +119,9 @@ export default function SalesPage() {
     const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
     const customerSearchRef = useRef<HTMLDivElement>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const productSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Employee Info
+    const [employeeId, setEmployeeId] = useState("");
     const [employeeName, setEmployeeName] = useState("");
     const [staffList, setStaffList] = useState<Staff[]>([]);
     const [selectedStaffId, setSelectedStaffId] = useState<string>('');
@@ -150,14 +129,15 @@ export default function SalesPage() {
     // Cart Items & Product Search
     const [cart, setCart] = useState<CartItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+    const [products, setProducts] = useState<Product[]>([]);
     const [showProductDropdown, setShowProductDropdown] = useState(false);
     const productSearchRef = useRef<HTMLTableCellElement>(null);
     
     // Payment info
     const [previousBalance, setPreviousBalance] = useState<number>(0);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('CASH');
-    const [amountPaid, setAmountPaid] = useState<number | ''>(0);
+    const [amountPaid, setAmountPaid] = useState<number | ''>('');
 
     // Date
     const formattedDate = new Date().toLocaleDateString('ar-EG', {
@@ -165,36 +145,50 @@ export default function SalesPage() {
         month: 'long',
         day: 'numeric'
     });
-    const formattedTime = new Date().toLocaleTimeString('ar-EG', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
 
     useEffect(() => {
         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
 
-        const d = loadSavedDefaults();
-        if (d) {
-            if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
-            if (d.showCity !== undefined) setShowCity(d.showCity);
-            if (d.showAddress !== undefined) setShowAddress(d.showAddress);
-            if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
-            setShowPhone2(false); 
-            if (d.showItemCode !== undefined) setShowItemCode(d.showItemCode);
-            if (d.showUnit !== undefined) setShowUnit(d.showUnit);
-            setShowDiscountPercent(false); 
-            setShowDiscountValue(false); 
+        const savedDefaults = localStorage.getItem('sales_print_defaults');
+        if (savedDefaults) {
+            try {
+                const d = JSON.parse(savedDefaults);
+                if (d.sequenceId !== undefined) setSequenceId(d.sequenceId);
+                if (d.warehouseName !== undefined) setWarehouseName(d.warehouseName);
+                if (d.showWarehouse !== undefined) setShowWarehouse(d.showWarehouse);
+                if (d.showCustomerCode !== undefined) setShowCustomerCode(d.showCustomerCode);
+                if (d.showCity !== undefined) setShowCity(d.showCity);
+                if (d.showAddress !== undefined) setShowAddress(d.showAddress);
+                if (d.showPhone1 !== undefined) setShowPhone1(d.showPhone1);
+                setShowPhone2(false); // always hide
+                if (d.showItemCode !== undefined) setShowItemCode(d.showItemCode);
+                if (d.showUnit !== undefined) setShowUnit(d.showUnit);
+                setShowDiscountPercent(false); // always hide
+                setShowDiscountValue(false); // always hide
+            } catch (e) {}
         }
         
-        const h = loadAutocompleteHistory();
-        if (h) setHistory(h);
+        const savedHistory = localStorage.getItem('sales_autocomplete_history');
+        if (savedHistory) {
+            try {
+                setHistory(JSON.parse(savedHistory));
+            } catch (e) {}
+        }
 
-        Promise.all([getStaffList(), getCurrentUser()]).then(([staff, user]) => {
+        Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
+            setProducts(prods);
             setStaffList(staff);
             setLoading(false);
-            // Do not pre-select the current user as the default salesperson/delegate
+            if (user && staff.some((s: Staff) => s.id === user.id)) {
+                setSelectedStaffId(user.id);
+            }
         });
+
+        const checkScreen = () => {
+            setIsMobileScreen(window.innerWidth < 768);
+        };
+        checkScreen();
+        window.addEventListener('resize', checkScreen);
 
         const handleClickOutside = (event: MouseEvent) => {
             if (productSearchRef.current && !productSearchRef.current.contains(event.target as Node)) {
@@ -205,59 +199,10 @@ export default function SalesPage() {
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    // Edit-on-behalf flow: load invoice data from editFrom query param
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const params = new URLSearchParams(window.location.search);
-        const editFromId = params.get('editFrom');
-        if (!editFromId) return;
-
-        getInvoiceForEdit(editFromId).then(data => {
-            if (!data) return;
-            setEditFromInvoiceId(editFromId);
-            setEditFromStaffName(data.salespersonName);
-
-            // Lock salesperson to the original
-            setSelectedStaffId(data.salespersonId || '');
-            setEmployeeName(data.salespersonName || '');
-
-            // Pre-fill customer info
-            setCustomerName(data.customerName || '');
-            setSelectedCustomerId(data.customerId || null);
-            setPhone1(data.customerPhone || '');
-            setAddress(data.customerAddress || '');
-
-            // Pre-fill payment
-            setPaymentMethod(data.paymentMethod as PaymentMethodType);
-            setPreviousBalance(data.previousBalance);
-
-            // Pre-fill cart
-            const cartItems: CartItem[] = data.items.map(item => ({
-                id: crypto.randomUUID(),
-                product: {
-                    id: item.productId,
-                    name: item.productName,
-                    sku: item.productSku,
-                    baseSellingPrice: item.baseSellingPrice,
-                    categoryId: item.productCategoryId,
-                    stock: item.stock,
-                },
-                codeOverride: item.productSku,
-                nameOverride: item.productName,
-                unitOverride: item.productUnit || 'قطعة',
-                quantity: item.quantity,
-                priceOverride: item.unitPrice,
-                discountPercent: '',
-                discountValue: ''
-            }));
-            setCart(cartItems);
-        }).catch(err => {
-            console.error('Failed to load invoice for edit', err);
-            setError('فشل تحميل الفاتورة للتعديل');
-        });
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            window.removeEventListener('resize', checkScreen);
+        };
     }, []);
 
     // Derived values
@@ -272,34 +217,11 @@ export default function SalesPage() {
     const safeAmountPaid = Number(amountPaid) || 0;
     const currentBalance = previousBalance + invoiceTotal - safeAmountPaid;
 
-    const saveDefaults = useCallback(() => {
-        const defaults = {
-            showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue,
-            warehouseName
-        };
-        localStorage.setItem('sales_print_defaults', JSON.stringify(defaults));
-        alert('تم حفظ الإعدادات الافتراضية بنجاح');
-    }, [showWarehouse, showCustomerCode, showCity, showAddress, showPhone1, showPhone2, showItemCode, showUnit, showDiscountPercent, showDiscountValue, warehouseName]);
-
-    const updateHistory = useCallback((key: string, val: string) => {
-        if (!val) return;
-        setHistory(prev => {
-            const arr = prev[key] || [];
-            if (!arr.includes(val)) {
-                const newArr = [val, ...arr].slice(0, 10);
-                const next = { ...prev, [key]: newArr };
-                localStorage.setItem('sales_autocomplete_history', JSON.stringify(next));
-                return next;
-            }
-            return prev;
-        });
-    }, []);
-
     // Handlers
-    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCustomerNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value;
         setCustomerName(val);
-        setSelectedCustomerId(null);
+        setSelectedCustomerId(null); // Clear selected if they type
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
         
         if (val.length < 2) { 
@@ -310,12 +232,12 @@ export default function SalesPage() {
         
         searchTimeoutRef.current = setTimeout(async () => {
             const results = await searchCustomers(val);
-            setSearchResults(results as CustomerSearch[]);
+            setSearchResults(results as any[]);
             setShowCustomerSuggestions(results.length > 0);
         }, 300);
-    }, []);
+    };
 
-    const selectCustomer = useCallback((cust: CustomerSearch) => {
+    const selectCustomer = (cust: CustomerSearch) => {
         setCustomerName(cust.name);
         setSelectedCustomerId(cust.id);
         setPhone1(cust.phone || '');
@@ -323,27 +245,18 @@ export default function SalesPage() {
         setCity(cust.governorate || '');
         setPreviousBalance(Number(cust.balance) || 0);
         setShowCustomerSuggestions(false);
-    }, []);
+    };
 
-    const handleProductSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        setSearchQuery(val);
-        if (productSearchTimeoutRef.current) clearTimeout(productSearchTimeoutRef.current);
-        
-        if (val.trim().length === 0) {
-            setFilteredProducts([]);
-            setShowProductDropdown(false);
-            return;
-        }
+    const filteredProducts = useMemo(() => {
+        if (!deferredSearchQuery) return [];
+        const lowerQuery = deferredSearchQuery.toLowerCase();
+        return products.filter(p => p.stock > 0 && (
+            p.name.toLowerCase().includes(lowerQuery) || 
+            p.sku.toLowerCase().includes(lowerQuery)
+        )).slice(0, 10);
+    }, [products, deferredSearchQuery]);
 
-        productSearchTimeoutRef.current = setTimeout(async () => {
-            const results = await getProducts(val, 10);
-            setFilteredProducts(results);
-            setShowProductDropdown(results.length > 0);
-        }, 300);
-    }, []);
-
-    const addToCart = useCallback((product: Product) => {
+    const addToCart = (product: Product) => {
         setCart(prev => {
             const currentInCart = prev.filter(item => item.product.id === product.id).reduce((sum, item) => sum + item.quantity, 0);
             if (currentInCart >= product.stock) {
@@ -352,6 +265,8 @@ export default function SalesPage() {
                 return prev;
             }
             
+            // Generate a unique ID for the row so we can have multiple rows of same product if needed, 
+            // though usually we just bump qty. Let's just bump qty if exact match, or add new if not.
             const existingIdx = prev.findIndex(item => item.product.id === product.id);
             if (existingIdx >= 0) {
                 const newCart = [...prev];
@@ -373,118 +288,36 @@ export default function SalesPage() {
         });
         setSearchQuery('');
         setShowProductDropdown(false);
-    }, []);
+    };
 
-    const updateItem = useCallback((id: string, updates: Partial<CartItem>) => {
+    const updateItem = (id: string, updates: Partial<CartItem>) => {
         setCart(prev => prev.map(item => {
             if (item.id !== id) return item;
-
-            const sanitized: Partial<CartItem> = { ...updates };
-            if (sanitized.quantity !== undefined) sanitized.quantity = Math.max(0, Number(sanitized.quantity) || 0);
-            if (sanitized.priceOverride !== undefined) sanitized.priceOverride = Math.max(0, Number(sanitized.priceOverride) || 0);
-            if (sanitized.discountPercent !== undefined && sanitized.discountPercent !== '') sanitized.discountPercent = Math.max(0, Number(sanitized.discountPercent) || 0);
-            if (sanitized.discountValue !== undefined && sanitized.discountValue !== '') sanitized.discountValue = Math.max(0, Number(sanitized.discountValue) || 0);
-
-            const newItem = { ...item, ...sanitized };
-
-            if (sanitized.quantity !== undefined && sanitized.quantity > item.product.stock) {
+            
+            const newItem = { ...item, ...updates };
+            
+            // Stock check
+            if (updates.quantity !== undefined && updates.quantity > item.product.stock) {
                 setError(`الكمية المتاحة من ${item.product.name} هي ${item.product.stock} فقط`);
                 setTimeout(() => setError(null), 3000);
                 newItem.quantity = item.product.stock;
             }
-
-            if (sanitized.discountPercent !== undefined && sanitized.discountPercent !== '') {
-                newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(sanitized.discountPercent) / 100);
+            
+            // Auto calculate discount value if percent changed
+            if (updates.discountPercent !== undefined && updates.discountPercent !== '') {
+                newItem.discountValue = newItem.priceOverride * newItem.quantity * (Number(updates.discountPercent) / 100);
             }
-
+            
             return newItem;
         }));
-    }, []);
+    };
 
-    const removeFromCart = useCallback((id: string) => {
+    const removeFromCart = (id: string) => {
         setCart(prev => prev.filter(item => item.id !== id));
-    }, []);
+    };
 
-    const toggleSettings = useCallback(() => setShowSettings(prev => !prev), []);
-    const toggleCity = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowCity(e.target.checked), []);
-    const toggleAddress = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowAddress(e.target.checked), []);
-    const togglePhone1 = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowPhone1(e.target.checked), []);
-    const toggleItemCode = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowItemCode(e.target.checked), []);
-    const toggleUnit = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setShowUnit(e.target.checked), []);
-
-    const handleCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCity(e.target.value), []);
-    const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAddress(e.target.value), []);
-    const handlePhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone1(e.target.value), []);
-    const handlePhone2Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPhone2(e.target.value), []);
-    const handleStaffSelect = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-        const staffId = e.target.value;
-        setSelectedStaffId(staffId);
-        if (staffId) {
-            const selectedStaff = staffList.find((s: Staff) => s.id === staffId);
-            if (selectedStaff) {
-                setEmployeeName(selectedStaff.name || selectedStaff.username);
-            }
-        } else {
-            setEmployeeName('');
-        }
-    }, [staffList]);
-    const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setWarehouseName(e.target.value), []);
-    const handleCustomerCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setCustomerCode(e.target.value), []);
-    const handlePreviousBalanceChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setPreviousBalance(Math.max(0, Number(e.target.value) || 0)), []);
-    const handleAmountPaidChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountPaid(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0)), []);
-
-    const showCustomerSuggestionsHandler = useCallback(() => setShowCustomerSuggestions(true), []);
-    const showProductDropdownHandler = useCallback(() => setShowProductDropdown(true), []);
-
-    const handleSearchQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
-        setShowProductDropdown(true);
-    }, []);
-
-    const handleRemoveFromCartEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        const itemId = e.currentTarget.dataset.itemId;
-        if (itemId) removeFromCart(itemId);
-    }, [removeFromCart]);
-
-    const handleAddToCartEvent = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-        const productId = e.currentTarget.dataset.productId;
-        const product = filteredProducts.find(p => p.id === productId);
-        if (product) addToCart(product);
-    }, [filteredProducts, addToCart]);
-
-    const handleItemFieldChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const itemId = e.currentTarget.dataset.itemId;
-        const field = e.currentTarget.dataset.field;
-        if (!itemId || !field) return;
-
-        const value = e.target.value;
-        let updates: Partial<CartItem> = {};
-
-        if (field === 'nameOverride') updates = { nameOverride: value };
-        else if (field === 'codeOverride') updates = { codeOverride: value };
-        else if (field === 'unitOverride') updates = { unitOverride: value };
-        else if (field === 'quantity') updates = { quantity: Number(value) };
-        else if (field === 'priceOverride') updates = { priceOverride: Number(value) };
-        else if (field === 'discountPercent') updates = { discountPercent: value === '' ? '' : Number(value) };
-        else if (field === 'discountValue') updates = { discountValue: value === '' ? '' : Number(value) };
-
-        updateItem(itemId, updates);
-    }, [updateItem]);
-
-    const handleCheckoutAndPrint = useCallback(async () => {
+    const handleCheckoutAndPrint = async () => {
         if (cart.length === 0) return;
-
-        if (!selectedStaffId) {
-            setError("يجب اختيار المندوب قبل إصدار الفاتورة");
-            setTimeout(() => setError(null), 3000);
-            return;
-        }
-
-        if (!customerName.trim()) {
-            setError("يجب إدخال اسم العميل قبل إصدار الفاتورة");
-            setTimeout(() => setError(null), 3000);
-            return;
-        }
 
         setProcessing(true);
         setError(null);
@@ -493,8 +326,7 @@ export default function SalesPage() {
             const itemsToProcess = cart.map(item => ({
                 productId: item.product.id,
                 quantity: item.quantity,
-                unitPrice: item.priceOverride,
-                discountValue: Number(item.discountValue) || 0
+                unitPrice: item.priceOverride - (Number(item.discountValue) || 0) / item.quantity // Distribute discount to unit price for DB
             }));
 
             const buyerInfo = {
@@ -503,7 +335,7 @@ export default function SalesPage() {
                 customerAddress: address
             };
 
-            const finalAmountPaid = Number(amountPaid) || 0;
+            const finalAmountPaid = paymentMethod === 'CASH' && amountPaid === '' ? invoiceTotal : (Number(amountPaid) || 0);
 
             const result = await processSale(
                 itemsToProcess,
@@ -512,53 +344,26 @@ export default function SalesPage() {
                 undefined,
                 selectedStaffId,
                 finalAmountPaid,
-                selectedCustomerId || undefined,
-                editFromInvoiceId || undefined
+                selectedCustomerId || undefined
             );
 
             if (result.success && result.invoice) {
-                if (result.needsReview) {
-                    setPendingReviewNotice(true);
-                    setCart([]);
-                    setCustomerName('');
-                    setSelectedCustomerId(null);
-                    setPhone1('');
-                    setPhone2('');
-                    setAddress('');
-                    setAmountPaid('');
-                    setPreviousBalance(0);
-                    setFilteredProducts([]);
-                    setTimeout(() => setPendingReviewNotice(false), 5000);
-                } else {
-                    setShowSuccess(true);
+                setShowSuccess(true);
+                
+                updateHistory('warehouseName', warehouseName);
+                updateHistory('city', city);
+                updateHistory('address', address);
+                updateHistory('employeeId', employeeId);
+                updateHistory('employeeName', employeeName);
 
-                    updateHistory('warehouseName', warehouseName);
-                    updateHistory('city', city);
-                    updateHistory('address', address);
-                    updateHistory('employeeName', employeeName);
-
-                    // Set sequence ID to the actual invoice ID for the printout
-                    setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
-
-                    // Download PDF in background
-                    try {
-                        const pdfRes = await fetch(`/api/invoices/${result.invoice.id}/pdf?download=1`);
-                        if (pdfRes.ok) {
-                            const blob = await pdfRes.blob();
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `invoice-${result.invoice.id.slice(-6).toUpperCase()}.pdf`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                        }
-                    } catch (pdfErr) {
-                        console.error('PDF download error:', pdfErr);
-                    }
-
-                    // Clear after download
+                // Set sequence ID to the actual invoice ID for the printout
+                setSequenceId(parseInt(result.invoice.id.slice(-4), 16).toString());
+                
+                // Wait for state to update, then print, then clear
+                setTimeout(() => {
+                    window.print();
+                    
+                    // Clear after print dialog closes (approximate)
                     setTimeout(() => {
                         setShowSuccess(false);
                         setCart([]);
@@ -567,21 +372,23 @@ export default function SalesPage() {
                         setPhone1('');
                         setPhone2('');
                         setAddress('');
-
-
-                        setSequenceId(Math.floor(100000 + Math.random() * 900000).toString());
-
+                        
+                        const savedDefaults = localStorage.getItem('sales_print_defaults');
+                        if (savedDefaults) {
+                            try {
+                                const d = JSON.parse(savedDefaults);
+                                setSequenceId(d.sequenceId || "");
+                            } catch { setSequenceId(""); }
+                        } else {
+                            setSequenceId("");
+                        }
+                        
                         setCustomerCode(Math.floor(10000 + Math.random() * 90000).toString());
                         setAmountPaid('');
                         setPreviousBalance(0);
-                        setFilteredProducts([]);
-
-                        // If this was a reviewer edit, close the tab
-                        if (editFromInvoiceId) {
-                            setTimeout(() => window.close(), 500);
-                        }
-                    }, 1500);
-                }
+                        getProducts().then(setProducts);
+                    }, 1000);
+                }, 500);
             } else {
                 setError(result.error || "حدث خطأ أثناء معالجة الفاتورة");
             }
@@ -591,7 +398,7 @@ export default function SalesPage() {
         } finally {
             setProcessing(false);
         }
-    }, [cart, customerName, phone1, phone2, address, amountPaid, processSale, paymentMethod, selectedStaffId, selectedCustomerId, editFromInvoiceId, updateHistory, warehouseName, city, employeeName]);
+    };
 
     if (loading) {
         return (
@@ -604,9 +411,13 @@ export default function SalesPage() {
         );
     }
 
-    if (checkoutMode === 'quick') {
+    const showQuickView = activeView === 'quick' || (activeView === 'auto' && isMobileScreen);
+
+    if (showQuickView) {
         return (
-            <QuickWizard onSwitchMode={() => setCheckoutMode('standard')} />
+            <QuickWizard 
+                onSwitchMode={() => setActiveView('full')}
+            />
         );
     }
 
@@ -736,37 +547,26 @@ export default function SalesPage() {
                 </div>
             )}
 
-            {pendingReviewNotice && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] p-4 bg-amber-500/90 backdrop-blur-md border border-amber-500/20 rounded-2xl text-white text-sm font-bold flex items-center gap-3 animate-in slide-in-from-top-4 shadow-2xl">
-                    <Check size={20} className="shrink-0" />
-                    تم إرسال الفاتورة للمراجعة بسبب تغيير السعر
-                </div>
-            )}
-
-            {editFromInvoiceId && (
-                <div className="fixed top-0 left-0 right-0 z-[200] p-3 bg-purple-600 text-white text-center text-sm font-bold print-hidden">
-                    وضع التعديل بالنيابة عن: {editFromStaffName || 'مندوب المبيعات'} — سيتم اعتماد الفاتورة مباشرة بعد الحفظ
-                </div>
-            )}
-
             {/* --- SETTINGS SIDEBAR (Hidden on Print) --- */}
             <div className={`print-hidden bg-white border-l border-gray-200 shadow-xl transition-all duration-300 flex flex-col z-10 ${showSettings ? 'w-full md:w-80 h-auto md:h-screen sticky top-0' : 'w-full md:w-16 h-auto md:h-screen sticky top-0'}`}>
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
                     {showSettings && (
                         <div className="flex flex-col gap-1">
-                            <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
+                            <div className="flex items-center justify-between gap-2">
+                                <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>
+                                <button
+                                    onClick={() => setActiveView('quick')}
+                                    className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-bold flex items-center gap-1 transition-colors"
+                                >
+                                    <ShoppingBag size={12} />
+                                    <span>البيع السريع</span>
+                                </button>
+                            </div>
                             <button onClick={saveDefaults} className="text-[10px] text-blue-600 font-bold hover:underline self-start">حفظ كإعدادات افتراضية</button>
-                            <button
-                                onClick={() => setCheckoutMode('quick')}
-                                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold transition-all shadow-sm hover:opacity-90 active:scale-95 self-start"
-                            >
-                                <Zap size={14} />
-                                {locale === 'ar' ? 'وضع البيع السريع' : 'Quick Checkout Mode'}
-                            </button>
                         </div>
                     )}
                     <button 
-                        onClick={toggleSettings} 
+                        onClick={() => setShowSettings(!showSettings)} 
                         className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
                         title={showSettings ? "إخفاء" : "إظهار"}
                     >
@@ -780,7 +580,20 @@ export default function SalesPage() {
 
                 {showSettings && (
                     <div className="p-5 overflow-y-auto flex-1 space-y-4">
-
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
+                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white" />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
+                                    <input type="text" list="warehouse-history" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
@@ -790,50 +603,51 @@ export default function SalesPage() {
                                     <input type="text" value={customerName} onChange={handleCustomerNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            {/* Customer Code Field Hidden */}
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
+                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
                             <div className="flex gap-2 items-center mb-2">
-                                <input type="checkbox" checked={showCity} onChange={toggleCity} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                    <input type="text" list="city-history" value={city} onChange={handleCityChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="city-history" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showAddress} onChange={toggleAddress} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                    <input type="text" list="address-history" value={address} onChange={handleAddressChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" list="address-history" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showPhone1} onChange={togglePhone1} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الهاتف</label>
-                                    <input type="text" value={phone1} onChange={handlePhone1Change} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات المندوب</h3>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم المندوب</label>
-                                <select
-                                    value={selectedStaffId}
-                                    onChange={handleStaffSelect}
-                                    className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                                >
-                                    <option value="">-- اختر المندوب --</option>
-                                    {staffList.map((staff: Staff) => (
-                                        <option key={staff.id} value={staff.id}>
-                                            {staff.name || staff.username}
-                                        </option>
-                                    ))}
-                                </select>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
+                                    <input type="text" list="employeeId-history" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
+                                    <input type="text" list="employeeName-history" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="border-t border-gray-100 pt-4 space-y-3 pb-8">
+                        <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
@@ -845,6 +659,26 @@ export default function SalesPage() {
                                     <span>الوحدة</span>
                                 </label>
                             </div>
+                        </div>
+
+                        <div className="border-t border-gray-100 pt-6 pb-8">
+                            <button
+                                onClick={handleCheckoutAndPrint}
+                                disabled={processing || cart.length === 0}
+                                className={clsx(
+                                    "w-full font-bold py-4 px-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-lg",
+                                    cart.length === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30"
+                                )}
+                            >
+                                {processing ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <Printer size={20} />
+                                        <span>إصدار وطباعة الفاتورة</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 )}
@@ -859,9 +693,10 @@ export default function SalesPage() {
                         {/* Company Logo / Name Area */}
                         <div className="flex-1 flex flex-col items-start">
                             <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
-                                <Image src="/stash-logo.png" alt="STASH Logo" width={74} height={74} className="w-full h-full object-cover" priority />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/zone-logo.png" alt="ZONE Logo" className="w-full h-full object-cover" />
                             </div>
-                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">ZONE</h1>
                             <div className="mt-4 flex items-center gap-2">
                                 {showWarehouse && (
                                     <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200 flex items-center gap-1">
@@ -884,35 +719,18 @@ export default function SalesPage() {
                             <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الرقم</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg"><input value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="bg-transparent outline-none w-16 text-center" /></td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center align-middle">التاريخ</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-0.5">
-                                                <span>{formattedDate}</span>
-                                                <span className="text-xs text-gray-500 font-medium" dir="ltr">{formattedTime}</span>
-                                            </div>
-                                        </td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
-                                        <td className="border border-gray-300 px-1 py-1 text-center relative">
-                                            <select
-                                                value={selectedStaffId}
-                                                onChange={handleStaffSelect}
-                                                className="w-full bg-transparent outline-none font-bold text-center appearance-none cursor-pointer text-gray-900"
-                                                title="اضغط لتغيير المندوب"
-                                            >
-                                                <option value="">-- اختر المندوب --</option>
-                                                {staffList.map((staff: Staff) => (
-                                                    <option key={staff.id} value={staff.id}>
-                                                        {staff.name || staff.username}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center flex gap-1 justify-center">
+                                            <input value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="font-bold bg-transparent outline-none w-6 text-center" /> - 
+                                            <input value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="bg-transparent outline-none w-20" />
                                         </td>
                                     </tr>
                                 </tbody>
@@ -986,114 +804,12 @@ export default function SalesPage() {
 
                     {/* Line Items */}
                     <div className="min-h-[200px]">
-                        {/* Mobile Layout */}
-                        <div className="block md:hidden border-2 border-gray-900 rounded-lg overflow-hidden bg-white print-hidden">
-                            <div className="divide-y-2 divide-gray-200">
-                                {cart.map((item, idx) => {
-                                    const rowTotal = item.priceOverride * item.quantity - (Number(item.discountValue) || 0);
-                                    return (
-                                        <div key={item.id} className="p-4 bg-gray-50/30 relative">
-                                            <button onClick={() => removeFromCart(item.id)} className="absolute top-4 left-4 text-red-500 bg-white rounded-full p-1 shadow-sm border border-red-200">
-                                                <X size={16}/>
-                                            </button>
-                                            
-                                            <div className="flex flex-col gap-3">
-                                                <div>
-                                                    <span className="text-xs text-gray-500 font-bold mb-1 block">الصنف {idx + 1}</span>
-                                                    <input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="font-bold text-lg text-gray-900 bg-white border border-gray-300 rounded p-1 w-[85%]" />
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    {showItemCode && (
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 font-bold block">رقم الصنف</span>
-                                                            <input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-mono" />
-                                                        </div>
-                                                    )}
-                                                    {showUnit && (
-                                                        <div>
-                                                            <span className="text-xs text-gray-500 font-bold block">الوحدة</span>
-                                                            <input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="bg-white border border-gray-300 rounded p-1 w-full text-center" />
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 font-bold block">الكمية</span>
-                                                        <input type="number" min="0" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold text-black" />
-                                                    </div>
-                                                    <div>
-                                                        <span className="text-xs text-gray-500 font-bold block">السعر</span>
-                                                        <input type="number" min="0" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center font-bold" />
-                                                    </div>
-                                                </div>
-
-                                                {(showDiscountPercent || showDiscountValue) && (
-                                                    <div className="grid grid-cols-2 gap-2 p-2 bg-gray-100 rounded">
-                                                        <span className="text-xs text-gray-600 font-bold col-span-2 block">الخصم</span>
-                                                        {showDiscountPercent && (
-                                                            <input type="number" min="0" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-blue-700" placeholder="نسبة %" />
-                                                        )}
-                                                        {showDiscountValue && (
-                                                            <input type="number" min="0" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="bg-white border border-gray-300 rounded p-1 w-full text-center text-red-600" placeholder="قيمة" />
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                <div className="flex justify-between items-center bg-gray-100 p-2 rounded mt-1 border border-gray-200">
-                                                    <span className="font-bold text-gray-700">القيمة:</span>
-                                                    <span className="font-black text-lg text-gray-900">{rowTotal.toFixed(2)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {/* Mobile Search */}
-                                <div className="p-4 relative">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Plus size={16} className="text-gray-500" />
-                                        <span className="font-bold text-gray-700 text-sm">إضافة صنف</span>
-                                    </div>
-                                    <input 
-                                        type="text" 
-                                        placeholder="ابحث عن صنف لإضافته..." 
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value);
-                                            setShowProductDropdown(true);
-                                        }}
-                                        onFocus={() => setShowProductDropdown(true)}
-                                        className="w-full bg-white border border-gray-300 rounded-lg p-3 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-gray-900"
-                                    />
-                                    {showProductDropdown && searchQuery && (
-                                        <div className="absolute bottom-full mb-1 right-0 w-full bg-white border border-gray-200 rounded-lg shadow-2xl z-[100] max-h-[300px] overflow-y-auto">
-                                            {filteredProducts.map(p => (
-                                                <button key={p.id} onClick={() => addToCart(p)} className="w-full text-right p-3 border-b hover:bg-gray-50 flex justify-between items-center group">
-                                                    <div>
-                                                        <div className="font-bold group-hover:text-blue-600 transition-colors">{p.name}</div>
-                                                        <div className="text-xs text-gray-500 mt-0.5">{p.sku} <span className="mx-1">•</span> متوفر: <span className="font-bold text-gray-800">{p.stock}</span></div>
-                                                    </div>
-                                                    <div className="font-black text-blue-600">{p.baseSellingPrice}</div>
-                                                </button>
-                                            ))}
-                                            {filteredProducts.length === 0 && (
-                                                <div className="p-4 text-center text-gray-500 text-sm">لا توجد نتائج مطابقة</div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Desktop Table */}
-                        <table className="w-full border-collapse border-2 border-gray-900 text-sm hidden md:table">
+                        <table className="w-full border-collapse border-2 border-gray-900 text-sm">
                             <thead>
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
                                     {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
-                                    <th className="border-l border-gray-300 py-2 px-3 text-center">اسم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
                                     {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
@@ -1111,15 +827,15 @@ export default function SalesPage() {
                                                 <button onClick={() => removeFromCart(item.id)} className="absolute -right-3 top-1/2 -translate-y-1/2 text-red-500 opacity-0 group-hover:opacity-100 print-hidden bg-white rounded-full p-0.5 shadow-sm border border-red-200 transition-opacity"><X size={14}/></button>
                                             </td>
                                             {showItemCode && <td className="border-l border-gray-300 py-2 px-1 text-center font-mono text-gray-600"><input value={item.codeOverride} onChange={(e) => updateItem(item.id, {codeOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
-                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-center"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
+                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right"><input value={item.nameOverride} onChange={(e) => updateItem(item.id, {nameOverride: e.target.value})} className="w-full bg-transparent outline-none" /></td>
                                             {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600"><input value={item.unitOverride} onChange={(e) => updateItem(item.id, {unitOverride: e.target.value})} className="w-full bg-transparent outline-none text-center" /></td>}
-                                            <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" min="0" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
-                                            <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" min="0" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
+                                            <td className="border-l border-gray-300 py-2 text-center font-bold"><input type="number" value={item.quantity || ''} onChange={(e) => updateItem(item.id, {quantity: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners font-bold text-black" /></td>
+                                            <td className="border-l border-gray-300 py-2 text-center font-medium"><input type="number" value={item.priceOverride || ''} onChange={(e) => updateItem(item.id, {priceOverride: Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners" /></td>
                                             {(showDiscountPercent || showDiscountValue) && (
-                                                <td className="border-l border-gray-300 p-1 text-center">
+                                                <td className="border-l border-gray-300 p-1">
                                                     <div className="flex flex-col gap-1 justify-center items-center h-full">
-                                                        {showDiscountPercent && <input type="number" min="0" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
-                                                        {showDiscountValue && <input type="number" min="0" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
+                                                        {showDiscountPercent && <input type="number" value={item.discountPercent} onChange={(e) => updateItem(item.id, {discountPercent: e.target.value === '' ? '' : Number(e.target.value)})} className={clsx("w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-blue-700", showDiscountValue && "border-b border-dashed border-gray-200 pb-1")} placeholder="نسبة %" title="نسبة الخصم" />}
+                                                        {showDiscountValue && <input type="number" value={item.discountValue} onChange={(e) => updateItem(item.id, {discountValue: e.target.value === '' ? '' : Number(e.target.value)})} className="w-full bg-transparent outline-none text-center print-hide-spinners text-xs font-medium text-red-600" placeholder="قيمة" title="قيمة الخصم" />}
                                                     </div>
                                                 </td>
                                             )}
@@ -1131,13 +847,16 @@ export default function SalesPage() {
                                 {/* Product Search Row */}
                                 <tr className="border-b border-gray-300 print-hidden bg-gray-50/30">
                                     <td className="border-l border-gray-300 py-2 text-center text-gray-400"><Plus size={16} className="mx-auto" /></td>
-                                    {showItemCode && <td className="border-l border-gray-300 py-2 text-center"></td>}
-                                    <td className="border-l border-gray-300 py-2 px-3 relative text-center" ref={productSearchRef}>
+                                    {showItemCode && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="border-l border-gray-300 py-2 px-3 relative" ref={productSearchRef}>
                                         <input 
                                             type="text" 
                                             placeholder="ابحث عن صنف لإضافته للفاتورة..." 
                                             value={searchQuery}
-                                            onChange={handleProductSearch}
+                                            onChange={(e) => {
+                                                setSearchQuery(e.target.value);
+                                                setShowProductDropdown(true);
+                                            }}
                                             onFocus={() => setShowProductDropdown(true)}
                                             className="w-full bg-transparent outline-none text-sm text-gray-900 placeholder:text-gray-400"
                                         />
@@ -1158,11 +877,11 @@ export default function SalesPage() {
                                             </div>
                                         )}
                                     </td>
-                                    {showUnit && <td className="border-l border-gray-300 py-2 text-center"></td>}
-                                    <td className="border-l border-gray-300 py-2 text-center"></td>
-                                    <td className="border-l border-gray-300 py-2 text-center"></td>
-                                    {(showDiscountPercent || showDiscountValue) && <td className="border-l border-gray-300 py-2 text-center"></td>}
-                                    <td className="py-2 text-center"></td>
+                                    {showUnit && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="border-l border-gray-300 py-2"></td>
+                                    <td className="border-l border-gray-300 py-2"></td>
+                                    {(showDiscountPercent || showDiscountValue) && <td className="border-l border-gray-300 py-2"></td>}
+                                    <td className="py-2"></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1173,6 +892,12 @@ export default function SalesPage() {
                         {/* Summary & Word Amount */}
                         <div className="flex-1 flex flex-col justify-between space-y-4">
                             <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
+                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
+                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
+                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {totalQty}
+                                    </span>
+                                </div>
                                 <div className="flex-1 flex items-center justify-between">
                                     <span className="font-bold text-gray-700">الإجمالي العام</span>
                                     <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
@@ -1199,9 +924,8 @@ export default function SalesPage() {
                                 <div className="p-2 font-black text-center text-gray-700">
                                     <input 
                                         type="number" 
-                                        min="0"
                                         value={previousBalance} 
-                                        onChange={e => setPreviousBalance(Math.max(0, Number(e.target.value) || 0))}
+                                        onChange={e => setPreviousBalance(Number(e.target.value))}
                                         className="w-full bg-transparent outline-none text-center print-hide-spinners" 
                                     />
                                 </div>
@@ -1209,19 +933,36 @@ export default function SalesPage() {
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex items-center">قيمة الفاتورة</div>
                                 <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700 flex items-center justify-center">{invoiceTotal.toFixed(2)}</div>
 
-                                <div className="bg-gray-100 p-1.5 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center relative">
-                                    <span>المدفوع (كاش)</span>
-                                    <input type="hidden" value="CASH" readOnly />
+                                <div className="bg-gray-100 p-1.5 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center relative group cursor-pointer print:cursor-default">
+                                    <span>المدفوع</span>
+                                    <select 
+                                        value={paymentMethod} 
+                                        onChange={e => {
+                                            const m = e.target.value as 'CASH' | 'CREDIT';
+                                            setPaymentMethod(m);
+                                            if (m === 'CASH') setAmountPaid(invoiceTotal);
+                                            else setAmountPaid('');
+                                        }}
+                                        className="text-[10px] bg-transparent text-gray-500 font-normal outline-none print-appearance-none text-right cursor-pointer"
+                                    >
+                                        <option value="CASH">نقداً</option>
+                                        <option value="CREDIT">آجل</option>
+                                        <option value="INSTAPAY">انستا باي</option>
+                                    </select>
                                 </div>
                                 <div className="p-1 border-t border-gray-200 text-green-600 flex items-center justify-center group bg-green-50/30 hover:bg-green-50 transition-colors relative">
                                     <input 
                                         type="number" 
-                                        min="0"
                                         value={amountPaid === '' ? '' : amountPaid} 
-                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0))}
-                                        placeholder="0"
+                                        onChange={e => setAmountPaid(e.target.value === '' ? '' : Number(e.target.value))}
+                                        placeholder={paymentMethod === 'CASH' ? invoiceTotal.toFixed(2) : "0"}
                                         className="w-full bg-transparent outline-none text-center font-black text-lg print-hide-spinners" 
                                     />
+                                    {paymentMethod === 'CASH' && amountPaid === '' && (
+                                        <span className="absolute inset-0 flex items-center justify-center font-black pointer-events-none opacity-50">
+                                            {invoiceTotal.toFixed(2)}
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300 flex items-center">الرصيد المتبقي</div>
@@ -1245,33 +986,6 @@ export default function SalesPage() {
                     </div>
 
                 </div>
-
-                {/* Sticky Bottom Bar for Mobile/Desktop */}
-                <div className="sticky bottom-0 left-0 right-0 p-4 md:p-6 mt-8 -mx-4 md:-mx-8 -mb-4 md:-mb-8 bg-white/90 backdrop-blur-md border-t border-gray-200 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-30 print-hidden">
-                    <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-                        <div className="hidden md:flex flex-col">
-                            <span className="text-sm font-bold text-gray-500">الإجمالي العام</span>
-                            <span className="text-2xl font-black text-gray-900">{invoiceTotal.toFixed(2)}</span>
-                        </div>
-                        <button
-                            onClick={handleCheckoutAndPrint}
-                            disabled={processing || cart.length === 0}
-                            className={clsx(
-                                "flex-1 md:flex-none md:w-auto font-black text-lg py-4 px-8 rounded-xl transition-all flex justify-center items-center gap-3 shadow-xl",
-                                cart.length === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-600/30 active:scale-[0.98]"
-                            )}
-                        >
-                            {processing ? (
-                                <Loader2 className="animate-spin" size={24} />
-                            ) : (
-                                <>
-                                    <Download size={24} />
-                                    <span>إصدار وتحميل الفاتورة</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
             </div>
 
             {/* Success Animation */}
@@ -1283,7 +997,7 @@ export default function SalesPage() {
                         </div>
                         <div className="text-center">
                             <h2 className="text-3xl font-black tracking-tight mb-1">تم إصدار الفاتورة</h2>
-                            <p className="text-gray-500 font-medium">جاري تحميل الفاتورة...</p>
+                            <p className="text-gray-500 font-medium">جاري تجهيز الطباعة...</p>
                         </div>
                     </div>
                 </div>

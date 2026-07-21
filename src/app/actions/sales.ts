@@ -1,275 +1,169 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
 import getPrisma from '@/lib/prisma';
-import { Prisma } from '@/generated/client';
-import { SaleSchema } from '@/lib/validations';
-import { getCurrentUser } from '@/lib/auth/session';
-import { isReviewer } from '@/lib/auth/session';
-import { deductStock, reserveStock, getDefaultLocation, releaseReservedStock } from '@/lib/utils/stock';
-import { toNumber } from '@/lib/utils/decimal';
-import { buildProductSearchFilter } from '@/lib/utils/search';
-import { revalidateSalePaths } from '@/lib/utils/revalidation';
-import { safeLogActivity, logger } from '@/lib/utils/logger';
-import { getErrorMessage } from '@/lib/utils/errors';
-import { validateOrFail } from '@/lib/validations';
-import { after } from 'next/server';
+import { revalidatePath } from 'next/cache';
 
-async function findExistingInvoice(prisma: ReturnType<typeof getPrisma>, idempotencyKey?: string) {
-    if (!idempotencyKey) return null;
-    return prisma.invoice.findUnique({
-        where: { idempotencyKey },
-        include: { items: true },
-    });
-}
-
-type InvoiceWithItems = {
-    id: string;
-    totalAmount: Prisma.Decimal;
-    items: Array<{
-        unitPrice: Prisma.Decimal;
-        subtotal: Prisma.Decimal;
-        [key: string]: unknown;
-    }>;
-    [key: string]: unknown;
-};
-
-function serializeInvoice<T extends InvoiceWithItems>(invoice: T) {
-    return {
-        ...invoice,
-        totalAmount: toNumber(invoice.totalAmount),
-        items: invoice.items.map(it => ({
-            ...it,
-            unitPrice: toNumber(it.unitPrice),
-            subtotal: toNumber(it.subtotal)
-        }))
-    };
-}
-
-async function resolveCustomerAndBalance(tx: Prisma.TransactionClient, customerId?: string, buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string }) {
-    let finalCustomerId = customerId;
-    let previousBalance = 0;
-
-    if (!finalCustomerId && buyerInfo?.customerName) {
-        const name = buyerInfo.customerName;
-        const phone = buyerInfo.customerPhone || null;
-
-        let customer = await tx.customer.findFirst({
-            where: { name, phone }
-        });
-
-        if (!customer) {
-            customer = await tx.customer.create({
-                data: {
-                    name,
-                    phone,
-                    address: buyerInfo.customerAddress || null
-                }
-            });
-        }
-        finalCustomerId = customer.id;
-        previousBalance = Number(customer.balance);
-    } else if (finalCustomerId) {
-        const customer = await tx.customer.findUnique({ where: { id: finalCustomerId } });
-        previousBalance = customer ? Number(customer.balance) : 0;
-    }
-
-    return { finalCustomerId, previousBalance };
-}
-
-export async function getProducts(search?: string, limit: number = 200) {
+export async function getProducts() {
     const prisma = getPrisma();
 
     // Get default location for stock lookup
     const location = await prisma.location.findFirst();
 
-    const whereClause = search ? buildProductSearchFilter(search) : {};
-
-    // Get products with category
+    // Get all products with category
     const products = await prisma.product.findMany({
-        where: whereClause,
-        include: { category: true },
-        take: limit,
-        orderBy: { name: 'asc' }
+        include: { category: true }
     });
 
-    const productIds = products.map(p => p.id);
-
-    // Get inventory just for those products
-    const inventories = location && productIds.length > 0 ? await prisma.inventory.findMany({
-        where: { 
-            locationId: location.id,
-            productId: { in: productIds }
-        }
+    // Get inventory for all products at once
+    const inventories = location ? await prisma.inventory.findMany({
+        where: { locationId: location.id }
     }) : [];
 
-    // Map inventory to a lookup (available = quantity - reserved)
-    const stockMap = new Map(inventories.map(inv => [inv.productId, toNumber(inv.quantity) - toNumber(inv.reservedQuantity)]));
+    // Map inventory to a lookup
+    const stockMap = new Map(inventories.map(inv => [inv.productId, inv.quantity]));
 
     return products.map(p => ({
         id: p.id,
         name: p.name,
         sku: p.sku,
-        baseSellingPrice: toNumber(p.baseSellingPrice),
-        costPrice: toNumber(p.costPrice),
+        baseSellingPrice: Number(p.baseSellingPrice),
+        costPrice: Number(p.costPrice),
         categoryId: p.categoryId,
         category: p.category,
-        stock: toNumber(stockMap.get(p.id) || 0)
+        stock: stockMap.get(p.id) || 0
     }));
 }
 
 export async function getCategories() {
-    const { getCategories } = await import('./inventory');
-    return getCategories();
+    const prisma = getPrisma();
+    return prisma.category.findMany({ orderBy: { name: 'asc' } });
 }
 
 export async function getStaffList() {
-    const { getStaffList } = await import('./staff');
-    return getStaffList();
+    const prisma = getPrisma();
+    // Fetch users who are likely staff (e.g., ADMIN or READ_ONLY, or just all users)
+    // For now, fetch all users.
+    return prisma.user.findMany({
+        select: { id: true, username: true, name: true, role: true },
+        orderBy: { name: 'asc' }
+    });
 }
 
-// eslint-disable-next-line sonarjs/cognitive-complexity
 export async function processSale(
-    items: { productId: string, quantity: number, unitPrice?: number, discountValue?: number }[],
+    items: { productId: string, quantity: number, unitPrice?: number }[],
     paymentMethod: 'CASH' | 'CREDIT' | 'INSTAPAY',
     buyerInfo?: { customerName?: string, customerPhone?: string, customerAddress?: string },
     userId?: string,
     staffId?: string,
     amountPaid?: number,
-    customerId?: string,
-    reviewerEditOf?: string,
-    clientRequestId?: string
+    customerId?: string
 ) {
-    // Validate inputs using Zod
-    const validation = validateOrFail(SaleSchema, {
-        items,
-        paymentMethod,
-        buyerInfo,
-        userId,
-        staffId,
-        amountPaid,
-        customerId,
-        reviewerEditOf
-    });
-    if (!validation.success) return validation;
-
     const prisma = getPrisma();
 
-    // Idempotency: if clientRequestId was provided, return existing invoice
-    const existing = await findExistingInvoice(prisma, clientRequestId);
-    if (existing) {
-        return {
-            success: true,
-            needsReview: existing.status === 'PENDING_REVIEW',
-            idempotent: true,
-            invoice: serializeInvoice(existing)
-        };
-    }
+    // Determine who gets credit for the sale (Staff ID if selected, otherwise logged-in user)
+    const sellerId = staffId || userId;
 
-    // Check if the current user is a reviewer (permission-based review trigger)
-    const currentUser = await getCurrentUser();
-    const userIsReviewer = isReviewer(currentUser);
-
-    // Determine who gets credit for the sale:
-    // 1. Explicitly selected staff
-    // 2. Explicitly passed userId
-    // 3. Currently logged-in user (mobile quick-sale fallback)
-    const effectiveUserId = userId || currentUser?.id;
-    const sellerId = staffId || effectiveUserId;
-
-    if (!sellerId) {
-        return { success: false, error: 'Seller is required. Please select a salesperson.' };
-    }
-
-    console.log('processSale seller resolved', staffId, userId, effectiveUserId, sellerId, currentUser?.id);
-
-    // Reviewer editing on behalf of a salesperson → always accepted, no review
-    const isReviewerEdit = !!reviewerEditOf && userIsReviewer;
-
-    // 1. Batch-fetch all products in one query (eliminates N+1)
-    const productIds = items.map(i => i.productId);
-    const productRecords = await prisma.product.findMany({
-        where: { id: { in: productIds } },
-    });
-    const productMap = new Map(productRecords.map(p => [p.id, p]));
-
+    // 1. Calculate Total & Validate Stock
     let totalAmount = 0;
     const invoiceItemsData: { productId: string, quantity: number, unitPrice: number, subtotal: number }[] = [];
-    let hasPriceOverride = false;
 
     for (const item of items) {
-        const product = productMap.get(item.productId);
+        const product = await prisma.product.findUnique({
+            where: { id: item.productId }
+        });
 
         if (!product) throw new Error(`Product ${item.productId} not found`);
 
-        const manualPrice = item.unitPrice !== undefined ? item.unitPrice : Number(product.baseSellingPrice);
-        const discount = Number(item.discountValue) || 0;
-        const effectivePrice = manualPrice - discount / item.quantity;
-        const lineTotal = manualPrice * item.quantity - discount;
-
-        if (lineTotal < 0) {
-            return { success: false, error: 'Discount cannot exceed the line total.' };
-        }
-
-        totalAmount += lineTotal;
-
-        if (item.unitPrice !== undefined && Number(item.unitPrice) !== Number(product.baseSellingPrice)) {
-            hasPriceOverride = true;
-        }
+        const price = item.unitPrice !== undefined ? item.unitPrice : Number(product.baseSellingPrice);
+        totalAmount += price * item.quantity;
 
         invoiceItemsData.push({
             productId: item.productId,
             quantity: item.quantity,
-            unitPrice: effectivePrice,
-            subtotal: lineTotal
+            unitPrice: price,
+            subtotal: price * item.quantity
         });
     }
-
-    // Non-reviewers with a price override → pending review; reviewers (including edit flow) → accepted
-    const needsReview = !isReviewerEdit && !userIsReviewer && hasPriceOverride;
 
     // 2. Transaction
     try {
         const invoice = await prisma.$transaction(async (tx) => {
             // Find or create location
-            const loc = await getDefaultLocation(tx);
-            if (!loc) throw new Error('No location found');
-
-            if (needsReview) {
-                // PENDING REVIEW: reserve stock (don't deduct), don't update customer balance, no SALE transaction
-                await reserveStock(tx, items, loc.id);
-
-                const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
-
-                const newInvoice = await tx.invoice.create({
-                    data: {
-                        totalAmount,
-                        paymentMethod,
-                        status: 'PENDING_REVIEW',
-                        customerName: buyerInfo?.customerName || null,
-                        customerPhone: buyerInfo?.customerPhone || null,
-                        customerAddress: buyerInfo?.customerAddress || null,
-                        customerId: finalCustomerId || null,
-                        previousBalance,
-                        amountPaid: 0,
-                        currentBalance: previousBalance,
-                        userId: sellerId || null,
-                        ...(clientRequestId && { idempotencyKey: clientRequestId }),
-                        items: { create: invoiceItemsData }
-                    },
-                    include: { items: true }
+            let loc = await tx.location.findFirst();
+            if (!loc) {
+                loc = await tx.location.create({
+                    data: { name: "Main Warehouse", type: "WAREHOUSE" }
                 });
-
-                return newInvoice;
             }
 
-            // ACCEPTED: deduct stock, update customer balance, create SALE transaction
-            await deductStock(tx, items, loc.id);
+            // Verify sellerId exists in database to prevent Foreign Key crashes
+            let verifiedSellerId: string | null = null;
+            if (sellerId) {
+                const existingUser = await tx.user.findUnique({
+                    where: { id: sellerId },
+                    select: { id: true }
+                });
+                if (existingUser) {
+                    verifiedSellerId = existingUser.id;
+                }
+            }
 
-            const { finalCustomerId, previousBalance } = await resolveCustomerAndBalance(tx, customerId, buyerInfo);
+            // A. VALIDATE STOCK & PREPARE UPDATES
+            for (const item of items) {
+                const inventory = await tx.inventory.findFirst({
+                    where: { productId: item.productId, locationId: loc.id }
+                });
+
+                if (!inventory || inventory.quantity < item.quantity) {
+                    const product = await tx.product.findUnique({ where: { id: item.productId } });
+                    const available = inventory ? inventory.quantity : 0;
+                    throw new Error(`Insufficient stock for ${product?.name || item.productId}. Available: ${available}, Required: ${item.quantity}`);
+                }
+
+                // Update Inventory (Decrement)
+                await tx.inventory.update({
+                    where: { id: inventory.id },
+                    data: { quantity: { decrement: item.quantity } }
+                });
+            }
+
+            // B. RESOLVE CUSTOMER & BALANCE
+            let finalCustomerId = customerId;
+            let previousBalance = 0;
+
+            if (!finalCustomerId && buyerInfo?.customerName && buyerInfo.customerName.trim()) {
+                const name = buyerInfo.customerName.trim();
+                const phone = buyerInfo.customerPhone || null;
+
+                // Try to resolve customer by name/phone, or create if not found.
+                let customer = await tx.customer.findFirst({
+                    where: {
+                        name,
+                        phone: phone ? phone : null
+                    }
+                });
+
+                if (!customer) {
+                    customer = await tx.customer.create({
+                        data: {
+                            name,
+                            phone: phone ? phone : null,
+                            address: buyerInfo.customerAddress || null
+                        }
+                    });
+                }
+                finalCustomerId = customer.id;
+                previousBalance = Number(customer.balance);
+            } else if (finalCustomerId) {
+                const customer = await tx.customer.findUnique({ where: { id: finalCustomerId } });
+                previousBalance = customer ? Number(customer.balance) : 0;
+            }
 
             const paid = amountPaid ?? (paymentMethod === 'CREDIT' ? 0 : totalAmount);
             const currentBalance = previousBalance + totalAmount - paid;
 
+            // Update Customer Balance
             if (finalCustomerId) {
                 await tx.customer.update({
                     where: { id: finalCustomerId },
@@ -277,64 +171,34 @@ export async function processSale(
                 });
             }
 
-            let newInvoice;
-
-            if (isReviewerEdit && reviewerEditOf) {
-                const oldInvoice = await tx.invoice.findUnique({ where: { id: reviewerEditOf }, include: { items: true } });
-                if (oldInvoice) {
-                    await releaseReservedStock(tx, oldInvoice.items as any, loc.id);
-                    await tx.invoiceItem.deleteMany({ where: { invoiceId: reviewerEditOf } });
-                    
-                    newInvoice = await tx.invoice.update({
-                        where: { id: reviewerEditOf },
-                        data: {
-                            totalAmount,
-                            paymentMethod,
-                            status: 'ACCEPTED',
-                            customerName: buyerInfo?.customerName || null,
-                            customerPhone: buyerInfo?.customerPhone || null,
-                            customerAddress: buyerInfo?.customerAddress || null,
-                            customerId: finalCustomerId || null,
-                            previousBalance,
-                            amountPaid: paid,
-                            currentBalance,
-                            userId: sellerId || null,
-                            reviewerId: currentUser?.id,
-                            reviewedAt: new Date(),
-                            ...(clientRequestId && { idempotencyKey: clientRequestId }),
-                            items: { create: invoiceItemsData }
-                        },
-                        include: { items: true }
-                    });
+            // C. CREATE INVOICE with AR metrics
+            const newInvoice = await tx.invoice.create({
+                data: {
+                    totalAmount,
+                    paymentMethod,
+                    customerName: buyerInfo?.customerName || null,
+                    customerPhone: buyerInfo?.customerPhone || null,
+                    customerAddress: buyerInfo?.customerAddress || null,
+                    customerId: finalCustomerId || null,
+                    previousBalance,
+                    amountPaid: paid,
+                    currentBalance,
+                    userId: verifiedSellerId,
+                    items: {
+                        create: invoiceItemsData
+                    }
+                },
+                include: {
+                    items: true
                 }
-            }
+            });
 
-            if (!newInvoice) {
-                newInvoice = await tx.invoice.create({
-                    data: {
-                        totalAmount,
-                        paymentMethod,
-                        status: 'ACCEPTED',
-                        customerName: buyerInfo?.customerName || null,
-                        customerPhone: buyerInfo?.customerPhone || null,
-                        customerAddress: buyerInfo?.customerAddress || null,
-                        customerId: finalCustomerId || null,
-                        previousBalance,
-                        amountPaid: paid,
-                        currentBalance,
-                        userId: sellerId || null,
-                        ...(clientRequestId && { idempotencyKey: clientRequestId }),
-                        items: { create: invoiceItemsData }
-                    },
-                    include: { items: true }
-                });
-            }
-
+            // C. CREATE TRANSACTION (Stock Movement Log)
             await tx.transaction.create({
                 data: {
                     type: 'SALE',
                     fromLocationId: loc.id,
-                    createdById: sellerId,
+                    createdById: verifiedSellerId, // Attribute to Staff or User
                     items: {
                         create: items.map(item => ({
                             productId: item.productId,
@@ -347,42 +211,48 @@ export async function processSale(
             return newInvoice;
 
         }, {
-            timeout: 10000
+            timeout: 20000
         });
 
-        // 3. Audit Log — fire-and-forget via after() so it never blocks the response
-        const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
-        const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
-        const editSuffix = isReviewerEdit ? ' (Reviewer edit)' : '';
-        const auditUserId = currentUser?.id || userId || sellerId;
+        // 3. Audit Log (Async, non-blocking)
+        try {
+            const { logActivity } = await import('./audit');
+            const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
+            const attributionSuffix = staffId ? ` (Attributed to Staff: ${staffId})` : '';
+            const actionDetails = `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`;
 
-        after(
-            needsReview
-                ? safeLogActivity(
-                    'SALE_PENDING',
-                    `Submitted sale #${invoice.id} for review - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}`,
-                    auditUserId
-                )
-                : safeLogActivity(
-                    'SALE',
-                    `Processed sale #${invoice.id} - ${itemCount} items. Total: ${invoice.totalAmount}${attributionSuffix}${editSuffix}`,
-                    auditUserId
-                )
-        );
+            await logActivity(
+                'SALE',
+                actionDetails,
+                userId
+            );
+        } catch (e) {
+            console.error('Failed to log activity:', e);
+        }
 
-        revalidateSalePaths();
+        revalidatePath('/dashboard');
+        revalidatePath('/inventory');
+        revalidatePath('/sales');
+        revalidatePath('/logs');
+        revalidatePath('/inventory/transactions');
 
         return {
             success: true,
-            needsReview,
-            invoice: serializeInvoice(invoice)
+            invoice: {
+                ...invoice,
+                totalAmount: Number(invoice.totalAmount),
+                items: invoice.items.map(it => ({
+                    ...it,
+                    unitPrice: Number(it.unitPrice),
+                    subtotal: Number(it.subtotal)
+                }))
+            }
         };
-    } catch (error: unknown) {
-        const message = getErrorMessage(error, "An unexpected error occurred during the sale.");
-        logger.error("Sale processing failed:", error);
+    } catch (error: any) {
+        console.error("Sale processing failed:", error);
         return {
             success: false,
-            error: message
+            error: error.message || "An unexpected error occurred during the sale."
         };
     }
 }

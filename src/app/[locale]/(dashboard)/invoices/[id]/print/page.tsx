@@ -1,21 +1,16 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable sonarjs/no-unused-vars */
-/* eslint-disable sonarjs/no-dead-store */
-  
-  
+/* eslint-disable react-perf/jsx-no-new-function-as-prop */
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
-import { Invoice } from '../../types';
 import { getInvoiceById } from '@/app/actions/invoices';
 import { Loader2, Printer, Settings2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { tafqeet } from '@/lib/tafqeet';
 
 export default function InvoicePrintPage() {
     const { id } = useParams();
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [invoice, setInvoice] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [showSettings, setShowSettings] = useState(true);
 
@@ -39,10 +34,10 @@ export default function InvoicePrintPage() {
     const [showDiscountValue, setShowDiscountValue] = useState(false);
 
     // Field Toggles
-    const [showWarehouse, setShowWarehouse] = useState(false);
-    const [showCustomerCode, setShowCustomerCode] = useState(false);
+    const [showWarehouse, setShowWarehouse] = useState(true);
+    const [showCustomerCode, setShowCustomerCode] = useState(true);
     const [showCity, setShowCity] = useState(true);
-    const [showCategory, setShowCategory] = useState(false);
+    const [showCategory, setShowCategory] = useState(true);
     const [showAddress, setShowAddress] = useState(true);
     const [showPhone1, setShowPhone1] = useState(true);
     const [showPhone2, setShowPhone2] = useState(false);
@@ -50,7 +45,7 @@ export default function InvoicePrintPage() {
     useEffect(() => {
         if (id) {
             getInvoiceById(id as string).then(data => {
-                setInvoice(data as Invoice | null);
+                setInvoice(data);
                 if (data) {
                     setSequenceId(parseInt(data.id.slice(-4), 16).toString());
                     setCustomerCode("01/1/3/" + parseInt(data.id.slice(0, 3), 16));
@@ -67,53 +62,6 @@ export default function InvoicePrintPage() {
             });
         }
     }, [id]);
-
-    const toggleSettings = useCallback(() => setShowSettings(prev => !prev), []);
-    const handlePrint = useCallback(() => window.print(), []);
-
-    const handleCustomerNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setCustomerName(e.target.value);
-    }, []);
-
-    const handleCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setCity(e.target.value);
-    }, []);
-
-    const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setAddress(e.target.value);
-    }, []);
-
-    const handlePhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setPhone1(e.target.value);
-    }, []);
-
-    const handleEmployeeNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setEmployeeName(e.target.value);
-    }, []);
-
-    const handleWarehouseNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setWarehouseName(e.target.value);
-    }, []);
-
-    const handleShowCityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setShowCity(e.target.checked);
-    }, []);
-
-    const handleShowAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setShowAddress(e.target.checked);
-    }, []);
-
-    const handleShowPhone1Change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setShowPhone1(e.target.checked);
-    }, []);
-
-    const handleShowItemCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setShowItemCode(e.target.checked);
-    }, []);
-
-    const handleShowUnitChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setShowUnit(e.target.checked);
-    }, []);
 
     if (loading) {
         return (
@@ -137,9 +85,11 @@ export default function InvoicePrintPage() {
         );
     }
 
-    const dateObj = new Date(invoice.date);
-    const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
-    const formattedTime = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const formattedDate = new Date(invoice.date).toLocaleDateString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
 
     return (
         <div className="min-h-screen bg-gray-100 flex flex-col md:flex-row print:block" dir="rtl" data-print-invoice-wrapper>
@@ -241,7 +191,7 @@ export default function InvoicePrintPage() {
                 <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">
                     {showSettings && <h2 className="font-bold text-blue-900 flex items-center gap-2"><Settings2 size={18} /> إعدادات الطباعة</h2>}
                     <button 
-                        onClick={toggleSettings} 
+                        onClick={() => setShowSettings(!showSettings)} 
                         className="p-2 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors mx-auto md:mx-0"
                         title={showSettings ? "إخفاء" : "إظهار"}
                     >
@@ -255,48 +205,79 @@ export default function InvoicePrintPage() {
 
                 {showSettings && (
                     <div className="p-5 overflow-y-auto flex-1 space-y-4">
-
+                        <div className="space-y-3">
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الفاتورة</h3>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">الرقم المرجعي</label>
+                                <input type="text" value={sequenceId} onChange={e => setSequenceId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showWarehouse} onChange={(e) => setShowWarehouse(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">المخزن / المستودع</label>
+                                    <input type="text" value={warehouseName} onChange={e => setWarehouseName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات العميل</h3>
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <label className="block text-xs font-medium text-gray-700 mb-1">اسم العميل</label>
-                                    <input type="text" value={customerName} onChange={handleCustomerNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
-                            {/* Customer Code Field Hidden */}
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showCustomerCode} onChange={(e) => setShowCustomerCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">كود العميل</label>
+                                    <input type="text" value={customerCode} onChange={e => setCustomerCode(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="flex gap-2 items-center">
-                                    <input type="checkbox" checked={showCity} onChange={handleShowCityChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <input type="checkbox" checked={showCity} onChange={(e) => setShowCity(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                     <div className="flex-1 min-w-0">
                                         <label className="block text-xs font-medium text-gray-700 mb-1 truncate">المدينة</label>
-                                        <input type="text" value={city} onChange={handleCityChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                        <input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                     </div>
                                 </div>
-                                {/* Category Field Hidden */}
-                            </div>
-                            <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showAddress} onChange={handleShowAddressChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
-                                <div className="flex-1">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
-                                    <input type="text" value={address} onChange={handleAddressChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                <div className="flex gap-2 items-center">
+                                    <input type="checkbox" checked={showCategory} onChange={(e) => setShowCategory(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                    <div className="flex-1 min-w-0">
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الفئة</label>
+                                        <input type="text" value={category} onChange={e => setCategory(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <input type="checkbox" checked={showPhone1} onChange={handleShowPhone1Change} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
+                                <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" title="عرض" />
+                                <div className="flex-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">العنوان</label>
+                                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <input type="checkbox" checked={showPhone1} onChange={(e) => setShowPhone1(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4 shrink-0" title="عرض" />
                                 <div className="flex-1 min-w-0">
                                     <label className="block text-xs font-medium text-gray-700 mb-1 truncate">الهاتف</label>
-                                    <input type="text" value={phone1} onChange={handlePhone1Change} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input type="text" value={phone1} onChange={e => setPhone1(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
                                 </div>
                             </div>
                         </div>
 
                         <div className="border-t border-gray-100 pt-4 space-y-3">
-                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات المندوب</h3>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">اسم المندوب</label>
-                                <input type="text" value={employeeName} onChange={handleEmployeeNameChange} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">بيانات الموظف</h3>
+                            <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-1">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الرقم</label>
+                                    <input type="text" value={employeeId} onChange={e => setEmployeeId(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">الاسم</label>
+                                    <input type="text" value={employeeName} onChange={e => setEmployeeName(e.target.value)} className="w-full text-sm p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
                             </div>
                         </div>
 
@@ -304,11 +285,11 @@ export default function InvoicePrintPage() {
                             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">إعدادات الجدول</h3>
                             <div className="grid grid-cols-2 gap-2">
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showItemCode} onChange={handleShowItemCodeChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <input type="checkbox" checked={showItemCode} onChange={(e) => setShowItemCode(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
                                     <span>رقم الصنف</span>
                                 </label>
                                 <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 p-1 rounded transition-colors">
-                                    <input type="checkbox" checked={showUnit} onChange={handleShowUnitChange} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
+                                    <input type="checkbox" checked={showUnit} onChange={(e) => setShowUnit(e.target.checked)} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4" />
                                     <span>الوحدة</span>
                                 </label>
                             </div>
@@ -316,7 +297,7 @@ export default function InvoicePrintPage() {
 
                         <div className="border-t border-gray-100 pt-6 pb-8">
                             <button
-                                onClick={handlePrint}
+                                onClick={() => window.print()}
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-[0_4px_14px_rgba(37,99,235,0.3)] transition-all flex justify-center items-center gap-2"
                             >
                                 <Printer size={20} />
@@ -336,9 +317,10 @@ export default function InvoicePrintPage() {
                         {/* Company Logo / Name Area */}
                         <div className="flex-1 flex flex-col items-start">
                             <div className="w-[74px] h-[74px] mb-2 flex items-center justify-start rounded-full overflow-hidden">
-                                <Image src="/stash-logo.png" alt="STASH Logo" width={74} height={74} className="w-full h-full object-cover" priority />
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/zone-logo.png" alt="ZONE Logo" className="w-full h-full object-cover" />
                             </div>
-                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">STASH</h1>
+                            <h1 className="text-3xl font-black text-gray-900 mb-1 tracking-tight">ZONE</h1>
                             <div className="mt-4 flex items-center gap-2">
                                 {showWarehouse && (
                                     <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded font-bold text-sm border border-gray-200">
@@ -361,22 +343,17 @@ export default function InvoicePrintPage() {
                             <table className="text-sm border-collapse border border-gray-300 font-medium bg-gray-50">
                                 <tbody>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">الرقم</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الرقم</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center font-bold text-lg">{sequenceId}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center align-middle">التاريخ</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-center">
-                                            <div className="flex flex-col items-center justify-center gap-0.5">
-                                                <span>{formattedDate}</span>
-                                                <span className="text-xs text-gray-500 font-medium" dir="ltr">{formattedTime}</span>
-                                            </div>
-                                        </td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">التاريخ</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-center">{formattedDate}</td>
                                     </tr>
                                     <tr>
-                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold text-center">المندوب</td>
+                                        <td className="border border-gray-300 px-3 py-1 bg-gray-100 text-gray-700 font-bold">الموظف</td>
                                         <td className="border border-gray-300 px-3 py-1 text-center">
-                                            <span className="font-bold">{employeeName}</span>
+                                            <span className="font-bold">{employeeId}</span> - {employeeName}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -438,7 +415,7 @@ export default function InvoicePrintPage() {
                                 <tr className="bg-gray-100 border-b-2 border-gray-900 text-gray-800">
                                     <th className="border-l border-gray-300 py-2 w-10 text-center">م</th>
                                     {showItemCode && <th className="border-l border-gray-300 py-2 w-24 text-center">رقم الصنف</th>}
-                                    <th className="border-l border-gray-300 py-2 px-3 text-center">اسم الصنف</th>
+                                    <th className="border-l border-gray-300 py-2 px-3 text-right">اسم الصنف</th>
                                     {showUnit && <th className="border-l border-gray-300 py-2 w-16 text-center">الوحدة</th>}
                                     <th className="border-l border-gray-300 py-2 w-16 text-center">الكمية</th>
                                     <th className="border-l border-gray-300 py-2 w-20 text-center">السعر</th>
@@ -448,22 +425,21 @@ export default function InvoicePrintPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoice.items?.map((item, idx: number) => {
-                                    const printItem = item as { productCode?: string; product?: { sku?: string; name?: string }; productName?: string; productUnit?: string; quantity: number; unitPrice: number; subtotal: number };
-                                    return (
-                                        <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
-                                            <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
-                                            {showItemCode && <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{printItem.productCode || printItem.product?.sku || '---'}</td>}
-                                            <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-center">{printItem.productName || printItem.product?.name}</td>
-                                            {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600">{printItem.productUnit || 'قطعة'}</td>}
-                                            <td className="border-l border-gray-300 py-2 text-center font-bold">{printItem.quantity}</td>
-                                            <td className="border-l border-gray-300 py-2 text-center font-medium">{printItem.unitPrice.toFixed(2)}</td>
-                                            {showDiscountPercent && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
-                                            {showDiscountValue && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
-                                            <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{printItem.subtotal.toFixed(2)}</td>
-                                        </tr>
-                                    );
-                                })}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {invoice.items.map((item: any, idx: number) => (
+                                    <tr key={idx} className="border-b border-gray-300 even:bg-gray-50/50">
+                                        <td className="border-l border-gray-300 py-2 text-center text-gray-500 font-medium">{idx + 1}</td>
+                                        {showItemCode && <td className="border-l border-gray-300 py-2 text-center font-mono text-gray-600">{item.productCode || '---'}</td>}
+                                        <td className="border-l border-gray-300 py-2 px-3 font-bold text-gray-900 text-right">{item.productName}</td>
+                                        {showUnit && <td className="border-l border-gray-300 py-2 text-center text-gray-600">{item.productUnit || 'قطعة'}</td>}
+                                        <td className="border-l border-gray-300 py-2 text-center font-bold">{item.quantity}</td>
+                                        <td className="border-l border-gray-300 py-2 text-center font-medium">{item.unitPrice.toFixed(2)}</td>
+                                        {showDiscountPercent && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
+                                        {showDiscountValue && <td className="border-l border-gray-300 py-2 text-center text-gray-400">-</td>}
+                                        <td className="py-2 text-center font-bold text-gray-900 bg-gray-50/80">{item.subtotal.toFixed(2)}</td>
+                                    </tr>
+                                ))}
+                                {/* Empty spacer row if needed to push footer down could be added here */}
                             </tbody>
                         </table>
                     </div>
@@ -473,6 +449,13 @@ export default function InvoicePrintPage() {
                         {/* Summary & Word Amount */}
                         <div className="flex-1 flex flex-col justify-between space-y-4">
                             <div className="flex gap-6 items-center bg-gray-50 border border-gray-300 p-3 rounded-lg">
+                                <div className="flex-1 flex items-center justify-between border-l border-gray-300 pl-4">
+                                    <span className="font-bold text-gray-700">إجمالي الكمية</span>
+                                    <span className="font-black text-xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
+                                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                        {invoice.items.reduce((acc: number, item: any) => acc + item.quantity, 0)}
+                                    </span>
+                                </div>
                                 <div className="flex-1 flex items-center justify-between">
                                     <span className="font-bold text-gray-700">الإجمالي العام</span>
                                     <span className="font-black text-2xl text-gray-900 bg-white px-3 py-1 rounded border border-gray-200">
@@ -496,22 +479,22 @@ export default function InvoicePrintPage() {
                             </div>
                             <div className="grid grid-cols-2 text-sm divide-x divide-x-reverse divide-gray-200">
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700">الرصيد السابق</div>
-                                <div className="p-2 font-black text-center">{Number(invoice.previousBalance || 0).toLocaleString('en-US')}</div>
+                                <div className="p-2 font-black text-center">{Number(invoice.previousBalance || 0).toLocaleString('ar-EG')}</div>
 
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200">قيمة الفاتورة</div>
-                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700">{Number(invoice.totalAmount).toLocaleString('en-US')}</div>
+                                <div className="p-2 font-black text-center border-t border-gray-200 text-blue-700">{Number(invoice.totalAmount).toLocaleString('ar-EG')}</div>
 
                                 <div className="bg-gray-100 p-2 font-bold text-gray-700 border-t border-gray-200 flex flex-col justify-center">
                                     <span>المدفوع</span>
                                     <span className="text-[10px] font-normal text-gray-500">{invoice.paymentMethod === 'CREDIT' ? 'آجل' : 'نقداً'}</span>
                                 </div>
                                 <div className="p-2 font-black text-center border-t border-gray-200 text-green-600 flex items-center justify-center">
-                                    {Number(invoice.amountPaid || 0).toLocaleString('en-US')}
+                                    {Number(invoice.amountPaid || 0).toLocaleString('ar-EG')}
                                 </div>
 
                                 <div className="bg-gray-200 p-2 font-black text-gray-900 border-t border-gray-300">الرصيد المتبقي</div>
                                 <div className="p-2 font-black text-center text-xl border-t border-gray-300 bg-gray-50 text-red-600">
-                                    {Number(invoice.currentBalance || 0).toLocaleString('en-US')}
+                                    {Number(invoice.currentBalance || 0).toLocaleString('ar-EG')}
                                 </div>
                             </div>
                         </div>
