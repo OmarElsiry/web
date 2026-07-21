@@ -3,6 +3,8 @@ export interface Invoice {
     customerName: string | null;
     customerPhone: string | null;
     customerAddress: string | null;
+    customerId?: string | null;
+    userId?: string | null;
     user?: {
         id: string;
         name: string | null;

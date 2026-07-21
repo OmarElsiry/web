@@ -97,7 +97,7 @@ export default function InvoiceDetailsModal({
             phone1: invoice.customerPhone || '',
             address: invoice.customerAddress || '',
             selectedCustomerId: invoice.customerId || null,
-            selectedStaffId: invoice.userId || null,
+            selectedStaffId: invoice.userId || invoice.user?.id || null,
             paymentMethod: invoice.paymentMethod || 'CASH',
             amountPaid: invoice.amountPaid !== undefined ? String(invoice.amountPaid) : ''
         };
