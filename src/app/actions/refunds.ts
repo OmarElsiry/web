@@ -192,7 +192,8 @@ export async function getRefunds(page: number = 1, limit: number = 50) {
                 totalAmount: Number(ref.totalAmount),
                 items: (ref.items || []).map((item: any) => ({
                     ...item,
-                    unitPrice: Number(item.unitPrice)
+                    unitPrice: Number(item.unitPrice),
+                    subtotal: Number(item.unitPrice) * item.quantity
                 }))
             }))
         ] as const;

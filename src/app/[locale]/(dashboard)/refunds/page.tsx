@@ -68,9 +68,9 @@ export default function RefundHistoryPage() {
     const filteredRefunds = refunds.filter(ref => {
         const query = searchQuery.toLowerCase();
         const matchesSearch = (
-            ref.invoiceId.toLowerCase().includes(query) ||
-            (ref.invoice.customerName && ref.invoice.customerName.toLowerCase().includes(query)) ||
-            (ref.user.username.toLowerCase().includes(query)) ||
+            (ref.invoiceId && ref.invoiceId.toLowerCase().includes(query)) ||
+            (ref.invoice?.customerName && ref.invoice.customerName.toLowerCase().includes(query)) ||
+            (ref.user?.username && ref.user.username.toLowerCase().includes(query)) ||
             (ref.reason && ref.reason.toLowerCase().includes(query))
         );
 
@@ -217,15 +217,15 @@ export default function RefundHistoryPage() {
                                 </div>
                                 <div className={clsx("space-y-1", 'text-center')}>
                                     <div className="font-black text-lg flex items-center gap-2 uppercase tracking-tight">
-                                        {ref.invoice.customerName || t('list.walkIn')}
+                                        {ref.invoice?.customerName || t('list.walkIn')}
                                         {ref.reason && <span className="text-[10px] font-bold bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">{t('list.withReason')}</span>}
                                     </div>
                                     <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-y-1 gap-x-3 font-medium">
-                                        <span className="flex items-center gap-1"><FileText size={12} /> {t('list.invoice')} {ref.invoiceId.slice(0, 8).toUpperCase()}</span>
+                                        <span className="flex items-center gap-1"><FileText size={12} /> {t('list.invoice')} {(ref.invoiceId || 'N/A').slice(0, 8).toUpperCase()}</span>
                                         <span className="hidden sm:inline">•</span>
                                         <span className="flex items-center gap-1"><Calendar size={12} /> {new Date(ref.createdAt).toLocaleDateString(locale)}</span>
                                         <span className="hidden sm:inline">•</span>
-                                        <span className="flex items-center gap-1 text-primary"><User size={12} /> @{ref.user.username}</span>
+                                        <span className="flex items-center gap-1 text-primary"><User size={12} /> @{ref.user?.username || 'user'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -291,13 +291,13 @@ export default function RefundHistoryPage() {
                                     <label className="text-[10px] font-black uppercase text-muted-foreground mb-1 block">{t('modal.staff')}</label>
                                     <div className="text-sm font-bold flex items-center gap-2">
                                         <User size={14} className="text-primary" />
-                                        @{selectedRefund.user.username}
+                                        @{selectedRefund.user?.username || 'user'}
                                     </div>
                                 </div>
                                 <div className="p-4 bg-secondary/20 rounded-2xl border border-border shadow-sm">
                                     <label className="text-[10px] font-black uppercase text-muted-foreground mb-1 block">{t('modal.customer')}</label>
                                     <div className="text-sm font-bold truncate">
-                                        {selectedRefund.invoice.customerName || t('modal.customer')}
+                                        {selectedRefund.invoice?.customerName || t('modal.customer')}
                                     </div>
                                 </div>
                                 <div className="p-4 bg-secondary/20 rounded-2xl border border-border shadow-sm col-span-2 md:col-span-1">
@@ -336,25 +336,29 @@ export default function RefundHistoryPage() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-border">
-                                            {selectedRefund.items.map(item => (
-                                                <tr key={item.id} className="hover:bg-muted/30">
-                                                    <td className="px-4 py-4 text-center">
-                                                        <div className="font-bold text-sm tracking-tight">{item.product.name}</div>
-                                                        <div className="text-[10px] font-mono text-muted-foreground uppercase">{item.product.sku}</div>
-                                                    </td>
-                                                    <td className="px-4 py-4 text-center">
-                                                        <span className={clsx(
-                                                            "text-[10px] font-black px-2 py-0.5 rounded-full border shadow-sm",
-                                                            item.condition === 'NEW' ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
-                                                        )}>
-                                                            {t(`modal.conditions.${item.condition as 'NEW' | 'DAMAGED'}`)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-4 text-center font-mono font-bold">{item.quantity.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-4 font-mono text-xs", 'text-center')}>{ts('currency')} {item.unitPrice.toLocaleString(locale)}</td>
-                                                    <td className={clsx("px-4 py-4 font-mono font-black text-red-600", 'text-center')}>- {ts('currency')} {item.subtotal.toLocaleString(locale)}</td>
-                                                </tr>
-                                            ))}
+                                            {selectedRefund.items.map(item => {
+                                                const unitPriceNum = Number(item.unitPrice) || 0;
+                                                const subtotalNum = item.subtotal ?? (unitPriceNum * (item.quantity || 0));
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-muted/30">
+                                                        <td className="px-4 py-4 text-center">
+                                                            <div className="font-bold text-sm tracking-tight">{item.product?.name || '---'}</div>
+                                                            <div className="text-[10px] font-mono text-muted-foreground uppercase">{item.product?.sku || '---'}</div>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-center">
+                                                            <span className={clsx(
+                                                                "text-[10px] font-black px-2 py-0.5 rounded-full border shadow-sm",
+                                                                item.condition === 'NEW' ? "bg-green-100 text-green-700 border-green-200" : "bg-red-100 text-red-700 border-red-200"
+                                                            )}>
+                                                                {t(`modal.conditions.${item.condition as 'NEW' | 'DAMAGED'}`)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-4 text-center font-mono font-bold">{(item.quantity || 0).toLocaleString(locale)}</td>
+                                                        <td className={clsx("px-4 py-4 font-mono text-xs", 'text-center')}>{ts('currency')} {unitPriceNum.toLocaleString(locale)}</td>
+                                                        <td className={clsx("px-4 py-4 font-mono font-black text-red-600", 'text-center')}>- {ts('currency')} {subtotalNum.toLocaleString(locale)}</td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                         <tfoot className="bg-red-50/50 dark:bg-red-950/10 font-black border-t-2 border-red-100 dark:border-red-900/50">
                                             <tr>
