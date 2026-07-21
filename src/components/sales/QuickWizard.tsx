@@ -99,6 +99,26 @@ export default function QuickWizard({ onSwitchMode, onSaleComplete }: QuickWizar
             console.error(err);
             setIsLoadingProducts(false);
         });
+
+        // Check for edit invoice draft in sessionStorage
+        const editDraftRaw = sessionStorage.getItem('sales_edit_draft');
+        if (editDraftRaw) {
+            try {
+                const editDraft = JSON.parse(editDraftRaw);
+                if (editDraft.cart && Array.isArray(editDraft.cart)) {
+                    setCart(editDraft.cart.map((c: any) => ({
+                        id: c.id,
+                        product: c.product,
+                        quantity: c.quantity,
+                        price: c.priceOverride || c.product.baseSellingPrice
+                    })));
+                }
+                if (editDraft.customerName) setCustomerQuery(editDraft.customerName);
+                if (editDraft.paymentMethod) setPaymentMethod(editDraft.paymentMethod);
+                if (editDraft.amountPaid) setAmountPaid(editDraft.amountPaid);
+                sessionStorage.removeItem('sales_edit_draft');
+            } catch (e) {}
+        }
     }, []);
 
     // Search Customers

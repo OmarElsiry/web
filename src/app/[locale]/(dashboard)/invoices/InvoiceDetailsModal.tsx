@@ -2,7 +2,8 @@
 
 import { useState, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { X, FileText, RefreshCcw, Loader2, Trash2 } from 'lucide-react';
+import { X, FileText, RefreshCcw, Loader2, Trash2, Pencil } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 import { undoInvoice } from '@/app/actions/invoices';
 
@@ -36,6 +37,8 @@ export default function InvoiceDetailsModal({
     const locale = useLocale();
 
     const [undoing, setUndoing] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const router = useRouter();
 
     const handleUndoInvoice = useCallback(async () => {
         if (invoice.items?.some(i => i.quantity > i.refundableQuantity)) {
@@ -56,6 +59,61 @@ export default function InvoiceDetailsModal({
         }
         setUndoing(false);
     }, [invoice, t, onUpdate]);
+
+    const handleEditInvoice = useCallback(async () => {
+        if (invoice.items?.some(i => i.quantity > i.refundableQuantity)) {
+             alert(t('details.cannotUndoRefunded', { defaultValue: 'Cannot undo an invoice with processed refunds. Revert refunds first.' }));
+             return;
+        }
+
+        if (!confirm(t('details.confirmEditUndo', { defaultValue: 'Are you sure you want to edit this invoice? The current invoice will be undone and its exact details will be loaded into the sales screen for modification.' }))) {
+            return;
+        }
+
+        setEditing(true);
+
+        const draftItems = (invoice.items || []).map(item => ({
+            id: 'draft-' + Math.random().toString(36).substring(2, 9),
+            product: {
+                id: item.productId,
+                name: item.product?.name || 'Item',
+                sku: item.product?.sku || '',
+                baseSellingPrice: Number(item.unitPrice),
+                categoryId: '',
+                stock: 999
+            },
+            nameOverride: item.product?.name || '',
+            unitOverride: '',
+            codeOverride: item.product?.sku || '',
+            quantity: item.quantity,
+            priceOverride: Number(item.unitPrice),
+            discountPercent: '',
+            discountValue: ''
+        }));
+
+        const editDraft = {
+            cart: draftItems,
+            customerName: invoice.customerName || '',
+            phone1: invoice.customerPhone || '',
+            address: invoice.customerAddress || '',
+            selectedCustomerId: invoice.customerId || null,
+            selectedStaffId: invoice.userId || null,
+            paymentMethod: invoice.paymentMethod || 'CASH',
+            amountPaid: invoice.amountPaid !== undefined ? String(invoice.amountPaid) : ''
+        };
+
+        sessionStorage.setItem('sales_edit_draft', JSON.stringify(editDraft));
+
+        const res = await undoInvoice(invoice.id);
+        if (res.success) {
+            onUpdate();
+            router.push('/sales');
+        } else {
+            sessionStorage.removeItem('sales_edit_draft');
+            alert(res.error || 'Failed to undo invoice for editing');
+            setEditing(false);
+        }
+    }, [invoice, t, onUpdate, router]);
 
     const handleOpenPrintTab = useCallback(() => {
         window.open(`/invoices/${invoice.id}/print`, '_blank');
@@ -231,9 +289,17 @@ export default function InvoiceDetailsModal({
                 <div className="p-6 border-t border-border/50 bg-background flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <button
+                            onClick={handleEditInvoice}
+                            disabled={undoing || editing}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-amber-500/10 hover:bg-amber-500 hover:text-white text-amber-600 border border-amber-500/30 rounded-xl font-bold transition-all disabled:opacity-50"
+                        >
+                            {editing ? <Loader2 className="animate-spin" size={18} /> : <Pencil size={18} />}
+                            {t('details.editInvoice', { defaultValue: 'Edit Invoice' })}
+                        </button>
+                        <button
                             onClick={handleUndoInvoice}
-                            disabled={undoing}
-                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 rounded-xl font-bold transition-all disabled:opacity-50"
+                            disabled={undoing || editing}
+                            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 rounded-xl font-bold transition-all disabled:opacity-50"
                         >
                             {undoing ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                             {t('details.undoOrder', { defaultValue: 'Undo Invoice' })}

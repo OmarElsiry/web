@@ -341,7 +341,10 @@
       "cancelEdit": "Cancel Edit",
       "editWarning": "Editing will adjust inventory and revenue.",
       "amountPaid": "Amount Paid",
-      "undoOrder": "Undo Invoice"
+      "undoOrder": "Undo Invoice",
+      "editInvoice": "Edit Invoice (Undo & Reopen)",
+      "cannotUndoRefunded": "Cannot undo an invoice with processed refunds. Revert refunds first.",
+      "confirmEditUndo": "Are you sure you want to edit this invoice? The current invoice will be undone and its exact details will be loaded into the sales screen for modification."
     },
     "errors": {
       "updateFailed": "Failed to update invoice."

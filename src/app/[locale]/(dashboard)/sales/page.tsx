@@ -175,6 +175,28 @@ export default function SalesPage() {
             } catch (e) {}
         }
 
+        // Check for edit invoice draft in sessionStorage
+        const editDraftRaw = sessionStorage.getItem('sales_edit_draft');
+        if (editDraftRaw) {
+            try {
+                const editDraft = JSON.parse(editDraftRaw);
+                if (editDraft.cart && Array.isArray(editDraft.cart)) {
+                    setCart(editDraft.cart);
+                }
+                if (editDraft.customerName) setCustomerName(editDraft.customerName);
+                if (editDraft.phone1) setPhone1(editDraft.phone1);
+                if (editDraft.address) setAddress(editDraft.address);
+                if (editDraft.selectedCustomerId) setSelectedCustomerId(editDraft.selectedCustomerId);
+                if (editDraft.selectedStaffId) setSelectedStaffId(editDraft.selectedStaffId);
+                if (editDraft.paymentMethod) setPaymentMethod(editDraft.paymentMethod);
+                if (editDraft.amountPaid) setAmountPaid(editDraft.amountPaid);
+                
+                sessionStorage.removeItem('sales_edit_draft');
+            } catch (e) {
+                console.error('Failed to parse sales_edit_draft:', e);
+            }
+        }
+
         Promise.all([getProducts(), getStaffList(), getCurrentUser()]).then(([prods, staff, user]) => {
             setProducts(prods as any);
             setStaffList(staff);
