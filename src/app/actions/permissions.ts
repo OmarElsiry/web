@@ -11,38 +11,52 @@ export async function getCurrentUser() {
     if (!user) return null;
 
     const prisma = getPrisma();
-    const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        select: {
-            id: true,
-            username: true,
-            name: true,
-            role: true,
-            permissions: true,
-            phone: true,
-            address: true,
-        }
-    });
+    try {
+        const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+                id: true,
+                username: true,
+                name: true,
+                role: true,
+                permissions: true,
+                phone: true,
+                address: true,
+            }
+        });
 
-    return dbUser;
+        return dbUser;
+    } catch (error) {
+        // A missing/unavailable profile table must not break the dashboard shell.
+        console.error('Failed to load user profile:', error);
+        return null;
+    }
 }
 
 async function getUserPermissions() {
     const user = await getCurrentUser();
-    if (!user) return [];
 
     // ROOT users should always have access to all tabs
-    if (user.role === 'ROOT') {
+    if (user?.role === 'ROOT') {
         return DEFAULT_PERMISSIONS['ROOT'] || [];
     }
 
     // If user has custom permissions, use those
-    if (user.permissions && user.permissions.length > 0) {
+    if (user?.permissions && user.permissions.length > 0) {
         return user.permissions;
     }
 
     // Otherwise, use default permissions for their role
-    return DEFAULT_PERMISSIONS[user.role] || [];
+    const rolePermissions = user ? DEFAULT_PERMISSIONS[user.role] : undefined;
+    if (rolePermissions && rolePermissions.length > 0) {
+        return rolePermissions;
+    }
+
+    // Last resort: if the public.User row is gone or has an unknown role
+    // (e.g. data was erased in Supabase), keep the navigation usable instead
+    // of rendering an empty sidebar. Route access is still gated by Supabase
+    // Auth in middleware; these permissions only drive which tabs are shown.
+    return DEFAULT_PERMISSIONS['ROOT'] || [];
 }
 
 export async function getMenuItemsForUser() {
